@@ -1,0 +1,310 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row>
+        <el-col :span="6">
+          <el-button type="primary" size="small" @click="addMonthlyForm">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+        </el-col>
+      </el-row>
+      <!-- 日常文化建设 -->
+      <el-table
+        v-loading="dailyCulturalConstructionListLoading"
+        :data="page.list"
+        border
+        style="width: 100%"
+      >
+        <!-- 详情展示 -->
+
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <el-card class="box-card">
+              <div slot="header" class="card-title">
+                <span>{{ props.row.title }}</span>
+              </div>
+              <div class="card-body">
+                <div class="card-body-title">
+                  <span class="operatorName">操作人: {{ props.row.operatorName }}</span>
+                  <span>提交时间: {{ props.row.updateTime | dateFormat('YYYY-MM-DD') }}</span>
+                </div>
+                <div class="card-body-content">
+                  {{ props.row.content }}
+                </div>
+              </div>
+            </el-card>
+          </template>
+        </el-table-column>
+
+        <el-table-column
+          prop="title"
+          label="主题"
+        />
+        <el-table-column
+          key="zh-mode"
+          prop="zh-mode"
+          label="宣传方式"
+        />
+        <el-table-column
+          prop="content"
+          label="内容"
+        >
+          <template slot-scope="scope">
+            {{ scope.row.content | ellipsis }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="date"
+          label="时间"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editMonthlyForm(scope)" />
+              <sun-button :type="'delete'" @click="delMonthlyList(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'history'" @click="history(scope)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column
+            prop="title"
+            label="主题"
+          />
+          <el-table-column
+            key="zh-mode"
+            prop="zh-mode"
+            label="宣传方式"
+          />
+          <el-table-column
+            prop="content"
+            label="内容"
+          />
+          <el-table-column
+            prop="date"
+            label="时间"
+          />
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <el-dialog title="日常文化建设" :visible.sync="dailyCulturalConstructionFormDialog" width="600px">
+        <el-form
+          ref="dailyCulturalConstructionForm"
+          :rules="dailyCulturalConstructionFormRules"
+          size="small"
+          :model="dailyCulturalConstructionForm"
+          label-width="78px"
+          @closed="handleDialogClosed"
+        >
+          <el-form-item label="主题" prop="title">
+            <el-input v-model="dailyCulturalConstructionForm.title" />
+          </el-form-item>
+          <el-form-item label="内容" prop="content">
+            <el-input v-model="dailyCulturalConstructionForm.content" />
+          </el-form-item>
+          <el-form-item label="时间" prop="date">
+            <el-date-picker
+              v-model="dailyCulturalConstructionForm.date"
+              size="small"
+              value-format="yyyy-MM-dd"
+              type="date"
+              placeholder="选择日期"
+            />
+          </el-form-item>
+          <el-form-item label="宣传方式" prop="mode">
+            <sun-select v-model="dailyCulturalConstructionForm.mode" :module="'宣传方式'" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="dailyCulturalConstructionFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+import { dailyCultureAdd, dailyCultureDelete, dailyCultureUpdate, dailyCultureList, historyDailyCulture } from '@/api/safetyPublicity/dailyCulturalConstruction'
+export default {
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 12
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      dailyCulturalConstructionForm: {
+        title: '',
+        content: '',
+        date: '',
+        mode: ''
+      },
+      dailyCulturalConstructionFormRules: {
+        title: [{ required: true, message: '主题不能为空', trigger: 'blur' }],
+        content: [{ required: true, message: '内容不能为空', trigger: 'blur' }],
+        date: [{ required: true, message: '日期不能为空', trigger: 'blur' }],
+        mode: [{ required: true, message: '宣传方式不能为空', trigger: 'blur' }]
+      },
+      dailyCulturalConstructionListLoading: true,
+      dailyCulturalConstructionFormDialog: false,
+      btnLoading: false,
+      accidentReportListLoading: true,
+      historyTable: false,
+      historyDialog: false
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 获取信息
+    fetchData() {
+      dailyCultureList(this.params).then(res => {
+        this.dailyCulturalConstructionListLoading = false
+        this.page = res.data.obj
+        const list = zhClassify(this.page.list, [['宣传方式', 'mode']])
+
+        this.table = list
+      })
+    },
+    // 提交安全生产会
+    dailyCulturalConstructionFormSubmit() {
+      this.$refs.dailyCulturalConstructionForm.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            dailyCultureAdd(this.dailyCulturalConstructionForm).then(res => {
+              this.btnLoading = false
+              this.dailyCulturalConstructionFormDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            dailyCultureUpdate(this.dailyCulturalConstructionForm).then((res) => {
+              this.btnLoading = false
+              this.dailyCulturalConstructionFormDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.dailyCulturalConstructionForm.resetFields()
+      this.dailyCulturalConstructionFormDialog = false
+    },
+    addMonthlyForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.dailyCulturalConstructionForm.title = null
+        this.dailyCulturalConstructionForm.content = null
+        this.dailyCulturalConstructionForm.date = null
+        this.dailyCulturalConstructionForm.mode = null
+        this.$refs.dailyCulturalConstructionForm.resetFields()
+      })
+      this.dailyCulturalConstructionFormDialog = true
+    },
+    editMonthlyForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.dailyCulturalConstructionForm = { ...scope.row }
+      })
+      // 编辑信息模态框显示
+      this.dailyCulturalConstructionFormDialog = true
+    },
+    // 删除人员持证表单
+    delMonthlyList(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          dailyCultureDelete(row.id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyDailyCulture(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        zhClassify(this.historyTable, [['宣传方式', 'mode']])
+        this.historyDialog = true
+      })
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.box-card{
+  width: 1000px;
+  margin: 0 auto;
+
+  .card-title{
+    text-align: center;
+    font-size: 36px;
+    font-weight: bold;
+  }
+
+  .card-body{
+    width: 70%;
+    line-height: 1.8em;
+    margin: 0 auto;
+
+    .card-body-title{
+      text-align: center;
+      padding-bottom: 10px;
+      color: #919395;
+      .operatorName{
+        margin-right: 10px;
+      }
+    }
+
+    .card-body-content{
+      text-indent:2em;
+      text-align: justify;
+      line-height: 1.8em;
+      font-size: 16px;
+    }
+
+  }
+}
+</style>

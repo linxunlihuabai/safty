@@ -1,0 +1,532 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-button type="primary" size="small" @click="addSpecialEquipmentForm">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <el-table
+        v-loading="specialEquipmentListLoading"
+        :data="page.list"
+        border
+        style="width: 120%"
+      >
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <el-form class="demo-table-expand">
+              <el-row class="zhou-one">
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="产品编号：">
+                    <span>{{ props.row.equipmentNumber }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="出场时间：">
+                    <span>{{ props.row.productionDate }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="注册代码：">
+                    <span>{{ props.row.registrationCode }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="使用证号：">
+                    <span>{{ props.row.useNumber }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="id"
+          label="序号"
+        />
+        <el-table-column
+          prop="equipmentName"
+          label="设备名称"
+        />
+        <el-table-column
+          prop="equipmentModel"
+          label="型号"
+        />
+        <el-table-column
+          prop="enterpriseName"
+          label="归属单位"
+        />
+        <el-table-column
+          prop="useAddress"
+          label="使用地点"
+        />
+        <el-table-column
+          prop="useDate"
+          label="投用日期"
+        />
+        <el-table-column
+          prop="efectiveDateStart"
+          label="有效日期起"
+        />
+        <el-table-column
+          prop="efectiveDateEnd"
+          label="有效日期止"
+        />
+        <el-table-column label="年检合格证" width="94">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'view'" @click="viewPics(scope.row.files)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editSpecialEquipmentForm(scope)" />
+              <sun-button :type="'delete'" @click="delSpecialEquipment(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="90">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'history'" @click="history(scope)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!-- 展示图片的 -->
+      <el-dialog append-to-body :visible.sync="dialogViewPics" class="ViewPics">
+        <el-row :gutter="20" type="flex" justify="center">
+          <el-col v-for="(item,index) in files" :key="index" :span="8">
+            <el-image style="width:120%" :src="item.url" />
+          </el-col>
+        </el-row>
+      </el-dialog>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column type="expand">
+            <template slot-scope="props">
+              <el-form class="demo-table-expand">
+                <el-row class="zhou-one">
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="产品编号：">
+                      <span>{{ props.row.equipmentNumber }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="出场时间：">
+                      <span>{{ props.row.productionDate }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="注册代码：">
+                      <span>{{ props.row.registrationCode }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="使用证号：">
+                      <span>{{ props.row.useNumber }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="id"
+            label="序号"
+          />
+          <el-table-column
+            prop="equipmentName"
+            label="设备名称"
+          />
+          <el-table-column
+            prop="equipmentModel"
+            label="型号"
+          />
+          <el-table-column
+            prop="enterpriseName"
+            label="归属单位"
+          />
+          <el-table-column
+            prop="useAddress"
+            label="使用地点"
+          />
+          <el-table-column
+            prop="useDate"
+            label="投用日期"
+          />
+          <el-table-column
+            prop="efectiveDateStart"
+            label="有效日期起"
+          />
+          <el-table-column
+            prop="efectiveDateEnd"
+            label="有效日期止"
+          />
+          <el-table-column label="年检合格证" width="94">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <el-button type="text" size="mini" icon="el-icon-search" @click="viewPics(scope.row.files)" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <el-dialog title="特种设备情况" :visible.sync="specialEquipmentFormDialog" width="800px">
+        <el-form
+          ref="specialEquipmentForm"
+          :rules="specialEquipmentFormRules"
+          size="small"
+          :model="specialEquipmentForm"
+          label-width="120px"
+          @closed="handleDialogClosed"
+        >
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="设备名称" prop="equipmentName">
+                <el-input v-model="specialEquipmentForm.equipmentName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册代码" prop="registrationCode">
+                <el-input v-model="specialEquipmentForm.registrationCode" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="产品编号" prop="equipmentNumber">
+                <el-input v-model="specialEquipmentForm.equipmentNumber" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="使用证号" prop="useNumber">
+                <el-input v-model="specialEquipmentForm.useNumber" />
+              </el-form-item>
+            </el-col>
+            <!--  <el-col :span="6">
+              <el-form-item label="编号" prop="id" label-width="60px">
+                <el-input v-model="specialEquipmentForm.id" disabled />
+              </el-form-item>
+            </el-col> -->
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="出厂时间" prop="productionDate">
+                <el-date-picker
+                  v-model="specialEquipmentForm.productionDate"
+                  type="date"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="使用地点" prop="useAddress">
+                <el-input v-model="specialEquipmentForm.useAddress" />
+              </el-form-item>
+            </el-col>
+            <!--  <el-row>
+              <el-col :span="14">
+                <el-form-item label="有效期" prop="certificateTimeData" label-width="78px">
+                  <el-date-picker
+                    v-model="specialEquipmentForm.certificateTimeData"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    value-format="yyyy-MM-dd"
+                    @change="certificationTimeData"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row> -->
+          </el-row>
+          <el-row>
+            <el-col :span="12" style="width:48%">
+              <el-form-item label="投用日期" prop="useDate">
+                <el-date-picker
+                  v-model="specialEquipmentForm.useDate"
+                  type="date"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="型号" prop="equipmentModel">
+                <el-input v-model="specialEquipmentForm.equipmentModel" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="有效日期起" prop="efectiveDateStart">
+                <el-date-picker
+                  v-model="specialEquipmentForm.efectiveDateStart"
+                  type="date"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="有效日期止" prop="efectiveDateEnd">
+                <el-date-picker
+                  v-model="specialEquipmentForm.efectiveDateEnd"
+                  type="date"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="年检合格证" prop="files">
+                <sun-upload
+                  ref="UPLOAD"
+                  :before-upload="beforeAvatarUpload"
+                  :data="GLOBAL.FILE_TYPE.INVOICE"
+                  :action="GLOBAL.FILE_API"
+                  :on-success="handleSuccess"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemove"
+                  :file-list="specialEquipmentForm.files"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="specialEquipmentFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import SunUpload from '@/components/upload'
+import { specialEquipmentAdd, specialEquipmentDelete, specialEquipmentUpdate, specialEquipmentsList, historySpecialEquipment } from '@/api/securityManagement/specialEquipment'
+export default {
+  components: {
+    SunUpload
+  },
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 12
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      specialEquipmentForm: {
+        id: '',
+        equipmentModel: '',
+        equipmentName: '',
+        useAddress: '',
+        equipmentNumber: '',
+        productionDate: '',
+        registrationCode: '',
+        useNumber: '',
+        useDate: '',
+        efectiveDateEnd: '',
+        efectiveDateStart: '',
+        // 测试有效期--区间
+        certificateTimeData: '',
+        // 附件
+        attachmentsFiles: [],
+        attachments: null
+      },
+      specialEquipmentFormRules: {
+        equipmentModel: [{ required: true, message: '型号不能为空', trigger: 'blur' }],
+        equipmentName: [{ required: true, message: '设备名称不能为空', trigger: 'blur' }],
+        useAddress: [{ required: true, message: '使用地点不能为空', trigger: 'blur' }],
+        equipmentNumber: [{ required: true, message: '产品编号不能为空', trigger: 'blur' }],
+        productionDate: [{ required: true, message: '出厂时间不能为空', trigger: 'blur' }],
+        registrationCode: [{ required: true, message: '注册代码不能为空', trigger: 'blur' }],
+        useNumber: [{ required: true, message: '使用证号不能为空', trigger: 'blur' }],
+        useDate: [{ required: true, message: '投用日期不能为空', trigger: 'blur' }],
+        efectiveDateEnd: [{ required: true, message: '有效日期止不能为空', trigger: 'blur' }],
+        efectiveDateStart: [{ required: true, message: '有效日期起不能为空', trigger: 'blur' }]
+      },
+      files: [],
+      btnLoading: false,
+      specialEquipmentListLoading: true,
+      historyTable: false,
+      historyDialog: false,
+      specialEquipmentFormDialog: false,
+      dialogViewPics: false
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    // 查看历史修改
+    history(scope) {
+      historySpecialEquipment(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historyDialog = true
+      })
+    },
+    // 删除人员持证表单
+    delSpecialEquipment(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          specialEquipmentDelete(row.id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 获取信息
+    fetchData() {
+      specialEquipmentsList(this.params).then(res => {
+        this.specialEquipmentListLoading = false
+        this.page = res.data.obj
+      })
+    },
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 有效期区间进行赋值
+    /*  certificationTimeData() {
+    if (this.certificateForm.certificateTimeData === null || this.certificateForm.certificateTimeData.length === 0) {
+        return
+      }
+      this.certificateForm.certificationTime = this.certificateForm.certificateTimeData[0]
+      this.certificateForm.dueTime = this.certificateForm.certificateTimeData[1]
+    },*/
+    // 点击特种设备情况提交
+    specialEquipmentFormSubmit() {
+      this.$refs.specialEquipmentForm.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            specialEquipmentAdd(this.specialEquipmentForm).then(res => {
+              this.btnLoading = false
+              this.specialEquipmentFormDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            specialEquipmentUpdate(this.specialEquipmentForm).then((res) => {
+              this.btnLoading = false
+              this.specialEquipmentFormDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    addSpecialEquipmentForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+      // 每次打开，重置表单并清除验证
+        this.specialEquipmentForm.equipmentName = null
+        this.specialEquipmentForm.equipmentModel = null
+        this.specialEquipmentForm.useAddress = null
+        this.specialEquipmentForm.equipmentNumber = null
+        this.specialEquipmentForm.productionDate = null
+        this.specialEquipmentForm.registrationCode = null
+        this.specialEquipmentForm.useNumber = null
+        this.specialEquipmentForm.useDate = null
+        this.specialEquipmentForm.efectiveDateEnd = null
+        this.specialEquipmentForm.efectiveDateStart = null
+      })
+      this.specialEquipmentFormDialog = true
+    },
+    // 修改特种设备情况
+    editSpecialEquipmentForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.specialEquipmentForm = { ...scope.row }
+      })
+      this.specialEquipmentFormDialog = true
+    },
+    // 查看照片
+    viewPics(files) {
+      this.dialogViewPics = true
+      this.files = files
+    },
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.specialEquipmentForm.resetFields()
+      this.specialEquipmentFormDialog = false
+    },
+    handleSuccess(response, file, files) {
+      // attachments是文件id,files文件列表是组件的，他代替我们进行删除新增。我们拿到的数据已经是完成的数据了。
+      this.specialEquipmentForm.attachments = response.obj.fileId
+      this.specialEquipmentForm.attachmentsFiles = files
+    },
+    handleError(err, file, files) {
+      console.log('上传失败' + err)
+    },
+    handleRemove(file, files) {
+      this.specialEquipmentForm.attachments = null
+      this.specialEquipmentForm.files = files
+    },
+    handlePictureCardPreview(file) {
+      this.viewPics([file])
+    },
+    // 图片格式
+    beforeAvatarUpload(file) {
+      const isJPG = file.type === 'image/jpeg'
+      const isPng = file.type === 'image/png'
+      const isLt2M = file.size / 1024 / 1024 < 2
+      if (!isJPG && !isPng) {
+        this.$message.error('上传图片只能是 JPG或png 格式!')
+      }
+      if (!isLt2M) {
+        this.$message.error('上传图片大小不能超过 2MB!')
+      }
+      return (isJPG || isPng) && isLt2M
+    },
+    /* 显示图片出错时 */
+    handleLoadError(e) {
+      const img = e.srcElement
+      this.imageUrl = this.errorLoadImg //  用加载失败的图片替代之
+      img.onerror = null //  清除错误:如果错误时加载时显示的图片出错，将会一直循环，所以我们必须清除掉错误，限制运行一次
+    }
+  }
+}
+</script>
+
+<style  lang="scss" scoped>
+.el-row {
+  margin-bottom: 0;
+}
+.demo-table-expand .el-form-item {
+  margin-bottom: 0px;
+}
+.el-date-editor.el-input, .el-date-editor.el-input__inner{
+  width:238px;
+}
+.el-input--small,.el-select--small,.el-input-number--small{
+  width:100%;
+}
+</style>

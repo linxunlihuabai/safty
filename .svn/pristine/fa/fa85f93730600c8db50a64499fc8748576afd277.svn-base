@@ -1,0 +1,6 @@
+import { postRequest } from '@/utils/request'
+
+// 获取项目列表
+export function upload(data) {
+  return postRequest('/ajax/upload', data)
+}

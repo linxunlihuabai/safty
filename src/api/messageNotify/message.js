@@ -1,0 +1,44 @@
+import { getRequest, postRequest, deleteRequest, putRequest } from '@/utils/request'
+
+// 获取消息简要列表
+export function getMessagesList(data) {
+  return postRequest('/home/messages/getmessageslist', data)
+}
+// 获取获取收件箱列表
+export function getAcceptList(data) {
+  return postRequest('/home/messages/getAcceptList', data)
+}
+// 获取获取发件箱列表
+export function getSendList(data) {
+  return postRequest('/home/messages/getSendList', data)
+}
+
+// 获取消息详情
+export function getMessages(id) {
+  return getRequest(`/home/messages/getMessages`, id)
+}
+
+// 获取未读消息数量
+export function getUnreadNum() {
+  return getRequest(`/home/messages/getunreadNum`)
+}
+
+// 获取联系人名单
+export function getMailList() {
+  return getRequest('/user/getmaillist')
+}
+
+// 发送消息
+export function sendMessages(data) {
+  return postRequest('/home/messages/send', data)
+}
+
+// 回复消息
+export function replyMessages(data) {
+  return postRequest(`/home/messages/reply`, data)
+}
+
+// 回复已读
+export function readMessages(id) {
+  return postRequest(`/home/messages/read`, id)
+}

@@ -1,0 +1,272 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <!-- 温馨提示 -->
+      <div class="prompt">请填写正确的统一社会信用代码、工商注册号或组织机构代码，一旦注册，不允许修改！统一社会信用代码为新版“一照一码”营业执照的代码。</div>
+      <el-row>
+        <el-col>
+          <el-steps :active="active" finish-status="success">
+            <el-step title="填写注册信息"></el-step>
+            <el-step title="完善企业信息并点击“提交审核”"></el-step>
+            <el-step title="注册成功，等待审核结果"></el-step>
+          </el-steps>
+        </el-col>
+      </el-row>
+      <!-- 注册表单信息 -->
+      <el-form ref="step1Obj" size="small" :rules="rules" :model="step1Obj" label-width="150px">
+        <el-form-item label="统一社会信息代码" prop="unifiedSocialInformationCode">
+          <el-input v-model="step1Obj.unifiedSocialInformationCode"></el-input>
+        </el-form-item>
+        <el-form-item label="用户名" prop="userName">
+          <el-input v-model="step1Obj.userName"></el-input>
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input type="password" v-model="step1Obj.password"></el-input>
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input type="password" v-model="step1Obj.confirmPassword"></el-input>
+        </el-form-item>
+        <el-form-item label="企业名称" prop="companyName">
+          <el-input v-model="step1Obj.companyName"></el-input>
+        </el-form-item>
+        <el-form-item label="安全负责人" prop="safetyDirector">
+          <el-input v-model="step1Obj.safetyDirector"></el-input>
+        </el-form-item>
+        <el-form-item label="移动电话号码" prop="mobile">
+          <el-input v-model="step1Obj.mobile"></el-input>
+        </el-form-item>
+        <el-form-item label="邮箱" prop="mailboxVerification">
+          <el-input v-model="step1Obj.mailboxVerification"></el-input>
+        </el-form-item>
+        <el-row>
+          <el-form-item label="验证码" class="captcha" prop="captcha">
+            <el-col :span="12">
+              <el-input v-model="step1Obj.captcha" placeholder="请输入验证码"></el-input>
+            </el-col>
+            <el-col :span="12" style="padding-left:20px;">
+              <el-button
+                type="button"
+                @click="sendcode"
+                :disabled="disabled"
+                v-if="!disabled"
+              >点击进行邮箱验证</el-button>
+              <el-button
+                type="button"
+                @click="sendcode"
+                :disabled="disabled"
+                v-if="disabled"
+              >{{btntxt}}</el-button>
+            </el-col>
+          </el-form-item>
+        </el-row>
+        <el-form-item>
+          <el-button type="primary" @click="submitForm('step1Obj')">下一步</el-button>
+          <el-button>取消</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+  </div>
+</template>
+
+<script>
+import { regList } from "@/utils/regList";
+import { getRegisterCaptcha } from '@/api/user/index'
+// import { getRegister, getRegisterCaptcha } from "@/api/login/register";
+import Breadcrumb from "@/components/Breadcrumb";
+export default {
+  components: {
+    Breadcrumb
+  },
+  data() {
+    var isvalidPhone = (rule, value, callback) => {
+      const reg = /^1[3|4|5|7|8][0-9]\d{8}$/;
+      if (value === "") {
+        callback(new Error("手机号码不能为空"));
+      }
+      if (!reg.test(value)) {
+        callback(new Error("请输入正确的手机号码"));
+      }
+      return true;
+    };
+
+    // 密码进行验证 密码不能全部是数字，或全部是小写字母，或全部是大写字母
+    var validatePass = (rule, value, callback) => {
+      /* 密码不能全部是数字，或全部是小写字母，或全部是大写字母 */
+      if (value === "") {
+        callback(new Error("请输入密码"));
+      } else if (value.toString().length < 8 || value.toString().length > 18) {
+        callback(new Error("密码长度为8-16位"));
+      } else if (/^[0-9]{1,20}$/.exec(value)) {
+        callback(new Error("不能全是数字"));
+      } else if (/^[a-z]+$/.exec(value)) {
+        callback(new Error("不能全是小写字母"));
+      } else if (/^[A-Z]+$/.exec(value)) {
+        callback(new Error("不能全是大写字母"));
+      } else {
+        callback();
+      }
+    };
+
+    // 再次输入密码验证
+    var validatePass2 = (rule, value, callback) => {
+      if (value === "") {
+        callback(new Error("请再次输入密码"));
+      } else if (value !== this.step1Obj.password) {
+        callback(new Error("两次输入密码不一致!"));
+      } else {
+        return true;
+      }
+    };
+    /*  // 邮箱进行验证
+    var sendcode = (rule, value, callback) => {
+      var reg = /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/;
+      if (!reg.test(value)) {
+        callback(new Error("请输入正确的邮箱地址"));
+      } else {
+        this.$message({
+          message: "发送成功",
+          type: "success",
+          center: true
+        });
+        return true;
+      }
+    }; */
+    return {
+      step1Obj: {
+        unifiedSocialInformationCode: "",
+        userName: "",
+        password: "",
+        confirmPassword: "",
+        companyName: "",
+        safetyDirector: "",
+        mobile: "",
+        captcha: "",
+        mailboxVerification: ""
+      },
+      taskId: '',
+      rules: {
+        confirmPassword: [{ validator: validatePass2, trigger: "blur" }],
+        password: [{ validator: validatePass, trigger: "blur" }],
+        unifiedSocialInformationCode: [
+          { required: true, message: "请输入统一社会信息代码", trigger: "blur" }
+        ],
+        mailboxVerification: [
+          { required: true, message: "邮箱地址不能为空", trigger: "blur" }
+        ],
+        userName: [
+          {
+            required: true,
+            message: "用户名不能为空",
+            trigger: "blur"
+          }
+        ],
+        companyName: [
+          { required: true, message: "请输入企业名称", trigger: "blur" }
+        ],
+        safetyDirector: [
+          { required: true, message: "请输入安全负责人", trigger: "blur" }
+        ],
+        mobile: [
+          { required: true, message: "请输入移动电话号码", trigger: "blur" }
+        ],
+        captcha: [
+          { required: true, message: "验证码不能为空", trigger: "blur" }
+        ]
+      },
+      disabled: false,
+      time: 0,
+      btntxt: "重新发送",
+      active: 0
+    };
+  },
+  methods: {
+    next() {
+      if (this.active++ === 3) {
+        this.active = 0;
+        return;
+      }
+      if (this.active === 2) {
+        // 到达第三步的操作
+        setTimeout(() => {
+          this.active = 3;
+          this.step1Obj = {
+            roomId: null,
+            time: [new Date(), new Date()],
+            startTime: null,
+            endTime: null
+          };
+          this.freeRoomOptions = [];
+          this.step2Obj = {};
+          this.fetchData();
+        }, 500);
+      }
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          getRegister(this.step1Obj)
+            .then(res => {})
+            .catch(() => {});
+        } else {
+          console.log("error submit!!");
+          return false;
+        }
+      });
+    },
+    //邮箱验证发送验证码
+    sendcode() {
+      const reg = /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/;
+      if (!reg.test(this.step1Obj.mailboxVerification)) {
+        this.$message({
+          message: "请输入正确的邮箱地址",
+          center: true
+        });
+        return;
+      } else {
+        console.log(this.step1Obj.mailboxVerification);
+        getRegisterCaptcha({
+          mail: this.step1Obj.mailboxVerification,
+          taskId: this.taskId
+        }).then(res => {
+          this.taskId = res.obj;
+          this.$message({
+            message: "发送成功",
+            type: "success",
+            center: true
+          });
+        });
+        this.time = 60;
+        this.disabled = true;
+        this.timer();
+      }
+    },
+    //60S倒计时
+    timer() {
+      if (this.time > 0) {
+        this.time--;
+        this.btntxt = this.time + "s后重新获取";
+        setTimeout(this.timer, 1000);
+      } else {
+        this.time = 0;
+        this.btntxt = "获取验证码";
+        this.disabled = false;
+      }
+    }
+  }
+};
+</script>
+
+<style>
+.prompt {
+  width: 900px;
+  height: 34px;
+  line-height: 34px;
+  background-color: #07c181;
+  color: white;
+  padding-left: 8px;
+  margin-bottom: 10px;
+}
+</style>

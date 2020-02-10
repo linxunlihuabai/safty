@@ -1,0 +1,164 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row type="flex" justify="end" align="top">
+
+        <div>
+          <el-autocomplete
+            v-model="searchTemp"
+            size="small"
+            :fetch-suggestions="querySearch"
+            placeholder="请输入内容"
+            style="width:180px;margin-right:10px"
+            :trigger-on-focus="false"
+            @select="handleSelect"
+          />
+
+          <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+        </div>
+      </el-row>
+      <sun-table
+        :loading="tableDataLoading"
+        :columns="columns"
+        :data-source="tableData"
+        :pagination="pagination"
+        class="pointer-table"
+        @row-click="handleRowClick"
+        @size-change="handlePageSizeChange"
+        @current-change="handleCpageChange"
+      >
+
+        <template v-slot:receiverlist="scope">
+          <span v-for="item in scope.row.receiverlist" :key="item.id">
+            <template v-if="item.hasread===1">
+              <i class="el-icon-circle-check hasread" /> {{ item.username }}
+            </template>
+            <template v-else>
+              <i class="el-icon-circle-close unread" /> {{ item.username }}
+            </template>
+
+          </span>
+
+        </template>
+
+        <template v-slot:createdate="scope">
+          {{ scope.row.createdate | dateFormat('YYYY-MM-DD HH:mm:ss') }}
+        </template>
+        <template v-slot:newreplynum="scope">
+
+          <el-tag class="newreplynum" :type="scope.row.newreplynum ? 'danger': 'success'">{{ scope.row.newreplynum }}</el-tag>
+
+        </template>
+
+      </sun-table>
+
+    </div>
+  </div>
+</template>
+
+<script>
+import SunTable from '@/components/table'
+import {
+  getSendList
+} from '@/api/messageNotify/message'
+export default {
+  components: {
+    SunTable
+  },
+  data() {
+    return {
+      table: [],
+      columns: [
+        {
+          prop: 'receiverlist', // <String>  对应属性名
+          label: '收件人', // <String>   表头标签
+          align: 'left',
+          slot: true
+        },
+        {
+          prop: 'title', // <String>  对应属性名
+          label: '标题' // <String>   表头标签
+        },
+
+        {
+          prop: 'createdate', // <String>  对应属性名
+          label: '发送时间', // <String>   表头标签
+          slot: true
+        },
+        {
+          prop: 'newreplynum', // <String>  对应属性名
+          label: '新回复数', // <String>   表头标签
+          align: 'right',
+          slot: true
+        }
+      ],
+      pagination: {
+        cpage: 1,
+        pageSize: 5,
+        total: 0
+      },
+      options: {
+        label: '全部',
+        selection: true
+      }
+    }
+  },
+  computed: {
+    tableData() {
+      const search = this.search
+      return this.fuzzySearch(this.table, search, 'title')
+    },
+    queryList() {
+      return this.table.map(data => {
+        return { value: data.title }
+      })
+    }
+  },
+  created() {
+    this.fetchList()
+  },
+  methods: {
+    fetchList(cpage, pageSize) {
+      const params = {}
+      params.page = cpage || this.pagination.cpage
+      params.size = pageSize || this.pagination.pageSize
+      getSendList(params).then(res => {
+        const pageObj = res.data.obj
+
+        this.pagination.total = pageObj.total
+
+        const list = pageObj.list
+
+        this.table = list
+
+        this.tableDataLoading = false
+      })
+    },
+    handleRowClick(row, column, event) {
+      this.$router.push(`/messageNotify/messageDetails/${row.id}`)
+    }
+  }
+
+}
+</script>
+
+<style lang="scss" scoped>
+.pointer-table{
+  /deep/ .el-table__row{
+    cursor: pointer;
+  }
+}
+.hasread{
+  color: #67C23A
+}
+.unread{
+  color: #F56C6C
+}
+.newreplynum{
+  border-radius: 50%;
+  font-size: 18px;
+}
+</style>

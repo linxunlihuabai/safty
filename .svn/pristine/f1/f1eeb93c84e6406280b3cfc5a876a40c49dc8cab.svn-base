@@ -1,0 +1,2337 @@
+<template>
+  <div class="dashboard-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-tabs v-model="activeName">
+        <el-tab-pane label="企业基本信息" name="first">
+          <!-- 搜索框的按钮哟 -->
+          <el-row>
+            <el-col :span="24">
+              <el-form :inline="true" :model="params" class="demo-form-inline">
+                <!--  <el-form-item label="企业名称" prop="enterpriseId">
+                  <el-cascader
+                    v-model="params.enterpriseIds"
+                    style="width: 100%"
+                    size="small"
+                    placeholder="请选择企业"
+                    :options="enterpriseOptions"
+                    :props="{ checkStrictly: true }"
+                    clearable
+                  />
+                </el-form-item> -->
+                <el-form-item label="查询条件">
+                  <el-input
+                    v-model="params.enterpriseName"
+                    placeholder="单位名称"
+                    style="width:180px;"
+                    size="small"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" icon="el-icon-search" size="small" @click="fetchData">查询</el-button>
+                </el-form-item>
+              </el-form>
+            </el-col>
+          </el-row>
+          <el-button
+            type="primary"
+            size="small"
+            @click="
+              addEnterpriseDialog = true;locData.lng = 0;
+              locData.lat = 0;
+            "
+          >
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+          <el-table
+            ref="table"
+            v-loading="pageEnterpriseLoading"
+            border
+            :data="page.list"
+            size="small"
+            stripe
+            :expand-row-keys="expands"
+            :row-key="getRowKeys"
+            empty-text="空"
+            @expand-change="expandSelect"
+          >
+            <!-- 详情展示 -->
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <el-form class="demo-table-expand">
+                  <el-row class="zhou-one">
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="企业名称：">
+                        <span>{{ props.row.enterpriseName }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="代码证类型：">
+                        <span>{{ props.row['zh-certificateType'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="单位类别：">
+                        <span>{{ props.row.unitCategory }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="注册地址：">
+                        <span>{{ props.row.registerAddress }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="统一社会信用代码：">
+                        <span>{{ props.row.creditCode }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="生产经营地址：">
+                        <span>{{ props.row.businessAddress }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="营业执照类别：">
+                        <span>{{ props.row['zh-businessLicenseCategory'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="法定代表人：">
+                        <span>{{ props.row.legalRepresentative }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row class="zhou-one">
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="法定代表人联系电话：">
+                        <span>{{ props.row.contactNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="经营范围：">
+                        <span>{{ props.row.businessScope }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="行业类别：">
+                        <span>{{ props.row['zh-industryCategory'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="工商登记有效期：">
+                        <el-tag size="small">
+                          {{
+                            props.row.registerValidityStartTime
+                              | dateFormat("YYYY年MM月DD日")
+                          }}
+                        </el-tag>
+                        <el-tag size="small" type="success">
+                          {{
+                            props.row.registerValidityEndTime
+                              | dateFormat("YYYY年MM月DD日")
+                          }}
+                        </el-tag>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="企业规模：">
+                        <span>{{ props.row.scale }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="经济类型：">
+                        <span>{{ props.row['zh-economicType'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="上级单位：">
+                        <span>{{ props.row.parentName }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="在岗员工数：">
+                        <span>{{ props.row.onDutyEmployeeNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row class="zhou-one">
+                    <!--  <el-col :span='12' class='zhou-colBorder'>
+                      <el-form-item label='注册证件上传：'>
+                        <el-image v-for='item in props.row.registerCertificates' :key='item.id' :src=''http://192.168.100.2:8080' + item.url' style='width:150px; height: 150px'>
+                          {{ 'http://192.168.100.2:8080' + item.url }}
+                        </el-image>
+                      </el-form-item>
+                    </el-col>-->
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="外用工人数：">
+                        <span>{{ props.row.externalWorkerNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="企业状态：">
+                        <span>{{ props.row.state }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="12" class="zhou-colBorder">
+                      <el-form-item label="办公地点GPS坐标：">
+                        <baidu-map
+                          :center="props.row.projectGPSCoordinates"
+                          :zoom="zoom"
+                          style="float:left;width: 520px; height: 250px;"
+                          :scroll-wheel-zoom="true"
+                          @ready="smallEnterpriseMap"
+                        />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </el-form>
+              </template>
+            </el-table-column>
+            <el-table-column sortable prop="enterpriseName" label="企业名称" />
+            <el-table-column sortable prop="legalRepresentative" label="法定代表人" />
+            <el-table-column sortable prop="contactNumber" label="联系电话" />
+            <el-table-column sortable prop="parentName" label="上级单位" />
+            <el-table-column label="注册证件" width="80">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-search"
+                    @click="viewPics(scope.row.registerCertificates)"
+                  />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="110">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-edit"
+                    @click="editOpenEnterpriseDialog(scope.$index, scope.row)"
+                  />
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-delete"
+                    @click="delEnterprise(scope.$index, scope.row)"
+                  />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="历史修改" width="80">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button type="text" size="mini" icon="el-icon-view" @click="historyEnterpriseBasicInfo(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+          </el-table>
+          <!-- 分页栏 -->
+          <el-row>
+            <!-- 分页栏 -->
+            <el-pagination
+              class="pagination"
+              layout="total, sizes, prev, pager, next, jumper"
+              :current-page="page.page"
+              :total="page.total"
+              :page-sizes="[10, 20, 50, 100]"
+              @size-change="handleSizeChangeEnterprise"
+              @current-change="handleCurrentChangeEnterprise"
+            />
+          </el-row>
+
+          <el-button icon="el-icon-view" @click="showMap = true">显示地图</el-button>
+          <el-button @click="showMap = false">隐藏地图</el-button>
+          <!-- 引入全局地图 -->
+          <div v-if="showMap">
+            <baidu-map
+              :zoom="zoom"
+              style="width: 100%;height:300px;"
+              :scroll-wheel-zoom="true"
+              @ready="bigEnterpriseMap"
+            />
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="安全生产信息" name="second">
+          <el-row>
+            <el-col :span="24">
+              <el-form :inline="true" :model="params" class="demo-form-inline">
+                <el-form-item label="查询条件">
+                  <el-input
+                    v-model="params.enterpriseName"
+                    placeholder="单位名称"
+                    style="width:180px;"
+                    size="small"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" icon="el-icon-search" size="small" @click="fetchSafeData">查询</el-button>
+                </el-form-item>
+              </el-form>
+            </el-col>
+          </el-row>
+          <el-button type="primary" size="small" @click="addSafeDialogTrue">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+          <el-table
+            ref="table"
+            v-loading="pageSafeLoading"
+            :data="pageSafe.list"
+            size="small"
+            border
+            style="width: 100%"
+          >
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <el-form class="demo-table-expand">
+                  <el-row class="zhou-one">
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="企业名称：">
+                        <span>{{ props.row.enterpriseName }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="从业人数：">
+                        <span>{{ props.row.employeeNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="安全生产主要负责人：">
+                        <span>{{ props.row.safetyProductionMainResponsiblePerson }}
+                        </span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="安全生产主要负责人联系电话：">
+                        <span>
+                          {{ props.row.safetyProductionMainResponsiblePersonContactNumber }}
+                        </span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="注册安全工程师人数：">
+                        <span>{{ props.row.registerSafeEngineerNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="特种作业人数：">
+                        <span>{{ props.row.specialWorkNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="分管安全负责人：">
+                        <span>{{ props.row.inChargeOfSafety }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="分管安全负责人电话：">
+                        <span>
+                          {{ props.row.inChargeOfSecurityResponsiblePersonTelephone }}
+                        </span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row class="zhou-one">
+                    <el-col :span="12" class="zhou-colBorder">
+                      <el-form-item label="安全生产许可证有效期：">
+                        <el-tag size="small">
+                          {{ props.row.productionLicenseValidityStartTime | dateFormat("YYYY年MM月DD日") }}
+                        </el-tag>
+                        <el-tag size="small" type="success">
+                          {{ props.row.productionLicenseValidityEndTime | dateFormat("YYYY年MM月DD日") }}
+                        </el-tag>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="专职安全管理人员：">
+                        <span>{{ props.row.safetyManagementPersonnel }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="专职安全管理人员电话：">
+                        <span>
+                          {{ props.row.safetyManagementPersonnelTelephone }}
+                        </span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="单位值班电话：">
+                        <span>{{ props.row.unitOnDutyPhone }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="电子邮箱：">
+                        <span>{{ props.row.email }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="上级单位：">
+                        <span>{{ props.row.parentName }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="生产状态：">
+                        <span>{{ props.row['zh-productionState'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </el-form>
+              </template>
+            </el-table-column>
+            <el-table-column prop="safetyProductionMainResponsiblePerson" label="安全生产主要负责人" />
+            <el-table-column
+              prop="safetyProductionMainResponsiblePersonContactNumber"
+              label="安全生产主要负责人联系电话"
+            />
+            <el-table-column prop="unitOnDutyPhone" label="单位值班电话" />
+            <el-table-column sortable prop="parentName" label="上级单位" />
+            <el-table-column label="许可证扫描件" width="110">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-search"
+                    @click="viewPics(scope.row.licenseScanFiles)"
+                  />
+                  <el-button type="text" size="mini" icon="el-icon-search">文件</el-button>
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="110">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-edit"
+                    @click="editOpenSafeDialog(scope.$index, scope.row)"
+                  />
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-delete"
+                    @click="delSafe(scope.$index, scope.row)"
+                  />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="历史修改" width="110">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-view"
+                    @click="historySafe(scope)"
+                  />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <!-- 分页栏 -->
+            <el-row>
+              <!-- 分页栏 -->
+              <el-pagination
+                class="pagination"
+                layout="total, sizes, prev, pager, next, jumper"
+                :current-page="page.page"
+                :total="page.total"
+                :page-sizes="[10, 20, 50, 100]"
+                @size-change="handleSizeChangeSafe"
+                @current-change="handleCurrentChangeSafe"
+              />
+            </el-row>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+      <!-- 企业基本信息-修改 -->
+      <el-dialog title="企业基本信息-修改" :visible.sync="editEnterpriseDialog" width="1200px">
+        <el-form
+          ref="editEnterpriseData"
+          :rules="enterpriseRules"
+          size="small"
+          :model="editEnterpriseData"
+        >
+          <el-row>
+            <el-col :span="6" class="colBorder" style="background-color:#F6F6F8;">
+              <el-form-item label="企业名称" label-width="78px" prop="enterpriseId">
+                <el-cascader
+                  v-model="editEnterpriseData.enterpriseIds"
+                  style="width: 100%"
+                  size="small"
+                  placeholder="请选择企业"
+                  :options="enterpriseOptions"
+                  :props="{ checkStrictly: true }"
+                  clearable
+                  @change="handleEditEnterpriseChange"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="代码证类型" prop="certificateType" label-width="94px">
+                <sun-select :module="'代码证类型'" :value.sync="editEnterpriseData.certificateType" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="单位类别" label-width="78px" prop="unitCategory">
+                <el-input v-model="editEnterpriseData.unitCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="注册地址" prop="registerAddress" label-width="78px">
+                <el-input v-model="editEnterpriseData.registerAddress" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="统一社会信用代码" prop="creditCode" label-width="135px">
+                <el-input v-model="editEnterpriseData.creditCode" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="生产经营地址" prop="businessAddress" label-width="108px">
+                <el-input v-model="editEnterpriseData.businessAddress" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="营业执照类别" prop="businessLicenseCategory" label-width="108px">
+                <sun-select :module="'营业执照类别'" :value.sync="editEnterpriseData.businessLicenseCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="法定代表人" prop="legalRepresentative" label-width="94px">
+                <el-input v-model="editEnterpriseData.legalRepresentative" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="法定代表人联系电话" prop="contactNumber" label-width="148px" required>
+                <el-input v-model="editEnterpriseData.contactNumber" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="经营范围" prop="businessScope" label-width="78px">
+                <el-input v-model="editEnterpriseData.businessScope" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="行业类别" prop="industryCategory" label-width="78px">
+                <sun-select :module="'行业类别'" :value.sync="editEnterpriseData.industryCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="外用工人数" prop="externalWorkerNumber" label-width="92px" required>
+                <el-input-number
+                  v-model="editEnterpriseData.externalWorkerNumber"
+                  :min="0"
+                  :max="1000"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="企业规模" prop="scale" label-width="78px">
+                <el-input v-model="editEnterpriseData.scale" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="经济类型" prop="economicType" label-width="78px">
+                <sun-select :module="'经济类型'" :value.sync="editEnterpriseData.economicType" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="在岗员工数" prop="onDutyEmployeeNumber" label-width="92px" required>
+                <el-input-number
+                  v-model="editEnterpriseData.onDutyEmployeeNumber"
+                  :min="0"
+                  :max="1000"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="企业状态" prop="state" label-width="78px">
+                <el-input v-model="editEnterpriseData.state" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="工商登记有效期" prop="registerValidityEndTime" label-width="120px">
+                <el-date-picker
+                  v-model="registerValidity"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  value-format="yyyy-MM-dd"
+                  @change="editEnterpriseChangeData"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="注册证件" prop="registerCertificates">
+                <el-upload
+                  list-type="picture-card"
+                  :on-success="handleEditSuccess"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleEditRemove"
+                  :before-upload="beforeAvatarUpload"
+                  :file-list="editEnterpriseData.registerCertificates"
+                  :data="GLOBAL.FILE_TYPE.REGISTERED_DOCUMENTS"
+                  action="/ajax/upload"
+                  @error="handleLoadError"
+                >
+                  <i class="el-icon-upload" />
+                  <span style="color: #606266;">点击上传</span>
+                </el-upload>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="办公地点GPS坐标">
+                <el-input v-model="locData.lng" style="width:150px;" />
+                <el-input v-model="locData.lat" style="width:150px;" />
+                <baidu-map
+                  :center="editEnterpriseData.projectGPSCoordinates"
+                  :zoom="zoom"
+                  style="width: 100%; height: 280px"
+                  ak="sCrmUchPh7eKuHSyuZKx0e1acqyk7REF"
+                  :scroll-wheel-zoom="true"
+                  @ready="editEnterpriseDialogMap"
+                  @click="getEditEnterpriseClickInfoMap"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button
+              :loading="btnLoading"
+              type="primary"
+              @click="submitEnterpriseEditForm('editEnterpriseData')"
+            >确定</el-button>
+            <el-button @click="editEnterpriseDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+      <!-- 企业基本信息-新增 -->
+      <el-dialog title="企业基本信息-新增" :visible.sync="addEnterpriseDialog" width="1200px">
+        <el-form
+          id="addEnterpriseData"
+          ref="addEnterpriseData"
+          size="small"
+          :model="addEnterpriseData"
+          :rules="enterpriseRules"
+        >
+          <el-row>
+            <!--   <el-col :span="6" class="colBorder">
+              <el-form-item label="企业名称" required label-width="78px" prop="enterpriseId">
+                <el-cascader
+                  v-model="addEnterpriseData.enterpriseIds"
+                  style="width: 100%"
+                  size="small"
+                  placeholder="请选择企业"
+                  :options="enterpriseOptions"
+                  :props="{ checkStrictly: true }"
+                  clearable
+                  @change="handleAddEnterpriseChange"
+                />
+              </el-form-item>
+            </el-col> -->
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="代码证类型" prop="certificateType" label-width="94px">
+                <sun-select :module="'代码证类型'" :value.sync="addEnterpriseData.certificateType" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="单位类别" label-width="78px" prop="unitCategory">
+                <el-input v-model="addEnterpriseData.unitCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="注册地址" prop="registerAddress" label-width="78px">
+                <el-input v-model="addEnterpriseData.registerAddress" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="企业状态" prop="state" label-width="78px">
+                <el-input v-model="addEnterpriseData.state" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="统一社会信用代码" prop="creditCode" label-width="135px">
+                <el-input v-model="addEnterpriseData.creditCode" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="生产经营地址" prop="businessAddress" label-width="108px">
+                <el-input v-model="addEnterpriseData.businessAddress" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="营业执照类别" prop="businessLicenseCategory" label-width="108px">
+                <sun-select :module="'营业执照类别'" :value.sync="addEnterpriseData.businessLicenseCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="法定代表人" prop="legalRepresentative" label-width="94px">
+                <el-input v-model="addEnterpriseData.legalRepresentative" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="法定代表人联系电话" prop="contactNumber" label-width="148px" required>
+                <el-input v-model="addEnterpriseData.contactNumber" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="经营范围" prop="businessScope" label-width="78px">
+                <el-input v-model="addEnterpriseData.businessScope" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="行业类别" prop="industryCategory" label-width="78px">
+                <sun-select :module="'行业类别'" :value.sync="addEnterpriseData.industryCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="外用工人数" prop="externalWorkerNumber" label-width="92px" required>
+                <el-input-number
+                  v-model="addEnterpriseData.externalWorkerNumber"
+                  :min="0"
+                  :max="1000"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="企业规模" prop="scale" label-width="78px">
+                <el-input v-model="addEnterpriseData.scale" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="经济类型" prop="economicType" label-width="78px">
+                <sun-select :module="'经济类型'" :value.sync="addEnterpriseData.economicType" />
+              </el-form-item>
+            </el-col>
+            <!--  <el-col :span="6" class="colBorder">
+              <el-form-item label="上级单位" prop="parentName" label-width="78px">
+                <el-input v-model="addEnterpriseData.parentName" disabled />
+              </el-form-item>
+            </el-col> -->
+            <el-col :span="6" class="colBorder">
+              <el-form-item label="在岗员工数" prop="onDutyEmployeeNumber" label-width="92px" required>
+                <el-input-number
+                  v-model="addEnterpriseData.onDutyEmployeeNumber"
+                  :min="0"
+                  :max="1000"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="工商登记有效期" prop="registerValidityEndTime" label-width="120px">
+                <el-date-picker
+                  v-model="addEnterpriseData.registerValidity"
+                  type="daterange"
+                  align="right"
+                  unlink-panel
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  value-format="yyyy-MM-dd"
+                  @change="addEnterpriseChangeData"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="注册证件" prop="registerCertificates">
+                <el-upload
+                  v-model="addEnterpriseData.registerCertificates"
+                  :on-success="handleAddSuccess"
+                  action="/ajax/upload"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleAddRemove"
+                  :before-upload="beforeAvatarUpload"
+                  :data="GLOBAL.FILE_TYPE.REGISTERED_DOCUMENTS"
+                  list-type="picture-card"
+                  @error="handleLoadError"
+                >
+                  <i class="el-icon-upload" />
+                  <span style="color: #606266;">点击上传</span>
+                </el-upload>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="办公地点GPS坐标" required>
+                <el-row>
+                  <el-col :span="8">
+                    <el-row>
+                      <el-col :span="12">
+                        <el-input v-model="locData.lng" placeholder="坐标经度" />
+                      </el-col>
+                      <el-col :span="12">
+                        <el-input
+                          v-model="locData.lat"
+                          placeholder="坐标纬度"
+                          style="padding-left:10px;"
+                        />
+                      </el-col>
+                    </el-row>
+                  </el-col>
+                </el-row>
+                <baidu-map
+                  :center="addEnterpriseData.projectGPSCoordinates"
+                  :zoom="zoom"
+                  style="float:left width: 100%; height: 280px"
+                  ak="sCrmUchPh7eKuHSyuZKx0e1acqyk7REF"
+                  :scroll-wheel-zoom="true"
+                  @ready="addEnterpriseDialogMap"
+                  @click="getAddEnterpriseClickInfoMap"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item>
+              <el-button
+                :loading="btnLoading"
+                type="primary"
+                @click="submitEnterpriseAddForm('addEnterpriseData')"
+              >确定</el-button>
+              <el-button @click="addEnterpriseDialog = false">取消</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </el-dialog>
+
+      <!-- 安全生产信息的修改 -->
+      <el-dialog title="安全生产信息-修改" :visible.sync="editSafeDialog" width="1100px">
+        <el-form
+          ref="editSafeData"
+          :rules="rulesSafe"
+          size="small"
+          :model="editSafeData"
+          label-width="150px"
+        >
+          <el-card class="box-card">
+            <div slot="header" class="clearfix">
+              <span>基本信息</span>
+            </div>
+            <el-row>
+              <el-col :span="8" class="colBorder">
+                <el-form-item label="企业名称" label-width="78px" prop="enterpriseName">
+                  <el-input v-model="editSafeData.enterpriseName" disabled />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="生产状态" prop="productionState" label-width="78px">
+                  <sun-select :module="'生产状态'" :value.sync="editSafeData.productionState" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8" class="colBorder">
+                <el-form-item label="专职安全管理人员人数" prop="safeManageEmployeeNumber" label-width="164px">
+                  <el-input-number
+                    v-model="editSafeData.safeManageEmployeeNumber"
+                    size="small"
+                    :min="1"
+                    :max="1000"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="8" class="colBorder">
+                <el-form-item label="特种作业人数" prop="specialWorkNumber" label-width="106px">
+                  <el-input-number v-model="editSafeData.specialWorkNumber" :min="1" :max="1000" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8" class="colBorder">
+                <el-form-item label="注册安全工程师人数" prop="registerSafeEngineerNumber" label-width="148px">
+                  <el-input-number
+                    v-model="editSafeData.registerSafeEngineerNumber"
+                    size="small"
+                    :min="1"
+                    :max="1000"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8" class="colBorder">
+                <el-form-item label="从业人数" prop="employeeNumber" required label-width="150px">
+                  <el-input-number v-model="editSafeData.employeeNumber" :min="1" :max="2000" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-card>
+          <el-card class="box-card">
+            <div slot="header" class="clearfix">
+              <span>联系方式</span>
+            </div>
+            <el-row>
+              <el-col :span="6" class="colBorder">
+                <el-form-item label="分管安全负责人" prop="inChargeOfSafety" label-width="136px">
+                  <el-input v-model="editSafeData.inChargeOfSafety" disabled style="width:97px;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="电话"
+                  prop="inChargeOfSecurityResponsiblePersonTelephone"
+                  required
+                  label-width="60px"
+                >
+                  <el-input
+                    v-model="
+                      editSafeData.inChargeOfSecurityResponsiblePersonTelephone
+                    "
+                    disabled
+                    style="width:120px;"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="安全生产主要负责人"
+                  prop="safetyProductionMainResponsiblePerson"
+                  label-width="148px"
+                >
+                  <el-input
+                    v-model="editSafeData.safetyProductionMainResponsiblePerson"
+                    disabled
+                    style="width:97px;"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="电话"
+                  required
+                  prop="safetyProductionMainResponsiblePersonContactNumber"
+                  label-width="60px"
+                >
+                  <el-input
+                    v-model="
+                      editSafeData.safetyProductionMainResponsiblePersonContactNumber
+                    "
+                    disabled
+                    style="width:120px;"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="6" class="colBorder">
+                <el-form-item label="专职安全管理人员" prop="safetyManagementPersonnel" label-width="136px">
+                  <el-input
+                    v-model="editSafeData.safetyManagementPersonnel"
+                    disabled
+                    style="width:97px;"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="电话"
+                  required
+                  prop="safetyManagementPersonnelTelephone"
+                  label-width="60px"
+                >
+                  <el-input
+                    v-model="editSafeData.safetyManagementPersonnelTelephone"
+                    disabled
+                    style="width:120px;"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="单位值班电话"
+                  prop="unitOnDutyPhone"
+                  label-width="128px"
+                  required
+                >
+                  <el-input v-model="editSafeData.unitOnDutyPhone" style="width:120px;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item label="邮箱" prop="email" label-width="60px" required>
+                  <el-input v-model="editSafeData.email" style="width:150px;" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-card>
+          <el-card class="box-card">
+            <div slot="header" class="clearfix">
+              <span>证件及有效期</span>
+            </div>
+            <el-row>
+              <el-col :span="10">
+                <el-form-item label="许可证扫描件" prop="licenseScanFiles" label-width="78px">
+                  <el-upload
+                    v-model="editSafeData.licenseScanFiles"
+                    action="/ajax/upload"
+                    list-type="picture-card"
+                    :on-success="handleEditSafeSuccessLicenseScanFiles"
+                    :on-remove="handleEditSafeRemoveLicenseScanFiles"
+                    :before-upload="beforeAvatarUpload"
+                    :file-list="editSafeData.licenseScanFiles"
+                    :data="GLOBAL.FILE_TYPE.LICENSE_SCANNING_COPY"
+                    @error="handleLoadError"
+                  >
+                    <i class="el-icon-plus" />
+                  </el-upload>
+                </el-form-item>
+              </el-col>
+              <el-col :span="14">
+                <el-form-item label="安全机构设置" prop="safeOrganizationSettingFiles" label-width="106px">
+                  <sun-upload
+                    ref="upload"
+                    v-model="editSafeData.safeOrganizationSettingFiles"
+                    :data="GLOBAL.FILE_TYPE.SECURITY_ORGANIZATION"
+                    name="file"
+                    accept=".pdf,.PDF,.txt,.doc"
+                    drag
+                    action="/ajax/upload"
+                    :on-success="
+                      handleEditSafeSuccessSafeOrganizationSettingFiles
+                    "
+                    :on-remove="handleEditSafeRemoveSafeOrganizationSettingFiles"
+                    :on-error="handleEditSafeError"
+                    :limit="1"
+                    :file-list="editSafeData.safeOrganizationSettingFiles"
+                  >
+                    <i class="el-icon-upload" />
+                    <div class="el-upload__text">
+                      将文件拖到此处，或
+                      <em>点击上传</em>
+                    </div>
+                    <div slot="tip" class="el-upload__tip">只能上传一个以pdf,doc,txt结尾文件！</div>
+                  </sun-upload>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="12" class="colBorder">
+                <el-form-item label="安全生产许可有效期" prop="productionLicenseValidity" label-width="150px">
+                  <el-date-picker
+                    v-model="productionLicenseValidity"
+                    type="daterange"
+                    align="right"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    value-format="yyyy-MM-dd"
+                    @change="editSafeChangeData1"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-card>
+          <el-form-item>
+            <el-button
+              :loading="btnLoading"
+              type="primary"
+              @click="submitSafeEditForm('editSafeData')"
+            >确定</el-button>
+            <el-button @click="editSafeDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="安全生产信息-新增" :visible.sync="addSafeDialog" width="1100px">
+        <el-form
+          ref="addSafeData"
+          :rules="rulesSafe"
+          size="small"
+          :model="addSafeData"
+          label-width="168px"
+        >
+          <el-card class="box-card">
+            <div slot="header" class="clearfix">
+              <span>基本信息</span>
+            </div>
+            <el-row>
+              <el-col :span="8">
+                <el-form-item label="生产状态" prop="productionState">
+                  <sun-select :module="'生产状态'" :value.sync="addSafeData.productionState" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8" class="colBorder">
+                <el-form-item label="专职安全管理人员人数" prop="safeManageEmployeeNumber">
+                  <el-input-number
+                    v-model="addSafeData.safeManageEmployeeNumber"
+                    size="small"
+                    :min="1"
+                    :max="1000"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8" class="colBorder">
+                <el-form-item label="特种作业人数" prop="specialWorkNumber">
+                  <el-input-number v-model="addSafeData.specialWorkNumber" :min="1" :max="1000" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="8" class="colBorder">
+                <el-form-item label="注册安全工程师人数" prop="registerSafeEngineerNumber">
+                  <el-input-number
+                    v-model="addSafeData.registerSafeEngineerNumber"
+                    size="small"
+                    :min="1"
+                    :max="1000"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8" class="colBorder">
+                <el-form-item label="从业人数" prop="employeeNumber" required>
+                  <el-input-number v-model="addSafeData.employeeNumber" :min="1" :max="2000" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-card>
+          <el-card class="box-card">
+            <div slot="header" class="clearfix">
+              <span>联系方式</span>
+            </div>
+            <!--     <el-row>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="分管安全负责人"
+                  prop="inChargeOfSafety"
+                  label-width="150px"
+                >
+                  <el-input v-model="addSafeData.inChargeOfSafety" style="width:97px;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="电话"
+                  prop="inChargeOfSecurityResponsiblePersonTelephone"
+                  required
+                  label-width="60px"
+                >
+                  <el-input
+                    v-model="
+                      addSafeData.inChargeOfSecurityResponsiblePersonTelephone
+                    "
+                    style="width:120px;"
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="安全生产主要负责人"
+                  prop="safetyProductionMainResponsiblePerson"
+                  label-width="150px"
+                >
+                  <el-input v-model="addSafeData.safetyProductionMainResponsiblePerson" style="width:97px;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="电话"
+                  required
+                  prop="safetyProductionMainResponsiblePersonContactNumber"
+                  label-width="60px"
+                >
+                  <el-input
+                    v-model="
+                      addSafeData.safetyProductionMainResponsiblePersonContactNumber"
+                    style="width:120px;"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row> -->
+            <el-row>
+              <!--  <el-col :span="6" class="colBorder">
+                <el-form-item label="专职安全管理人员" prop="safetyManagementPersonnel" label-width="150px">
+                  <el-input v-model="addSafeData.safetyManagementPersonnel" style="width:97px;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item
+                  label="电话"
+                  prop="safetyManagementPersonnelTelephone"
+                  required
+                  label-width="60px"
+                >
+                  <el-input
+                    v-model="addSafeData.safetyManagementPersonnelTelephone"
+                    style="width:120px;"
+                  />
+                </el-form-item>
+              </el-col> -->
+              <el-col :span="6" class="colBorder">
+                <el-form-item label="单位值班电话" prop="unitOnDutyPhone" label-width="128px" required>
+                  <el-input v-model="addSafeData.unitOnDutyPhone" style="width:120px;" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6" class="colBorder">
+                <el-form-item label="邮箱" prop="email" label-width="60px" required>
+                  <el-input v-model="addSafeData.email" style="width:150px;" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-card>
+          <el-card class="box-card">
+            <div slot="header" class="clearfix">
+              <span>证件及有效期</span>
+            </div>
+            <el-row>
+              <el-col :span="10">
+                <el-form-item label="许可证扫描件" prop="licenseScanFiles" label-width="120px">
+                  <el-upload
+                    v-model="addSafeData.licenseScanFiles"
+                    action="/ajax/upload"
+                    list-type="picture-card"
+                    :on-success="handleAddSafeSuccessLicenseScanFiles"
+                    :on-remove="handleAddSafeRemoveLicenseScanFiles"
+                    :before-upload="beforeAvatarUpload"
+                    :file-list="addSafeData.licenseScanFiles"
+                    :data="GLOBAL.FILE_TYPE.LICENSE_SCANNING_COPY"
+                    @error="handleLoadError"
+                  >
+                    <i class="el-icon-plus" />
+                  </el-upload>
+                </el-form-item>
+              </el-col>
+              <el-col :span="14">
+                <el-form-item label="安全机构设置" prop="safeOrganizationSettingFiles" label-width="106px">
+                  <sun-upload
+                    ref="upload"
+                    v-model="addSafeData.safeOrganizationSettingFiles"
+                    :data="GLOBAL.FILE_TYPE.SECURITY_ORGANIZATION"
+                    name="file"
+                    accept=".pdf,.PDF,.txt,.doc"
+                    drag
+                    action="/ajax/upload"
+                    :on-success="handleAddSafeSuccessSafeOrganizationSettingFiles"
+                    :on-remove="handleAddSafeRemoveSafeOrganizationSettingFiles"
+                    :on-error="handleAddSafeError"
+                    :limit="1"
+                    :file-list="addSafeData.safeOrganizationSettingFiles"
+                  >
+                    <i class="el-icon-upload" />
+                    <div class="el-upload__text">
+                      将文件拖到此处，或
+                      <em>点击上传</em>
+                    </div>
+                    <div slot="tip" class="el-upload__tip">只能上传一个以pdf,doc,txt结尾文件！</div>
+                  </sun-upload>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="12" class="colBorder">
+                <el-form-item label="安全生产许可证有效期" prop="productionLicenseValidity" label-width="160px">
+                  <el-date-picker
+                    v-model="addSafeData.productionLicenseValidity"
+                    type="daterange"
+                    align="right"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    value-format="yyyy-MM-dd"
+                    @change="addSafeChangeData"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-card>
+          <el-form-item>
+            <el-button
+              :loading="btnLoading"
+              type="primary"
+              @click="submitSafeAddForm('addSafeData')"
+            >确定</el-button>
+            <el-button @click="addSafeDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <!-- 查看弹窗图片 -->
+      <el-dialog append-to-body :visible.sync="dialogViewPics">
+        <el-row :gutter="20" type="flex" justify="center">
+          <el-col v-for="(item, index) in registerCertificates" :key="index" :span="8">
+            <el-image style="width:100%" :src="item.url" />
+          </el-col>
+        </el-row>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+import { validateIsPhone, validateEMail } from '@/utils/regList'
+import { getEnterpriseOptions } from '@/api/config/index'
+import {
+  enterpriseBasicInfoList,
+  enterpriseBasicInfoDelete,
+  enterpriseBasicInfoAdd,
+  enterpriseBasicInfoUpdate,
+  safeProductionInfoList,
+  safeProductionInfoDelete,
+  safeProductionInfoAdd,
+  safeProductionInfoUpdate,
+  historyEnterpriseBasicInfo,
+  historySafeProductionInfo,
+  getCoordinates
+} from '@/api/basedata/baseInfo'
+import SunUpload from '@/components/upload'
+export default {
+  name: '',
+  components: {
+    SunUpload
+  },
+  data() {
+    // 验证邮箱是否符合要求
+    const checkEmailValidatore = (rule, value, callback) => {
+      validateEMail(rule, value, callback)
+    }
+    const validatePhone = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('手机号码不能为空'))
+      }
+      if (!validateIsPhone(value)) {
+        callback(new Error('请输入正确的手机号码'))
+      }
+      callback()
+    }
+    return {
+      /* 搜索栏显示 */
+      params: {
+        enterpriseIds: [],
+        enterpriseId: null,
+        enterpriseName: '',
+        page: 1,
+        size: 10
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      pageSafe: { list: [], pageSafe: 0, sizeSafe: 0, total: 0, totalPage: 0 },
+      editEnterpriseData: {
+        enterpriseName: '',
+        certificateType: '',
+        unitCategory: '',
+        registerAddress: '',
+        creditCode: '',
+        businessAddress: '',
+        businessLicenseCategory: '',
+        legalRepresentative: '',
+        contactNumber: '',
+        state: '',
+        industryCategory: '',
+        registerCertificates: [],
+        fileIds: [],
+        scale: '',
+        enterpriseId: '',
+        registerValidityEndTime: '',
+        registerValidityStartTime: '',
+        economicType: '',
+        onDutyEmployeeNumber: '',
+        parentName: '',
+        id: '',
+        registerValidity: null, // 注意：存储的是我的两个时间段
+        projectGPSCoordinates: {
+          lng: '',
+          lat: ''
+        }
+      },
+      editSafeData: {
+        safetyProductionMainResponsiblePerson: '',
+        employeeNumber: '',
+        safetyProductionMainResponsiblePersonContactNumber: '',
+        registerSafeEngineerNumber: '',
+        inChargeOfSafety: '',
+        specialWorkNumber: '',
+        enterpriseIds: '',
+        inChargeOfSecurityResponsiblePersonTelephone: '',
+        productionState: '',
+        safeManageEmployeeNumber: '',
+        safetyManagementPersonnel: '',
+        safetyManagementPersonnelTelephone: '',
+        RegistrationDocumentUpload: '',
+        registerValidity: [new Date(), new Date()], // 注意：存储的是我的两个时间段
+        registerValidityStartTime: '',
+        registerValidityEndTime: '',
+        productionLicenseValidity: [new Date(), new Date()], // 注意：存储的是我的两个时间段
+        productionLicenseValidityStartTime: '',
+        productionLicenseValidityEndTime: '',
+        licenseScanFileIds: [],
+        unitOnDutyPhone: '',
+        safeOrganizationSetting: [],
+        parentName: '',
+        email: ''
+      },
+      addEnterpriseData: {
+        enterpriseName: '',
+        certificateType: '',
+        unitCategory: '',
+        state: '',
+        registerValidityStartTime: new Date(),
+        registerValidityEndTime: new Date(),
+        registerAddress: '',
+        enterpriseId: '',
+        creditCode: '',
+        businessAddress: '',
+        businessLicenseCategory: '',
+        legalRepresentative: '',
+        contactNumber: '',
+        businessScope: '',
+        industryCategory: '',
+        registerCertificates: [],
+        fileIds: [],
+        scale: '',
+        economicType: '',
+        parentName: '',
+        onDutyEmployeeNumber: 0,
+        externalWorkerNumber: 0,
+        registerValidity: [new Date(), new Date()], // 注意：存储的是我的两个时间段
+        projectGPSCoordinates: {
+          lng: '',
+          lat: ''
+        }
+      },
+      addSafeData: {
+        safetyProductionMainResponsiblePerson: '',
+        employeeNumber: '',
+        safeManageEmployeeNumber: '',
+        safetyProductionMainResponsiblePersonContactNumber: '',
+        enterpriseIds: '',
+        registerSafeEngineerNumber: '',
+        inChargeOfSafety: '',
+        specialWorkNumber: '',
+        inChargeOfSecurityResponsiblePersonTelephone: '',
+        productionState: '',
+        safetyManagementPersonnel: '',
+        registerValidity: [new Date(), new Date()], // 注意：存储的是我的两个时间段
+        registerValidityStartTime: '',
+        registerValidityEndTime: '',
+        productionLicenseValidity: [new Date(), new Date()], // 注意：存储的是我的两个时间段
+        productionLicenseValidityStartTime: '',
+        productionLicenseValidityEndTime: '',
+        safetyManagementPersonnelTelephone: '',
+        RegistrationDocumentUpload: '',
+        unitOnDutyPhone: '',
+        safeOrganizationSetting: [],
+        licenseScanFileIds: [],
+        parentName: '',
+        email: ''
+      },
+      enterpriseRules: {
+        registerValidity: [
+          { required: true, message: '日期不能为空', trigger: 'blur' }
+        ],
+        contactNumber: [
+          { validator: validatePhone, trigger: 'blur' },
+          { validator: validatePhone, trigger: 'change' }
+        ],
+        state: [
+          { required: true, message: '企业状态不能为空', trigger: 'blur' }
+        ],
+        certificateType: [
+          { required: true, message: '代码证类型不能为空', trigger: 'change' }
+        ],
+        unitCategory: [
+          { required: true, message: '单位类别不能为空', trigger: 'blur' }
+        ],
+        externalWorkerNumber: [
+          { required: true, message: '外用工人数不能为空', trigger: 'blur' }
+        ],
+        registerAddress: [
+          { required: true, message: '注册地址不能为空', trigger: 'blur' }
+        ],
+        creditCode: [
+          {
+            required: true,
+            message: '统一社会信用代码不能为空',
+            trigger: 'blur'
+          }
+        ],
+        businessAddress: [
+          { required: true, message: '生产经营地址不能为空', trigger: 'blur' }
+        ],
+        businessLicenseCategory: [
+          { required: true, message: '营业执照类别不能为空', trigger: 'change' }
+        ],
+        legalRepresentative: [
+          { required: true, message: '法定代表人不能为空', trigger: 'blur' }
+        ],
+        onDutyEmployeeNumber: [
+          { required: true, message: '在岗工人数不能为空', trigger: 'blur' }
+        ],
+        businessScope: [
+          { required: true, message: '经营范围不能为空', trigger: 'blur' }
+        ],
+        industryCategory: [
+          { required: true, message: '行业类别不能为空', trigger: 'blur' }
+        ],
+        registerValidityEndTime: [
+          { required: true, message: '工商登记有效期不能为空', trigger: 'blur' }
+        ],
+        scale: [
+          { required: true, message: '行业规模不能为空', trigger: 'blur' }
+        ],
+        economicType: [
+          { required: true, message: '经济类型不能为空', trigger: 'change' }
+        ],
+        registerCertificates: [
+          { required: true, message: '注册证件上传不能为空', trigger: 'blur' }
+        ],
+        officeLocationGPSCoordinates: [
+          {
+            required: true,
+            message: '办公地点GPS坐标不能为空',
+            trigger: 'blur'
+          }
+        ]
+      },
+      rulesSafe: {
+        safeManageEmployeeNumber: [
+          { required: true, message: '专职安全管理人员人数不能为空', trigger: 'blur' }
+        ],
+        employeeNumber: [
+          { required: true, message: '从业人数不能为空', trigger: 'blur' }
+        ],
+        registerSafeEngineerNumber: [
+          {
+            required: true,
+            message: '注册安全工程师人数不能为空',
+            trigger: 'blur'
+          }
+        ],
+        specialWorkNumber: [
+          { required: true, message: '特种作业人数不能为空', trigger: 'blur' }
+        ],
+        productionState: [
+          { required: true, message: '生产状态不能为空', trigger: 'change' }
+        ],
+        unitOnDutyPhone: [
+          { validator: validatePhone, trigger: 'blur' },
+          { validator: validatePhone, trigger: 'change' }
+        ],
+        email: [
+          { validator: checkEmailValidatore, trigger: 'blur' },
+          { validator: checkEmailValidatore, trigger: 'change' }
+        ]
+      },
+      locData: {
+        ids: 0,
+        lng: '',
+        lat: ''
+      },
+      projectGPSCoordinates: {
+        lng: 0,
+        lat: 0
+      },
+      /* 默认只要打开另一个就关闭之前的 */
+      getRowKeys(row) {
+        return row.id
+      },
+      coordinatesList: [],
+      historyTable: [], // 历史记录
+      historySafeTable: [],
+      historyDialog: false,
+      historySafeDialog: false,
+      showMap: false,
+      registerValidity: null,
+      productionLicenseValidity: null,
+      pageEnterpriseLoading: true,
+      pageSafeLoading: true,
+      dialogImageUrl: '',
+      registerCertificates: [],
+      activeName: 'first',
+      enterpriseOptions: [],
+      dialogViewPics: false,
+      btnLoading: false,
+      editEnterpriseDialog: false,
+      addEnterpriseDialog: false,
+      editSafeDialog: false,
+      addSafeDialog: false,
+      // 引入百度地图默认倍数
+      zoom: 11,
+      expands: []
+    }
+  },
+  created() {
+    getEnterpriseOptions().then(res => {
+      this.enterpriseOptions = res.data.obj
+    })
+    this.fetchData()
+    this.fetchSafeData()
+    this.fetchDataGps()
+  },
+  methods: {
+    // 企业基本信息 查看历史修改
+    historyEnterpriseBasicInfo(scope) {
+      historyEnterpriseBasicInfo(scope.row.id).then(res => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map(item => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historyDialog = true
+      })
+    },
+    // 安全生产信息 查看历史修改
+    historySafe(scope) {
+      historySafeProductionInfo(scope.row.id).then(res => {
+        this.historySafeTable = res.data.obj
+        this.historySafeTable = this.historySafeTable.map(item => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historySafeDialog = true
+      })
+    },
+    // 获取经纬度
+    fetchDataGps() {
+      getCoordinates().then(res => {
+        this.coordinatesList = res.data.obj
+      })
+    },
+    // 获取信息
+    fetchData() {
+      if (this.params.enterpriseIds.length !== 0) {
+        this.params.enterpriseId = this.params.enterpriseIds[
+          this.params.enterpriseIds.length - 1
+        ]
+      } else {
+        this.params.enterpriseId = null
+      }
+      enterpriseBasicInfoList(this.params).then(res => {
+        this.pageEnterpriseLoading = false
+        this.page = res.data.obj
+        let list = zhClassify(this.page.list, [['营业执照类别', 'businessLicenseCategory']])
+        list = zhClassify(res.data.obj.list, [['代码证类型', 'certificateType']])
+        list = zhClassify(res.data.obj.list, [['经济类型', 'economicType']])
+        list = zhClassify(res.data.obj.list, [['行业类别', 'industryCategory']])
+        this.table = list
+      })
+    },
+    fetchSafeData() {
+      safeProductionInfoList(this.params).then(res => {
+        this.pageSafeLoading = false
+        this.pageSafe = res.data.obj
+        const list = zhClassify(res.data.obj.list, [['生产状态', 'productionState']])
+        this.table = list
+        this.pageSafe.list.forEach((item, index) => {
+          item.safetyProductionMainResponsiblePerson = '暂无'
+          item.safetyProductionMainResponsiblePersonContactNumber = '暂无'
+          item.inChargeOfSafety = '暂无'
+          item.inChargeOfSecurityResponsiblePersonTelephone = '暂无'
+          item.safetyManagementPersonnel = '暂无'
+          item.safetyManagementPersonnelTelephone = '暂无'
+        })
+      })
+    },
+    editEnterpriseChangeData() {
+      // 企业基本信息的 【登记有效期】 修改
+      if (
+        this.registerValidity === null ||
+        this.registerValidity[0] === null ||
+        this.registerValidity[1] === null
+      ) {
+        this.editEnterpriseData.registerValidityStartTime = null
+        this.editEnterpriseData.registerValidityEndTime = null
+        return
+      }
+      this.editEnterpriseData.registerValidityStartTime = this.registerValidity[0]
+      this.editEnterpriseData.registerValidityEndTime = this.registerValidity[1]
+    },
+    addEnterpriseChangeData() {
+      // 企业基本信息的修改
+      // 企业基本信息的 【登记有效期】 添加
+      if (
+        this.addEnterpriseData.registerValidity === [] ||
+        this.addEnterpriseData.registerValidity[0] === null ||
+        this.addEnterpriseData.registerValidity[1] === null
+      ) {
+        return
+      }
+      this.addEnterpriseData.registerValidityStartTime = this.addEnterpriseData.registerValidity[0]
+      this.addEnterpriseData.registerValidityEndTime = this.addEnterpriseData.registerValidity[1]
+    },
+    editSafeChangeData1() {
+      if (
+        this.productionLicenseValidity === [] ||
+        this.productionLicenseValidity[0] === null ||
+        this.productionLicenseValidity[1] === null
+      ) {
+        return
+      }
+      this.editSafeData.productionLicenseValidityStartTime = this.productionLicenseValidity[0]
+      this.editSafeData.productionLicenseValidityEndTime = this.productionLicenseValidity[1]
+    },
+    editSafeChangeData2() {
+      if (
+        this.registerValidity === [] ||
+        this.registerValidity[0] === null ||
+        this.registerValidity[1] === null
+      ) {
+        return
+      }
+      this.editSafeData.registerValidityStartTime = this.registerValidity[0]
+      this.editSafeData.registerValidityEndTime = this.registerValidity[1]
+    },
+    addSafeChangeData() {
+      if (
+        this.addSafeData.productionLicenseValidity === [] ||
+        this.addSafeData.productionLicenseValidity[0] === null ||
+        this.addSafeData.productionLicenseValidity[1] === null
+      ) {
+        return
+      }
+      this.addSafeData.productionLicenseValidityStartTime = this.addSafeData.productionLicenseValidity[0]
+      this.addSafeData.productionLicenseValidityEndTime = this.addSafeData.productionLicenseValidity[1]
+      /* if (
+        this.addSafeData.registerValidity === [] ||
+        this.addSafeData.registerValidity[0] === null ||
+        this.addSafeData.registerValidity[1] === null
+      ) {
+        return
+      }
+      this.addSafeData.registerValidityStartTime = this.addSafeData.registerValidity[0]
+      this.addSafeData.registerValidityEndTime = this.addSafeData.registerValidity[1]
+    */ },
+    // 设置当前对象所在的下标，用于点击详情前获取数组中该对象的经纬度
+    /* setCurrentIndex(index) {
+      if (this.page.list.length === 0) {
+        return
+      }
+      this.page.list[index].index = index
+    }, */
+    // 折叠面板每次只能展开一行
+    expandSelect(row, expandedRows) {
+      var that = this
+      if (expandedRows.length) {
+        that.expands = []
+        if (row) {
+          this.projectGPSCoordinates.lng = row.gpsLng
+          this.projectGPSCoordinates.lat = row.gpsLat
+          // 打开当前点击的 详情
+          that.expands.push(row.id) // 每次push进去的是每行的ID
+        }
+      } else {
+        that.expands = [] // 默认不展开
+      }
+    },
+    handleEditEnterpriseChange(value) {
+      if (value !== null && value.length > 0) {
+        this.editEnterpriseData.enterpriseId = value[value.length - 1]
+        this.addEnterpriseData.parentName = this.getParentName(value)
+      }
+    },
+    handleAddEnterpriseChange(value) {
+      if (value !== null && value !== []) {
+        this.addEnterpriseData.enterpriseId = value[value.length - 1]
+        this.addEnterpriseData.parentName = this.getParentName(value)
+      }
+    },
+    handleEditSafeChange(value) {
+      if (value !== null || value !== []) {
+        this.editSafeData.enterpriseId = value[value.length - 1]
+      }
+    },
+    handleAddSafeChange(value) {
+      if (value !== null || value !== []) {
+        this.addSafeData.enterpriseId = value[value.length - 1]
+        this.addSafeData.parentName = this.getParentName(value)
+      }
+    },
+    // 获取上级单位名称
+    getParentName(enterpriseIds) {
+      var parentName = null
+      try {
+        if (enterpriseIds.length === 2) {
+          this.enterpriseOptions.forEach(e => {
+            e.children.forEach(ce => {
+              if (ce.value === enterpriseIds[1]) {
+                parentName = e.label
+                throw new Error(parentName)
+              }
+            })
+          })
+        }
+      } catch (e) {
+        console.log(e.message)
+      }
+      return parentName
+    },
+    // 详情里面的小地图
+    smallEnterpriseMap({ BMap, map }) {
+      var point = new BMap.Point(
+        this.projectGPSCoordinates.lng,
+        this.projectGPSCoordinates.lat
+      ) // 初始化地图,设置中心点坐标和地图级别
+      map.centerAndZoom(point, this.zoom)
+      var marker = new BMap.Marker(point) // 创建标注
+      map.addOverlay(marker) // 将标注添加到地图中
+      /* var circle = new BMap.Circle(point, 6, {
+        strokeColor: 'Red',
+        strokeWeight: 6,
+        strokeOpacity: 1,
+        Color: 'Red',
+        fillColor: '#f03'
+      })
+      // 将标注添加到地图中,底下的小圆点
+      map.addOverlay(circle) */
+    },
+    // 页面底下的地图
+    bigEnterpriseMap({ BMap, map }) {
+      map.centerAndZoom(new BMap.Point(104.769128, 34.972443), 5)
+      // map.setMapType(BMAP_EARTH_MAP)// 设置地图类型为地球模式
+      var opts = {
+        width: 250, // 信息窗口宽度
+        height: 60, // 信息窗口高度
+        title: '信息窗口', // 信息窗口标题
+        enableMessage: true // 设置允许信息窗发送短息
+      }
+      this.coordinatesList.forEach(item => {
+        var marker = new BMap.Marker(
+          new BMap.Point(item.gpsLng, item.gpsLat)
+        )
+        // 创建标注
+        var content = item.name
+        map.addOverlay(marker)
+        var label = new BMap.Label(item.name, {
+          offset: new BMap.Size(
+            this.GLOBAL.BMAP_LABEL_OFFSET.width,
+            this.GLOBAL.BMAP_LABEL_OFFSET.height
+          )
+        })
+        marker.setLabel(label)
+        // 将标注添加到地图中
+        addClickHandler(content, marker)
+      })
+      function addClickHandler(content, marker) {
+        marker.addEventListener('click', function(e) {
+          openInfo(content, e)
+        })
+      }
+      function openInfo(content, e) {
+        var p = e.target
+        var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat)
+        var infoWindow = new BMap.InfoWindow(content, opts) // 创建信息窗口对象
+        map.openInfoWindow(infoWindow, point) // 开启信息窗口
+      }
+    },
+    // 点击修改 弹窗里面的小地图
+    editEnterpriseDialogMap({ BMap, map }) {
+      window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(this.locData.lng, this.locData.lat) // 初始化地图,设置中心点坐标和地图级别
+      map.centerAndZoom(point, this.zoom)
+      var marker = new BMap.Marker(point) // 创建标注
+      map.addOverlay(marker) // 将标注添加到地图中
+    },
+    // 点击增加 弹窗里面的小地图，添加默认根据ip来定位
+    addEnterpriseDialogMap({ BMap, map }) {
+      window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(116.331398, 39.897445)
+      map.centerAndZoom(point, this.zoom)
+      function myFun(result) {
+        var cityName = result.name
+        map.setCenter(cityName)
+      }
+      var myCity = new BMap.LocalCity()
+      myCity.get(myFun)
+    },
+    // 修改里面的弹窗-点击获取地点
+    getAddEnterpriseClickInfoMap(e) {
+      // 清除所要清除的覆盖物
+      map.clearOverlays()
+      var myMarker = new BMap.Marker(new BMap.Point(e.point.lng, e.point.lat))
+      map.addOverlay(myMarker)
+      this.locData.lng = e.point.lng
+      this.locData.lat = e.point.lat
+    },
+    // 点击添加弹窗-获取地点
+    getEditEnterpriseClickInfoMap(e) {
+      // 清除所要清除的覆盖物
+      map.clearOverlays()
+      var myMarker = new BMap.Marker(new BMap.Point(e.point.lng, e.point.lat))
+      map.addOverlay(myMarker)
+      this.locData.lng = e.point.lng
+      this.locData.lat = e.point.lat
+    },
+    // 关闭按钮
+    handleClose(done) {
+      this.$confirm('确认关闭？')
+        .then(_ => {
+          done()
+        })
+        .catch(_ => {})
+    },
+    addSafeDialogTrue() {
+      this.$nextTick(() => {
+      // 每次打开，重置表单并清除验证
+        this.addSafeData.safetyProductionMainResponsiblePerson = null
+        this.addSafeData.employeeNumber = null
+        this.addSafeData.safeManageEmployeeNumber = null
+        this.addSafeData.safetyProductionMainResponsiblePersonContactNumber = null
+        this.addSafeData.enterpriseIds = null
+        this.addSafeData.registerSafeEngineerNumber = null
+        this.addSafeData.inChargeOfSafety = null
+        this.addSafeData.specialWorkNumber = null
+        this.addSafeData.inChargeOfSecurityResponsiblePersonTelephone = null
+        this.addSafeData.productionState = null
+        this.addSafeData.safetyManagementPersonnel = null
+        this.addSafeData.registerValidity = null
+        this.addSafeData.safetyManagementPersonnelTelephone = null
+        this.addSafeData.RegistrationDocumentUpload = null
+        this.addSafeData.unitOnDutyPhone = null
+        this.addSafeData.email = null
+      })
+      this.specialEquipmentFo
+      this.addSafeDialog = true
+    },
+    // 打开安全生产信息弹窗
+    editOpenSafeDialog(index, row) {
+      this.editSafeDialog = true // 编辑信息模态框显示
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editSafeData = Object.assign({}, row)
+      // this.registerValidity = [this.editSafeData.registerValidityStartTime, this.editSafeData.registerValidityEndTime]
+      this.productionLicenseValidity = [
+        this.editSafeData.productionLicenseValidityStartTime,
+        this.editSafeData.productionLicenseValidityEndTime
+      ]
+      this.editSafeData.licenseScanFileIds = []
+      const urlPre = process.env.VUE_APP_BASE_API
+      this.editSafeData.licenseScanFiles.forEach((e, index) => {
+        this.editSafeData.licenseScanFileIds.push(e.fileId)
+        e.url = urlPre + e.url
+      })
+      this.editSafeDialog = true // 编辑信息模态框显示
+    },
+    // 安全生产信息增加
+    submitSafeAddForm(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.btnLoading = true
+          safeProductionInfoAdd(this.addSafeData)
+            .then(res => {
+              if (res.data.status === 200) {
+                // this.$message.success('添加成功!')
+                this.fetchSafeData()
+                this.addSafeDialog = false
+              } else {
+                this.$message.error('添加失败，请重试联系管理员!')
+                this.$message.error(res.data.msg)
+              }
+              this.btnLoading = false
+            })
+            .catch(() => {
+              this.$message.error('添加失败!')
+              this.btnLoading = false
+            })
+        }
+      })
+    },
+    // 安全生产信息修改
+    submitSafeEditForm(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.btnLoading = true
+          safeProductionInfoUpdate(this.editSafeData)
+            .then(res => {
+              if (res.data.status === 200) {
+                // this.$message.success('修改成功!')
+                this.fetchSafeData()
+                this.editSafeDialog = false
+              } else {
+                this.$message.error('修改失败，请重试联系管理员!')
+                this.$message.error(res.data.msg)
+              }
+              this.btnLoading = false
+            })
+            .catch(() => {
+              this.$message.error('修改失败!')
+              this.btnLoading = false
+            })
+        }
+      })
+    },
+    // 企业基本信息-增删改
+    submitEnterpriseAddForm(formName) {
+      this.addEnterpriseData.gpsLng = this.locData.lng
+      this.addEnterpriseData.gpsLat = this.locData.lat
+      this.$refs[formName].validate(valid => {
+        if (!this.addEnterpriseData.gpsLng || !this.addEnterpriseData.gpsLat) {
+          this.$message.error('请选择办公地点坐标')
+          return
+        }
+        /*   if (!this.addEnterpriseData.enterpriseIds) {
+          this.$message.error('请选择企业名称')
+          return
+        } */
+        if (valid) {
+          this.btnLoading = false
+          enterpriseBasicInfoAdd(this.addEnterpriseData)
+            .then(res => {
+              if (res.data.status === 200) {
+                // this.$message.success('添加成功!')
+                this.fetchData()
+                this.fetchDataGps()
+                this.addEnterpriseDialog = false
+              } else {
+                this.$message.error('添加失败，请重试联系管理员!')
+                this.$message.error(res.data.msg)
+              }
+            })
+            .catch(() => {
+              this.$message.error('添加失败!')
+            })
+        }
+      })
+    },
+    submitEnterpriseEditForm(formName) {
+      this.editEnterpriseData.gpsLng = this.locData.lng
+      this.editEnterpriseData.gpsLat = this.locData.lat
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.btnLoading = false
+          enterpriseBasicInfoUpdate(this.editEnterpriseData)
+            .then(res => {
+              if (res.data.status === 200) {
+                // this.$message.success('修改成功!')
+                this.fetchData()
+                this.editEnterpriseDialog = false
+              } else {
+                this.$message.error('修改失败，请重试联系管理员!')
+                this.$message.error(res.data.msg)
+              }
+            })
+            .catch(() => {
+              this.$message.error('修改失败!')
+            })
+        }
+      })
+    },
+    // 删除
+    delSafe(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        safeProductionInfoDelete(Object.assign({}, row).id).then(res => {
+          if (res.data.status === 200) {
+            this.fetchSafeData()
+          } else {
+            this.$message.error('删除失败，请重试联系管理员!')
+            this.$message.error(res.data.msg)
+          }
+        })
+      })
+    },
+    delEnterprise(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        enterpriseBasicInfoDelete(Object.assign({}, row).id).then(res => {
+          this.fetchData()
+        })
+      })
+    },
+    // 打开企业基本信息弹窗
+    editOpenEnterpriseDialog(index, row) {
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editEnterpriseData = Object.assign({}, row)
+      // 地图
+      this.projectGPSCoordinates.lng = this.editEnterpriseData.gpsLng
+      this.projectGPSCoordinates.lat = this.editEnterpriseData.gpsLat
+      this.locData = this.projectGPSCoordinates
+      // 日期
+      this.registerValidity = [
+        this.editEnterpriseData.registerValidityStartTime,
+        this.editEnterpriseData.registerValidityEndTime
+      ]
+      // this.editEnterpriseData.registerValidity = [this.editEnterpriseData.registerValidityStartTime, this.editEnterpriseData.registerValidityEndTime]
+      this.editEnterpriseData.fileIds = []
+      const urlPre = process.env.VUE_APP_BASE_API
+      this.editEnterpriseData.registerCertificates.forEach((e, index) => {
+        this.editEnterpriseData.fileIds.push(e.fileId)
+        e.url = urlPre + e.url
+      })
+      this.editEnterpriseData.enterpriseIds =
+        this.editEnterpriseData.enterpriseType === 'D'
+          ? [this.editEnterpriseData.enterpriseId]
+          : [this.editEnterpriseData.parentId, this.editEnterpriseData.enterpriseId]
+      this.editEnterpriseDialog = true // 编辑信息模态框显示
+    },
+    // 企业基本信息分页
+    handleSizeChangeEnterprise(val) {
+      this.params.size = val
+      this.fetchSafeData()
+    },
+    handleCurrentChangeEnterprise(val) {
+      this.params.page = val
+      this.fetchSafeData()
+    },
+    handleSizeChangeSafe(val) {
+      this.params.sizeSafe = val
+      this.fetchData()
+    },
+    handleCurrentChangeSafe(val) {
+      this.params.pageSafe = val
+      this.fetchData()
+    },
+    // 企业信息图片管理
+    handleEditSuccess(response, file, registerCertificates) {
+      this.editEnterpriseData.registerCertificates = registerCertificates
+      this.editEnterpriseData.fileIds.push(response.obj.fileId)
+      // this.dailyLoading = false
+    },
+    handleAddSuccess(response, file, registerCertificates) {
+      this.addEnterpriseData.fileIds.push(response.obj.fileId)
+      this.addEnterpriseData.registerCertificates = registerCertificates
+    },
+    handleEditRemove(file, registerCertificates) {
+      // 当前删除文件的 fileId，然后在fileIds里找到来删除即可3
+      var delFileId = null
+      for (const i in this.editEnterpriseData.registerCertificates) {
+        if (this.editEnterpriseData.registerCertificates[i].uid === file.uid) {
+          if (
+            this.editEnterpriseData.registerCertificates[i].response !==
+            undefined
+          ) {
+            // 新上传的文件
+            delFileId = this.editEnterpriseData.registerCertificates[i].response
+              .obj.fileId
+            break
+          } else {
+            // 原有的文件
+            delFileId = this.editEnterpriseData.registerCertificates[i].fileId
+            break
+          }
+        }
+      }
+      this.editEnterpriseData.registerCertificates = registerCertificates
+      this.editEnterpriseData.fileIds.forEach((e, index) => {
+        if (e === delFileId) {
+          this.editEnterpriseData.fileIds.splice(index, 1)
+          return
+        }
+      })
+    },
+    handleAddRemove(file, registerCertificates) {
+      // 当前删除文件的 fileId，然后在fileIds里找到来删除即可3
+      var delFileId = null
+      for (const i in this.addEnterpriseData.registerCertificates) {
+        if (this.addEnterpriseData.registerCertificates[i].uid === file.uid) {
+          if (
+            this.addEnterpriseData.registerCertificates[i].response !==
+            undefined
+          ) {
+            // 新上传的文件
+            delFileId = this.addEnterpriseData.registerCertificates[i].response
+              .obj.fileId
+            break
+          } else {
+            // 原有的文件
+            delFileId = this.addEnterpriseData.registerCertificates[i].fileId
+            break
+          }
+        }
+      }
+      this.addEnterpriseData.registerCertificates = registerCertificates
+      this.addEnterpriseData.fileIds.forEach((e, index) => {
+        if (e === delFileId) {
+          this.addEnterpriseData.fileIds.splice(index, 1)
+          return
+        }
+      })
+    },
+    // 安全生产
+    handleEditSafeError(err, file, fileList) {
+      this.btnLoading = false
+      console.log('上传失败' + err)
+    },
+    handleAddSafeError(err, file, fileList) {
+      this.btnLoading = false
+      console.log('上传失败' + err)
+    },
+    handleEditSafeSuccessLicenseScanFiles(response, file, fileList) {
+      this.editSafeData.licenseScanFileIds.push(response.obj.fileId)
+      this.editSafeData.licenseScanFiles = fileList
+    },
+    handleAddSafeSuccessLicenseScanFiles(response, file, fileList) {
+      this.addSafeData.licenseScanFileIds.push(response.obj.fileId)
+      this.addSafeData.licenseScanFiles = fileList
+    },
+    handleEditSafeSuccessSafeOrganizationSettingFiles(
+      response,
+      file,
+      fileList
+    ) {
+      this.editSafeData.safeOrganizationSetting = response.obj.fileId
+      this.editSafeData.safeOrganizationSettingFiles = fileList
+    },
+    handleAddSafeSuccessSafeOrganizationSettingFiles(response, file, fileList) {
+      this.addSafeData.safeOrganizationSetting = response.obj.fileId
+      this.addSafeData.safeOrganizationSettingFiles = fileList
+    },
+    // 安全生产-许可证删除
+    handleEditSafeRemoveLicenseScanFiles(file, fileList) {
+      // 当前删除文件的 fileId，然后在fileIds里找到来删除即可3
+      var delFileId = null
+      for (const i in this.editSafeData.licenseScanFiles) {
+        if (this.editSafeData.licenseScanFiles[i].uid === file.uid) {
+          if (this.editSafeData.licenseScanFiles[i].response !== undefined) {
+            // 新上传的文件
+            delFileId = this.editSafeData.licenseScanFiles[i].response.obj
+              .fileId
+            break
+          } else {
+            // 原有的文件
+            delFileId = this.editSafeData.licenseScanFiles[i].fileId
+            break
+          }
+        }
+      }
+      this.editSafeData.licenseScanFiles = fileList
+      this.editSafeData.licenseScanFileIds.forEach((e, index) => {
+        if (e === delFileId) {
+          this.editSafeData.licenseScanFileIds.splice(index, 1)
+          return
+        }
+      })
+    },
+    handleAddSafeRemoveLicenseScanFiles(file, fileList) {
+      // 当前删除文件的 fileId，然后在fileIds里找到来删除即可3
+      var delFileId = null
+      for (const i in this.addSafeData.licenseScanFiles) {
+        if (this.addSafeData.licenseScanFiles[i].uid === file.uid) {
+          if (this.addSafeData.licenseScanFiles[i].response !== undefined) {
+            // 新上传的文件
+            delFileId = this.addSafeData.licenseScanFiles[i].response.obj
+              .fileId
+            break
+          } else {
+            // 原有的文件
+            delFileId = this.addSafeData.licenseScanFiles[i].fileId
+            break
+          }
+        }
+      }
+      this.addSafeData.licenseScanFiles = fileList
+      this.addSafeData.licenseScanFileIds.forEach((e, index) => {
+        if (e === delFileId) {
+          this.addSafeData.licenseScanFileIds.splice(index, 1)
+          return
+        }
+      })
+    },
+    // 安全生产-安全设置删除
+    handleEditSafeRemoveSafeOrganizationSettingFiles(file, fileList) {
+      this.editSafeData.safeOrganizationSettingFiles = fileList
+      this.editSafeData.safeOrganizationSetting = null
+    },
+    handleAddSafeRemoveSafeOrganizationSettingFiles(file, fileList) {
+      this.addSafeData.safeOrganizationSettingFiles = fileList
+      this.addSafeData.safeOrganizationSetting = null
+    },
+    handlePictureCardPreview(file) {
+      this.dialogImageUrl = file.url
+      this.viewPics([file])
+    },
+    // 图片格式
+    beforeAvatarUpload(file) {
+      const isJPG = file.type === 'image/jpeg'
+      const isPng = file.type === 'image/png'
+      const isLt2M = file.size / 1024 / 1024 < 2
+      if (!isJPG && !isPng) {
+        this.$message.error('上传图片只能是 JPG或png 格式!')
+      }
+      if (!isLt2M) {
+        this.$message.error('上传图片大小不能超过 2MB!')
+      }
+      return (isJPG || isPng) && isLt2M
+    },
+    // 查看照片
+    viewPics(registerCertificates) {
+      this.dialogViewPics = true
+      this.safeOrganizationSetting = registerCertificates
+      this.registerCertificates = registerCertificates
+    },
+    /* 显示图片出错时 */
+    handleLoadError(e) {
+      const img = e.srcElement
+      this.imageUrl = this.errorLoadImg //  用加载失败的图片替代之
+      img.onerror = null //  清除错误:如果错误时加载时显示的图片出错，将会一直循环，所以我们必须清除掉错误，限制运行一次
+    },
+    tableRowClassName({ row, rowIndex }) {
+      if (rowIndex === 1) {
+        return 'warning-row'
+      } else if (rowIndex === 3) {
+        return 'success-row'
+      }
+      return ''
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+.colBorder2 {
+  background-color: #f6f6f8;
+}
+.el-form-item--mini.el-form-item,
+.el-form-item--small.el-form-item {
+  margin-bottom: 0;
+  margin: 10px;
+}
+.el-row {
+  margin-bottom: 0;
+}
+// 防止提示文字被遮挡
+.el-row .el-col {
+  padding: 5px 0;
+}
+.demo-table-expand .el-form-item {
+  margin-bottom: 0px;
+}
+</style>

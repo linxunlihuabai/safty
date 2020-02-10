@@ -1,0 +1,18 @@
+日常文化建设
+create table sp_daily_culture
+(
+   id                   int not null auto_increment comment '编号',
+   enterprise_id        int comment '企业编号',
+   title                varchar(255) comment '主题',
+   mode                 int comment '宣传方式',
+   content              varchar(500) comment '内容',
+   date                 date comment '时间',
+   root_id              int comment '根编号',
+   history_state        int comment '状态',
+   operator             int comment '操作员',
+   update_time          datetime comment '更新时间',
+   column_1             varchar(255) comment '备用字段1',
+   column_2             varchar(255) comment '备用字段2',
+   column_3             varchar(255) comment '备用字段3',
+   primary key (id)
+);

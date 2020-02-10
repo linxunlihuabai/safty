@@ -1,0 +1,88 @@
+import { getRequest, postRequest, deleteRequest, putRequest } from '@/utils/request'
+
+/*
+**矿山（地下矿山、尾矿库、露天矿山）
+*/
+
+// 动态分页查询 [矿山] 列表
+export function getMineList(data) {
+  return postRequest('/basicData/mines/list', data)
+}
+
+// 添加 [矿山] 信息
+export function addMine(data) {
+  return postRequest('/basicData/mines/add', data)
+}
+
+// 修改 [矿山] 信息
+export function updateMine(id, data) {
+  return putRequest(`/basicData/mines/update/${id}`, data)
+}
+
+// 通过 id 删除 [矿山] 信息
+export function deleteMine(id) {
+  return deleteRequest(`/basicData/mines/delete/${id}`)
+}
+
+// 通过 id 查询 [矿山] 的修改历史记录
+export function historyMine(id) {
+  return postRequest(`/basicData/mines/historys/${id}`)
+}
+
+/*
+**尾矿库
+*/
+
+// 动态分页查询 [尾矿库] 列表
+export function getTailingReservoirsList(data) {
+  return postRequest('/basicData/mines/tailingReservoirs/list', data)
+}
+
+// 添加 [尾矿库] 信息
+export function addTailingReservoirs(data) {
+  return postRequest('/basicData/mines/tailingReservoirs/add', data)
+}
+
+// 通过 id 修改 [尾矿库] 信息
+export function updateTailingReservoirs(id, data) {
+  return putRequest(`/basicData/mines/tailingReservoirs/update/${id}`, data)
+}
+
+// 通过 id 删除 [尾矿库] 信息
+export function deleteTailingReservoirs(id) {
+  return deleteRequest(`/basicData/mines/tailingReservoirs/delete/${id}`)
+}
+
+// 通过 id 查询 [尾矿库] 的修改历史记录
+export function historyTailingReservoirs(id) {
+  return postRequest(`/basicData/mines/tailingReservoirs/historys/${id}`)
+}
+
+/*
+**排土场
+*/
+
+// 动态分页查询 [排土场] 列表
+export function getDumpsList(data) {
+  return postRequest('/basicData/mines/dumps/list', data)
+}
+
+// 添加 [排土场] 信息
+export function addDumps(data) {
+  return postRequest('/basicData/mines/dumps/add', data)
+}
+
+// 通过 id 修改 [排土场] 信息
+export function updateDumps(id, data) {
+  return putRequest(`/basicData/mines/dumps/update/${id}`, data)
+}
+
+// 通过 id 删除 [排土场] 信息
+export function deleteDumps(id) {
+  return deleteRequest(`/basicData/mines/dumps/delete/${id}`)
+}
+
+// 通过 id 查询 [排土场] 的修改历史记录
+export function historyDumps(id) {
+  return postRequest(`/basicData/mines/dumps/historys/${id}`)
+}

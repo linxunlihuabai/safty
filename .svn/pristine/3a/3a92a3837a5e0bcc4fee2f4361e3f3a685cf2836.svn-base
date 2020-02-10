@@ -1,0 +1,905 @@
+<template>
+  <!-- 矿山登记 -->
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-tabs v-model="activeName" :before-leave="handleLeave">
+        <el-tab-pane
+          v-for="(item,index) in tabsData"
+          :key="index"
+          :label="item.name"
+          :name="item.name"
+        >
+          <el-row type="flex" justify="space-between" align="top">
+
+            <el-button
+              type="primary"
+              size="small"
+              icon="el-icon-plus"
+              @click="addForm"
+            >
+              新增
+            </el-button>
+
+            <div>
+              <el-autocomplete
+                v-model="searchTemp"
+                size="small"
+                :fetch-suggestions="querySearch"
+                placeholder="请输入内容"
+                style="width:160px;margin-right:10px"
+                :trigger-on-focus="false"
+                @select="handleSelect"
+              />
+
+              <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+            </div>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-table ref="table" v-loading="tableDataLoading" border :data="tableData" size="small" stripe>
+
+                <!-- 详情展示 -->
+                <el-table-column prop="name" label="名称" />
+
+                <!-- 地下矿山和露天矿山 -->
+                <template v-if="activeName==='地下矿山' || activeName==='露天矿山'">
+
+                  <el-table-column key="zh-mineralSpecies" prop="zh-mineralSpecies" label="主要矿种" />
+                  <el-table-column key="miningTime" prop="miningTime" label="投产时间" />
+                  <el-table-column key="miningLicenseNo" prop="miningLicenseNo" label="采矿许可证号" />
+                  <el-table-column label="采矿许可证有效期">
+                    <template slot-scope="scope">
+                      <span>{{ scope.row.licenseStart }}</span>
+                      <i class="el-icon-minus" />
+                      <span>{{ scope.row.licenseEnd }}</span>
+                    </template>
+                  </el-table-column>
+                </template>
+
+                <!-- 尾矿库 -->
+                <template v-if="activeName==='尾矿库'">
+                  <el-table-column key="levelLabel" prop="levelLabel" label="尾矿库等别" />
+                  <el-table-column key="personResponsible" prop="personResponsible" label="直接负责人" />
+                  <el-table-column key="phone" prop="phone" label="联系方式" />
+                </template>
+
+                <!-- 排土场 -->
+                <template v-if="activeName==='排土场'">
+                  <el-table-column key="address" prop="address" label="地址" />
+                </template>
+
+                <el-table-column label="GPS坐标">
+                  <template slot-scope="scope">
+                    <span>经度:{{ scope.row.gpsLng }}</span>
+                    <i class="el-icon-minus" />
+                    <span>纬度:{{ scope.row.gpsLat }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" :width="GLOBAL.TABLE_CELL_WIDTH.MEDIUM">
+                  <template slot-scope="scope">
+                    <el-button-group class="operate">
+                      <el-button type="text" size="mini" title="编辑" icon="el-icon-edit" @click="editItem(scope)" />
+                      <el-button type="text" size="mini" title="删除" icon="el-icon-delete" @click="delItem(scope)" />
+                    </el-button-group>
+                  </template>
+                </el-table-column>
+                <el-table-column label="历史修改" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+                  <template slot-scope="scope">
+                    <el-button-group class="operate">
+                      <el-button
+                        type="text"
+                        size="mini"
+                        icon="el-icon-view"
+                        @click="history(scope)"
+                      />
+                    </el-button-group>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-col>
+          </el-row>
+          <!-- 分页栏 -->
+
+          <el-row ref="page">
+            <el-pagination
+              :current-page.sync="cpage"
+              :page-sizes="[5, 10, 15, 20]"
+              :page-size.sync="pageSize"
+              layout="sizes, prev, pager, next"
+              :total="total"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </el-row>
+
+        </el-tab-pane>
+      </el-tabs>
+      <!-- 百度地图 -->
+      <baidu-map
+        :center="GLOBAL.BMAP_CENTER"
+        :zoom="GLOBAL.BMAP_ZOOM"
+        :style="GLOBAL.BMAP_STYLE"
+        :scroll-wheel-zoom="true"
+      >
+        <bm-marker v-for="item in tableData" :key="item.id" :position="{lng:item.gpsLng, lat: item.gpsLat}">
+          <bm-label :content="item.name" :offset="GLOBAL.BMAP_LABEL_OFFSET" />
+        </bm-marker>
+      </baidu-map>
+
+    </div>
+
+    <!-- 地下矿山窗口 -->
+    <el-dialog
+      title="登记表"
+      :visible.sync="UnderMineFormDialog"
+      :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+      :close-on-click-modal="false"
+      @closed="handleDialogClosed('UnderMineForm')"
+    >
+      <!-- 地下矿山登记表 -->
+      <el-form
+        ref="UnderMineForm"
+        size="small"
+        :model="UnderMineForm"
+        :rules="UMFRules"
+        :label-width="GLOBAL.FORM_LABEL_WIDTH.BIG"
+      >
+        <el-form-item label="矿山名称" prop="name">
+          <el-input v-model="UnderMineForm.name" />
+        </el-form-item>
+        <el-form-item label="主要矿种" prop="mineralSpecies">
+          <sun-select v-model="UnderMineForm.mineralSpecies" :module="'矿种'" />
+        </el-form-item>
+        <el-form-item label="投产时间" prop="miningTime">
+          <el-date-picker
+            v-model="UnderMineForm.miningTime"
+            type="date"
+            value-format="yyyy-MM-dd"
+            placeholder="选择日期"
+          />
+        </el-form-item>
+
+        <el-form-item label="采矿许可证号" prop="miningLicenseNo">
+          <el-input v-model="UnderMineForm.miningLicenseNo" />
+        </el-form-item>
+
+        <el-form-item label="GPS坐标" required>
+          <el-col :span="11">
+            <el-form-item prop="gpsLng">
+              <el-input v-model="UnderMineForm.gpsLng" oninput="value=value.replace(/[^\d.]/g,'')" placeholder="经度" />
+            </el-form-item>
+          </el-col>
+          <el-col class="line" :span="2">-</el-col>
+          <el-col :span="11">
+            <el-form-item prop="gpsLat">
+              <el-input v-model="UnderMineForm.gpsLat" placeholder="纬度" />
+            </el-form-item>
+          </el-col>
+        </el-form-item>
+
+        <el-form-item label="采矿许可证有效期" prop="termOfValidity">
+
+          <el-date-picker
+            v-model="UnderMineForm.termOfValidity"
+            type="daterange"
+            value-format="yyyy-MM-dd"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+          />
+        </el-form-item>
+      </el-form>
+
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="handleDialogClosed('UnderMineForm')">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="formSubmit('UnderMineForm')">{{ handle }}</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 尾矿库窗口 -->
+    <el-dialog
+      title="登记表"
+      :visible.sync="TailingsPondFormDialog"
+      :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+      :close-on-click-modal="false"
+      @closed="handleDialogClosed('TailingsPondForm')"
+    >
+
+      <!-- 尾矿库登记表 -->
+      <el-form
+        ref="TailingsPondForm"
+        size="small"
+        :model="TailingsPondForm"
+        :rules="TPFRules"
+        :label-width="GLOBAL.FORM_LABEL_WIDTH.BIG"
+      >
+
+        <el-form-item label="尾矿库名称" prop="name">
+          <el-input v-model="TailingsPondForm.name" />
+        </el-form-item>
+
+        <el-form-item label="尾矿库等别" prop="level">
+          <sun-select v-model="TailingsPondForm.level" :module="'尾矿库等别'" />
+        </el-form-item>
+
+        <el-form-item label="直接负责人" prop="personResponsible">
+          <el-input v-model="TailingsPondForm.personResponsible" />
+        </el-form-item>
+        <el-form-item label="联系方式" prop="phone">
+          <el-input v-model="TailingsPondForm.phone" />
+        </el-form-item>
+        <el-form-item label="GPS坐标" required>
+          <el-col :span="11">
+            <el-form-item prop="gpsLng">
+              <el-input v-model="TailingsPondForm.gpsLng" placeholder="经度" />
+            </el-form-item>
+          </el-col>
+          <el-col class="line" :span="2">-</el-col>
+          <el-col :span="11">
+            <el-form-item prop="gpsLat">
+              <el-input v-model="TailingsPondForm.gpsLat" placeholder="纬度" />
+            </el-form-item>
+          </el-col>
+        </el-form-item>
+      </el-form>
+
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="handleDialogClosed('TailingsPondForm')">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="formSubmit('TailingsPondForm')">{{ handle }}</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 排土场窗口 -->
+    <el-dialog
+      title="登记表"
+      :visible.sync="DumpingSiteFormDialog"
+      :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+      :close-on-click-modal="false"
+      @closed="handleDialogClosed('DumpingSiteForm')"
+    >
+
+      <!-- 排土场登记表 -->
+      <el-form
+        ref="DumpingSiteForm"
+        size="small"
+        :model="DumpingSiteForm"
+        :rules="DSFRules"
+        :label-width="GLOBAL.FORM_LABEL_WIDTH.BIG"
+      >
+
+        <el-form-item label="排土场名称" prop="name">
+          <el-input v-model="DumpingSiteForm.name" />
+        </el-form-item>
+
+        <el-form-item label="地址" prop="address">
+          <el-input v-model="DumpingSiteForm.address" />
+        </el-form-item>
+
+        <el-form-item label="GPS坐标" required>
+          <el-col :span="11">
+            <el-form-item prop="gpsLng">
+              <el-input v-model="DumpingSiteForm.gpsLng" placeholder="经度" />
+            </el-form-item>
+          </el-col>
+          <el-col class="line" :span="2">-</el-col>
+          <el-col :span="11">
+            <el-form-item prop="gpsLat">
+              <el-input v-model="DumpingSiteForm.gpsLat" placeholder="纬度" />
+            </el-form-item>
+          </el-col>
+        </el-form-item>
+      </el-form>
+
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="handleDialogClosed('DumpingSiteForm')">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="formSubmit('DumpingSiteForm')">{{ handle }}</el-button>
+      </div>
+    </el-dialog>
+
+    <!--露天矿山窗口 -->
+    <el-dialog
+      title="登记表"
+      :visible.sync="OpenMineFormDialog"
+      :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+      :close-on-click-modal="false"
+      @closed="handleDialogClosed('OpenMineForm')"
+    >
+
+      <!-- 露天矿山登记表 -->
+      <el-form
+        ref="OpenMineForm"
+        size="small"
+        :model="OpenMineForm"
+        :rules="OMFRules"
+        :label-width="GLOBAL.FORM_LABEL_WIDTH.BIG"
+      >
+        <el-form-item label="矿山名称" prop="name">
+          <el-input v-model="OpenMineForm.name" />
+        </el-form-item>
+
+        <el-form-item label="主要矿种" prop="mineralSpecies">
+          <sun-select v-model="OpenMineForm.mineralSpecies" :module="'矿种'" />
+        </el-form-item>
+
+        <el-form-item label="投产时间" prop="miningTime">
+          <el-date-picker
+            v-model="OpenMineForm.miningTime"
+            type="date"
+            value-format="yyyy-MM-dd"
+            placeholder="选择日期"
+          />
+        </el-form-item>
+
+        <el-form-item label="采矿许可证号" prop="miningLicenseNo">
+          <el-input v-model="OpenMineForm.miningLicenseNo" />
+        </el-form-item>
+
+        <el-form-item label="GPS坐标" required>
+
+          <el-col :span="11">
+            <el-form-item prop="gpsLng">
+              <el-input v-model="OpenMineForm.gpsLng" oninput="value=value.replace(/[^\d.]/g,'')" placeholder="经度" />
+            </el-form-item>
+          </el-col>
+
+          <el-col class="line" :span="2">-</el-col>
+          <el-col :span="11">
+            <el-form-item prop="gpsLat">
+              <el-input v-model="OpenMineForm.gpsLat" placeholder="纬度" />
+            </el-form-item>
+          </el-col>
+
+        </el-form-item>
+
+        <el-form-item label="采矿许可证有效期" prop="termOfValidity">
+
+          <el-date-picker
+            v-model="OpenMineForm.termOfValidity"
+            type="daterange"
+            value-format="yyyy-MM-dd"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+          />
+        </el-form-item>
+
+      </el-form>
+
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="handleDialogClosed('OpenMineForm')">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="formSubmit('OpenMineForm')">{{ handle }}</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 用于查看历史记录的dialog -->
+    <el-dialog
+      title="历史记录"
+      :visible.sync="historyDialog"
+      :close-on-click-modal="false"
+      :width="GLOBAL.DIALOG_WIDTH.BIG"
+    >
+      <el-table ref="table" border :data="historyTable" size="small" stripe>
+        <!-- 历史记录详情展示 -->
+        <el-table-column prop="name" label="名称" />
+
+        <!-- 地下矿山和露天矿山 -->
+        <template v-if="activeName==='地下矿山' || activeName==='露天矿山'">
+          <el-table-column key="zh-mineralSpecies" prop="zh-mineralSpecies" label="主要矿种" />
+          <el-table-column key="miningTime" prop="miningTime" label="投产时间" />
+          <el-table-column key="miningLicenseNo" prop="miningLicenseNo" label="采矿许可证号" />
+          <el-table-column label="采矿许可证有效期">
+            <template slot-scope="scope">
+              <span>{{ scope.row.licenseStart }}</span>
+              <i class="el-icon-minus" />
+              <span>{{ scope.row.licenseEnd }}</span>
+            </template>
+          </el-table-column>
+        </template>
+
+        <!-- 尾矿库 -->
+        <template v-if="activeName==='尾矿库'">
+          <el-table-column key="levelLabel" prop="levelLabel" label="尾矿库等别" />
+          <el-table-column key="personResponsible" prop="personResponsible" label="直接负责人" />
+          <el-table-column key="phone" prop="phone" label="联系方式" />
+        </template>
+
+        <!-- 排土场 -->
+        <template v-if="activeName==='排土场'">
+          <el-table-column key="address" prop="address" label="地址" />
+        </template>
+
+        <el-table-column label="GPS坐标">
+          <template slot-scope="scope">
+            <span>经度:{{ scope.row.gpsLng }}</span>
+            <i class="el-icon-minus" />
+            <span>纬度:{{ scope.row.gpsLat }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="operatorName" label="操作人" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+        <el-table-column prop="updateTime" label="操作时间" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+      </el-table>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+import { validateIsPhone } from '@/utils/regList' // 手机验证规则
+import {
+  getMineList,
+  addMine,
+  updateMine,
+  deleteMine,
+  historyMine
+} from '@/api/basedata/mineRegistration' // 矿山API
+import {
+  getTailingReservoirsList,
+  addTailingReservoirs,
+  updateTailingReservoirs,
+  deleteTailingReservoirs,
+  historyTailingReservoirs
+} from '@/api/basedata/mineRegistration' // 尾矿库API
+import {
+  getDumpsList,
+  addDumps,
+  updateDumps,
+  deleteDumps,
+  historyDumps
+} from '@/api/basedata/mineRegistration' // 排土场API
+export default {
+  data() {
+    // 手机验证
+    const isvalidPhone = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('手机号码不能为空'))
+      }
+      if (validateIsPhone(value)) {
+        callback()
+      } else {
+        callback(new Error('请输入正确的手机号码'))
+      }
+    }
+    return {
+      handle: '', // 处理方式
+      search: '',
+      searchTemp: '',
+      activeName: '地下矿山',
+      tabsData: [
+        {
+          name: '地下矿山'
+        },
+        {
+          name: '尾矿库'
+        },
+        {
+          name: '排土场'
+        },
+        {
+          name: '露天矿山'
+        }
+      ],
+      UnderMineFormDialog: false,
+      // 地下矿山登记表
+      UnderMineForm: {
+        name: '',
+        mineralSpecies: '',
+        miningTime: '',
+        miningLicenseNo: '', // 许可证
+        gpsLng: null, // 经度
+        gpsLat: null, // 纬度
+        termOfValidity: '' // 有效期
+      },
+      TailingsPondFormDialog: false,
+      // 尾矿库登记表
+      TailingsPondForm: {
+        name: '',
+        level: '',
+        personResponsible: '', // 直接负责人
+        phone: '',
+        gpsLng: null, // 经度
+        gpsLat: null // 纬度
+      },
+      DumpingSiteFormDialog: false,
+      // 排土场登记表
+      DumpingSiteForm: {
+        name: '',
+        address: '',
+        gpsLng: null, // 经度
+        gpsLat: null // 纬度
+      },
+      OpenMineFormDialog: false,
+      // 露天矿山登记表
+      OpenMineForm: {
+        name: '',
+        mineralSpecies: '',
+        miningTime: '',
+        miningLicenseNo: '', // 许可证
+        gpsLng: null, // 经度
+        gpsLat: null, // 纬度
+        termOfValidity: '' // 有效期
+      },
+      // 地下矿山登记表验证规则
+      UMFRules: {
+        name: [
+          { required: true, message: '请输入矿山名称', trigger: 'blur' }
+        ],
+        mineralSpecies: [
+          { required: true, message: '请选择主要矿种', trigger: 'change' }
+        ],
+        miningTime: [
+          { required: true, message: '请选择投产时间', trigger: 'change' }
+        ],
+        miningLicenseNo: [
+          { required: true, message: '请输入采矿许可证号', trigger: 'blur' }
+        ],
+        gpsLng: [
+          { required: true, message: '请输入经度', trigger: 'blur' }
+        ],
+        gpsLat: [
+          { required: true, message: '请输入纬度', trigger: 'blur' }
+        ],
+        termOfValidity: [
+          { required: true, message: '请选择有效期', trigger: 'change' }
+        ]
+      },
+      // 尾矿库登记表验证规则
+      TPFRules: {
+        name: [
+          { required: true, message: '请输入尾矿库名称', trigger: 'blur' }
+        ],
+        level: [
+          { required: true, message: '请选择尾矿库等别', trigger: 'change' }
+        ],
+        personResponsible: [
+          { required: true, message: '请输入直接负责人', trigger: 'blur' }
+        ],
+        phone: [
+          { required: true, validator: isvalidPhone, trigger: 'blur' }
+        ],
+        gpsLng: [
+          { required: true, message: '请输入经度', trigger: 'blur' }
+        ],
+        gpsLat: [
+          { required: true, message: '请输入纬度', trigger: 'blur' }
+        ]
+      },
+      // 排土场登记表验证规则
+      DSFRules: {
+        name: [
+          { required: true, message: '请输入排土场名称', trigger: 'blur' }
+        ],
+        address: [
+          { required: true, message: '请输入排土场地址', trigger: 'blur' }
+        ],
+        gpsLng: [
+          { required: true, message: '请输入经度', trigger: 'blur' }
+        ],
+        gpsLat: [
+          { required: true, message: '请输入纬度', trigger: 'blur' }
+        ]
+      },
+      // 露天矿山登记表验证规则
+      OMFRules: {
+        name: [
+          { required: true, message: '请输入矿山名称', trigger: 'blur' }
+        ],
+        mineralSpecies: [
+          { required: true, message: '请选择主要矿种', trigger: 'change' }
+        ],
+        miningTime: [
+          { required: true, message: '请选择投产时间', trigger: 'change' }
+        ],
+        miningLicenseNo: [
+          { required: true, message: '请输入采矿许可证号', trigger: 'blur' }
+        ],
+        gpsLng: [
+          { required: true, message: '请输入经度', trigger: 'blur' }
+        ],
+        gpsLat: [
+          { required: true, message: '请输入纬度', trigger: 'blur' }
+        ],
+        termOfValidity: [
+          { required: true, message: '请选择有效期', trigger: 'change' }
+        ]
+      },
+      table: [],
+      historyDialog: false,
+      historyTable: [],
+      cpage: 1,
+      pageSize: 5,
+      total: 0,
+      tableDataLoading: true, // 表格加载
+
+      // 引入百度地图默认经纬度以及倍数
+      zoom: 11,
+      show: false,
+      btnLoading: false
+    }
+  },
+  computed: {
+    tableData() {
+      const search = this.search
+      return this.fuzzySearch(this.table, search, 'name')
+    },
+    queryList() {
+      return this.table.map(data => {
+        return { value: data.name }
+      })
+    }
+  },
+  watch: {
+    searchTemp(val) {
+      if (!val) {
+        this.search = ''
+      }
+    }
+  },
+  created() {
+    this.fetchMineList()
+  },
+  methods: {
+    // 动态分页查询 [矿山] 列表
+    fetchMineList(type, cpage, pageSize) {
+      const params = {}
+      params.type = type || this.GLOBAL.MINE_TYPE.UNDER.type // 矿山类型
+      params.page = cpage || this.cpage
+      params.size = pageSize || this.pageSize
+      getMineList(params)
+        .then(res => {
+          const pageObj = res.data.obj
+          this.total = pageObj.total
+          let list = zhClassify(pageObj.list, [['矿种', 'mineralSpecies']])
+          list = list.map(item => {
+            item.termOfValidity = [item.licenseStart, item.licenseEnd]
+            return item
+          })
+          console.log(list)
+          this.table = list
+          this.tableDataLoading = false
+        }).catch(() => {})
+    },
+    // 动态分页查询 [尾矿库] 列表
+    fetchTailingReservoirsList(cpage, pageSize) {
+      const params = {}
+      params.page = cpage || this.cpage
+      params.size = pageSize || this.pageSize
+      getTailingReservoirsList(params)
+        .then(res => {
+          const pageObj = res.data.obj
+          this.total = pageObj.total
+          console.log(pageObj.list)
+          const list = pageObj.list
+
+          this.table = list
+          this.tableDataLoading = false
+        }).catch(() => {})
+    },
+    // 动态分页查询 [排土场] 列表
+    fetchDumpsList(cpage, pageSize) {
+      const params = {}
+      params.page = cpage || this.cpage
+      params.size = pageSize || this.pageSize
+      // console.log(getDumpsList)
+      getDumpsList(params)
+        .then(res => {
+          const pageObj = res.data.obj
+          this.total = pageObj.total
+          console.log(pageObj.list)
+          const list = pageObj.list
+
+          this.table = list
+          this.tableDataLoading = false
+        }).catch(() => {})
+    },
+    // 过滤表格
+    onSearch() {
+      this.search = this.searchTemp
+    },
+    querySearch(queryString, cb) {
+      var results = this.fuzzySearch(this.queryList, queryString, 'value')
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    handleSelect() {
+      this.onSearch()
+    },
+    // 切换选项卡
+    handleLeave(activeName, oldActiveName) {
+      this.tableDataLoading = true
+      if (activeName === '地下矿山') {
+        this.fetchMineList(this.GLOBAL.MINE_TYPE.UNDER.type)
+      } else if (activeName === '露天矿山') {
+        this.fetchMineList(this.GLOBAL.MINE_TYPE.OPEN.type)
+      } else if (activeName === '尾矿库') {
+        this.fetchTailingReservoirsList()
+      } else if (activeName === '排土场') {
+        this.fetchDumpsList()
+      }
+    },
+    // 添加按钮
+    addForm() {
+      this.handle = '添加'
+      if (this.activeName === '地下矿山') {
+        this.UnderMineFormDialog = true
+      } else if (this.activeName === '露天矿山') {
+        this.OpenMineFormDialog = true
+      } else if (this.activeName === '尾矿库') {
+        this.TailingsPondFormDialog = true
+      } else if (this.activeName === '排土场') {
+        this.DumpingSiteFormDialog = true
+      }
+    },
+    // 提交
+    formSubmit(formName) {
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          const temp = formName + 'Dialog'
+          const params = this.depClone(this[formName])
+          console.log(params)
+          if (this.handle === '添加') {
+            if (this.activeName === '地下矿山') {
+              params.licenseStart = params.termOfValidity[0]
+              params.licenseEnd = params.termOfValidity[1]
+              params.type = this.GLOBAL.MINE_TYPE.UNDER.type
+              addMine(params).then(res => {
+                this.fetchMineList()
+              })
+            } else if (this.activeName === '露天矿山') {
+              params.licenseStart = params.termOfValidity[0]
+              params.licenseEnd = params.termOfValidity[1]
+              params.type = this.GLOBAL.MINE_TYPE.OPEN.type
+              addMine(params).then(res => {
+                this.fetchMineList(params.type)
+              })
+            } else if (this.activeName === '尾矿库') {
+              addTailingReservoirs(params).then(res => {
+                this.fetchTailingReservoirsList()
+              })
+            } else if (this.activeName === '排土场') {
+              addDumps(params).then(res => {
+                this.fetchDumpsList()
+              })
+            }
+
+            this[temp] = false
+          } else if (this.handle === '修改') {
+            if (this.activeName === '地下矿山') {
+              params.type = this.GLOBAL.MINE_TYPE.UNDER.type
+              updateMine(params.id, params).then(res => {
+                this.fetchMineList()
+              })
+            } else if (this.activeName === '露天矿山') {
+              params.type = this.GLOBAL.MINE_TYPE.OPEN.type
+              updateMine(params.id, params).then(res => {
+                this.fetchMineList(params.type)
+              })
+            } else if (this.activeName === '尾矿库') {
+              updateTailingReservoirs(params.id, params).then(res => {
+                this.fetchTailingReservoirsList()
+              })
+            } else if (this.activeName === '排土场') {
+              updateDumps(params.id, params).then(res => {
+                this.fetchDumpsList()
+              })
+            }
+            this[temp] = false
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 修改
+    editItem(scope) {
+      this.handle = '修改'
+      if (this.activeName === '地下矿山') {
+        this.UnderMineFormDialog = true
+        this.$nextTick(() => {
+          this.UnderMineForm = { ...scope.row }
+        })
+      } else if (this.activeName === '露天矿山') {
+        this.OpenMineFormDialog = true
+        this.$nextTick(() => {
+          this.OpenMineForm = { ...scope.row }
+        })
+      } else if (this.activeName === '尾矿库') {
+        this.TailingsPondFormDialog = true
+        this.$nextTick(() => {
+          this.TailingsPondForm = { ...scope.row }
+        })
+      } else if (this.activeName === '排土场') {
+        this.DumpingSiteFormDialog = true
+        this.$nextTick(() => {
+          this.DumpingSiteForm = { ...scope.row }
+        })
+      }
+      console.log(scope)
+    },
+    // 删除
+    delItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning')
+        .then(() => {
+          const id = scope.row.id
+          if (this.activeName === '地下矿山') {
+            deleteMine(id).then(res => {
+              this.fetchMineList()
+            })
+          } else if (this.activeName === '露天矿山') {
+            deleteMine(id).then(res => {
+              this.fetchMineList(this.GLOBAL.MINE_TYPE.OPEN.type)
+            })
+          } else if (this.activeName === '尾矿库') {
+            deleteTailingReservoirs(id).then(res => {
+              this.fetchTailingReservoirsList()
+            })
+          } else if (this.activeName === '排土场') {
+            deleteDumps(id).then(res => {
+              this.fetchDumpsList()
+            })
+          }
+        })
+    },
+    // 历史修改
+    async history(scope) {
+      const id = scope.row.id
+      let data
+      if (this.activeName === '地下矿山') {
+        await historyMine(id).then((res) => {
+          data = res.data.obj
+          zhClassify(data, [['矿种', 'mineralSpecies']])
+        })
+      } else if (this.activeName === '露天矿山') {
+        await historyMine(id).then((res) => {
+          data = res.data.obj
+          zhClassify(data, [['矿种', 'mineralSpecies']])
+        })
+      } else if (this.activeName === '尾矿库') {
+        await historyTailingReservoirs(id).then(res => {
+          data = res.data.obj
+        })
+      } else if (this.activeName === '排土场') {
+        await historyDumps(id).then(res => {
+          data = res.data.obj
+        })
+      }
+
+      this.historyTable = data.map((item) => {
+        // 改造修改时间
+        item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+        return item
+      })
+      this.historyDialog = true
+    },
+    // 处理dialog关闭
+    handleDialogClosed(formName) {
+      this.dialogClosed(this, formName)
+    },
+    // 处理每页条数变化
+    handleSizeChange() {
+      if (this.activeName === '地下矿山') {
+        this.fetchMineList()
+      } else if (this.activeName === '露天矿山') {
+        this.fetchMineList(this.GLOBAL.MINE_TYPE.OPEN.type)
+      } else if (this.activeName === '尾矿库') {
+        this.fetchTailingReservoirsList()
+      } else if (this.activeName === '排土场') {
+        this.fetchDumpsList()
+      }
+    },
+    // 处理当前页码变化
+    handleCurrentChange() {
+      this.fetchMineList()
+    }
+    // 选择判断
+
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+
+</style>

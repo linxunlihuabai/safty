@@ -1,0 +1,599 @@
+<template>
+  <div class="dashboard-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-tabs v-model="activeName">
+        <el-tab-pane label="企业基本信息" name="first">
+          <!-- 搜索框的按钮哟 -->
+          <el-row>
+            <el-col :span="24">
+              <el-form :inline="true" :model="params" class="demo-form-inline">
+                <!--  <el-form-item label="企业名称" prop="enterpriseId">
+                  <el-cascader
+                    v-model="params.enterpriseIds"
+                    style="width: 100%"
+                    size="small"
+                    placeholder="请选择企业"
+                    :options="enterpriseOptions"
+                    :props="{ checkStrictly: true }"
+                    clearable
+                  />
+                </el-form-item> -->
+                <el-form-item label="查询条件">
+                  <el-input
+                    v-model="params.enterpriseName"
+                    placeholder="单位名称"
+                    style="width:180px;"
+                    size="small"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" icon="el-icon-search" size="small" @click="fetchData">查询</el-button>
+                </el-form-item>
+              </el-form>
+            </el-col>
+          </el-row>
+          <el-button
+            type="primary"
+            size="small"
+            @click="
+              addEnterpriseDialog = true;locData.lng = 0;
+              locData.lat = 0;
+            "
+          >
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+          <el-table
+            ref="table"
+            v-loading="pageEnterpriseLoading"
+            border
+            :data="page.list"
+            size="small"
+            stripe
+            :expand-row-keys="expands"
+            :row-key="getRowKeys"
+            empty-text="空"
+            @expand-change="expandSelect"
+          >
+            <!-- 详情展示 -->
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <el-form class="demo-table-expand">
+                  <el-row class="zhou-one">
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="企业名称：">
+                        <span>{{ props.row.enterpriseName }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="代码证类型：">
+                        <span>{{ props.row['zh-certificateType'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="单位类别：">
+                        <span>{{ props.row['zh-unitCategory'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="注册地址：">
+                        <span>{{ props.row.registerAddress }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="统一社会信用代码：">
+                        <span>{{ props.row.creditCode }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="生产经营地址：">
+                        <span>{{ props.row.businessAddress }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="营业执照类别：">
+                        <span>{{ props.row['zh-businessLicenseCategory'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="法定代表人：">
+                        <span>{{ props.row.legalRepresentative }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row class="zhou-one">
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="法定代表人联系电话：">
+                        <span>{{ props.row.contactNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="经营范围：">
+                        <span>{{ props.row.businessScope }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="行业类别：">
+                        <span>{{ props.row['zh-industryCategory'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="工商登记有效期：">
+                        <el-tag size="small">
+                          {{
+                            props.row.registerValidityStartTime
+                              | dateFormat("YYYY年MM月DD日")
+                          }}
+                        </el-tag>
+                        <el-tag size="small" type="success">
+                          {{
+                            props.row.registerValidityEndTime
+                              | dateFormat("YYYY年MM月DD日")
+                          }}
+                        </el-tag>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="企业规模：">
+                        <span>{{ props.row.scale }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="经济类型：">
+                        <span>{{ props.row['zh-economicType'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="上级单位：">
+                        <span>{{ props.row.parentName }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="在岗员工数：">
+                        <span>{{ props.row.onDutyEmployeeNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row class="zhou-one">
+                    <!--  <el-col :span='12' class='zhou-colBorder'>
+                      <el-form-item label='注册证件上传：'>
+                        <el-image v-for='item in props.row.registerCertificates' :key='item.id' :src=''http://192.168.100.2:8080' + item.url' style='width:150px; height: 150px'>
+                          {{ 'http://192.168.100.2:8080' + item.url }}
+                        </el-image>
+                      </el-form-item>
+                    </el-col>-->
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="外用工人数：">
+                        <span>{{ props.row.externalWorkerNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="企业状态：">
+                        <span>{{ props.row.state }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="12" class="zhou-colBorder">
+                      <el-form-item label="办公地点GPS坐标：">
+                        <baidu-map
+                          :center="props.row.projectGPSCoordinates"
+                          :zoom="zoom"
+                          style="float:left;width: 520px; height: 250px;"
+                          :scroll-wheel-zoom="true"
+                          @ready="smallEnterpriseMap"
+                        />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </el-form>
+              </template>
+            </el-table-column>
+            <el-table-column sortable prop="enterpriseName" label="企业名称" />
+            <el-table-column sortable prop="legalRepresentative" label="法定代表人" />
+            <el-table-column sortable prop="contactNumber" label="联系电话" />
+            <el-table-column sortable prop="parentName" label="上级单位" />
+            <el-table-column label="注册证件" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'view'" @click="viewPics(scope.row.registerCertificates)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" :width="GLOBAL.TABLE_CELL_WIDTH.MEDIUM">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'edit'" @click="editOpenEnterpriseDialog(scope.$index, scope.row)" />
+                  <sun-button :type="'delete'" @click="delEnterprise(scope.$index, scope.row)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="历史修改" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'history'" @click="historyEnterpriseBasicInfo(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+          </el-table>
+          <!-- 分页栏 -->
+          <el-row>
+            <!-- 分页栏 -->
+            <el-pagination
+              class="pagination"
+              layout="total, sizes, prev, pager, next, jumper"
+              :current-page="page.page"
+              :total="page.total"
+              :page-sizes="[10, 20, 50, 100]"
+              @size-change="handleSizeChangeEnterprise"
+              @current-change="handleCurrentChangeEnterprise"
+            />
+          </el-row>
+
+          <el-button icon="el-icon-view" @click="showMap = true">显示地图</el-button>
+          <el-button @click="showMap = false">隐藏地图</el-button>
+          <!-- 引入全局地图 -->
+          <div v-if="showMap">
+            <baidu-map
+              :zoom="zoom"
+              style="width: 100%;height:300px;"
+              :scroll-wheel-zoom="true"
+              @ready="bigEnterpriseMap"
+            />
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="安全生产信息" name="second">
+          <el-row>
+            <el-col :span="24">
+              <el-form :inline="true" :model="params" class="demo-form-inline">
+                <el-form-item label="查询条件">
+                  <el-input
+                    v-model="params.enterpriseName"
+                    placeholder="单位名称"
+                    style="width:180px;"
+                    size="small"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" icon="el-icon-search" size="small" @click="fetchSafeData">查询</el-button>
+                </el-form-item>
+              </el-form>
+            </el-col>
+          </el-row>
+          <el-button type="primary" size="small" @click="addSafeDialogTrue">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+          <el-table
+            ref="table"
+            v-loading="pageSafeLoading"
+            :data="pageSafe.list"
+            size="small"
+            border
+            style="width: 100%"
+          >
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <el-form class="demo-table-expand">
+                  <el-row class="zhou-one">
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="企业名称：">
+                        <span>{{ props.row.enterpriseName }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="从业人数：">
+                        <span>{{ props.row.employeeNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="安全生产主要负责人：">
+                        <span>{{ props.row.safetyProductionMainResponsiblePerson }}
+                        </span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="安全生产主要负责人联系电话：">
+                        <span>
+                          {{ props.row.safetyProductionMainResponsiblePersonContactNumber }}
+                        </span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="注册安全工程师人数：">
+                        <span>{{ props.row.registerSafeEngineerNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="特种作业人数：">
+                        <span>{{ props.row.specialWorkNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="分管安全负责人：">
+                        <span>{{ props.row.inChargeOfSafety }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="分管安全负责人电话：">
+                        <span>
+                          {{ props.row.inChargeOfSecurityResponsiblePersonTelephone }}
+                        </span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row class="zhou-one">
+                    <el-col :span="12" class="zhou-colBorder">
+                      <el-form-item label="安全生产许可证有效期：">
+                        <el-tag size="small">
+                          {{ props.row.productionLicenseValidityStartTime | dateFormat("YYYY年MM月DD日") }}
+                        </el-tag>
+                        <el-tag size="small" type="success">
+                          {{ props.row.productionLicenseValidityEndTime | dateFormat("YYYY年MM月DD日") }}
+                        </el-tag>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="专职安全管理人员：">
+                        <span>{{ props.row.safetyManagementPersonnel }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="专职安全管理人员电话：">
+                        <span>
+                          {{ props.row.safetyManagementPersonnelTelephone }}
+                        </span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="单位值班电话：">
+                        <span>{{ props.row.unitOnDutyPhone }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="电子邮箱：">
+                        <span>{{ props.row.email }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="上级单位：">
+                        <span>{{ props.row.parentName }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6" class="zhou-colBorder">
+                      <el-form-item label="生产状态：">
+                        <span>{{ props.row['zh-productionState'] }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </el-form>
+              </template>
+            </el-table-column>
+            <el-table-column prop="safeManageEmployeeNumber" label="专职安全管理人员人数" />
+            <el-table-column prop="safetyProductionMainResponsiblePerson" label="安全生产主要负责人" />
+            <el-table-column
+              prop="safetyProductionMainResponsiblePersonContactNumber"
+              label="安全生产主要负责人联系电话"
+            />
+            <el-table-column prop="unitOnDutyPhone" label="单位值班电话" />
+            <el-table-column sortable prop="parentName" label="上级单位" />
+            <el-table-column label="许可证扫描件" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'view'" @click="viewPics(scope.row.licenseScanFiles)" />
+                  <!-- 并未做操作 -->
+                  <sun-button :type="'view'">文件</sun-button>
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" :width="GLOBAL.TABLE_CELL_WIDTH.MEDIUM">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'edit'" @click="editOpenSafeDialog(scope.$index, scope.row)" />
+                  <sun-button :type="'delete'" @click="delSafe(scope.$index, scope.row)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="历史修改" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'history'" @click="historySafe(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <!-- 分页栏 -->
+            <el-row>
+              <!-- 分页栏 -->
+              <el-pagination
+                class="pagination"
+                layout="total, sizes, prev, pager, next, jumper"
+                :current-page="page.page"
+                :total="page.total"
+                :page-sizes="[10, 20, 50, 100]"
+                @size-change="handleSizeChangeSafe"
+                @current-change="handleCurrentChangeSafe"
+              />
+            </el-row>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+
+      <el-dialog title="企业基本信息-历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column type="expand">
+            <template slot-scope="props">
+              <el-form class="demo-table-expand">
+                <el-row class="zhou-one">
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="企业名称：">
+                      <span>{{ props.row.enterpriseName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="经度：">
+                      <span>{{ props.row.gpsLng }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="纬度：">
+                      <span>{{ props.row.gpsLat }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="代码证类型：">
+                      <span>{{ props.row['zh-certificateType'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="单位类别：">
+                      <span>{{ props.row['zh-unitCategory'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="注册地址：">
+                      <span>{{ props.row.registerAddress }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="统一社会信用代码：">
+                      <span>{{ props.row.creditCode }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="生产经营地址：">
+                      <span>{{ props.row.businessAddress }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="营业执照类别：">
+                      <span>{{ props.row['zh-businessLicenseCategory'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="法定代表人：">
+                      <span>{{ props.row.legalRepresentative }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row class="zhou-one">
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="法定代表人联系电话：">
+                      <span>{{ props.row.contactNumber }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="经营范围：">
+                      <span>{{ props.row.businessScope }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="行业类别：">
+                      <span>{{ props.row['zh-industryCategory'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="工商登记有效期：">
+                      <el-tag size="small">
+                        {{
+                          props.row.registerValidityStartTime
+                            | dateFormat("YYYY年MM月DD日")
+                        }}
+                      </el-tag>
+                      <el-tag size="small" type="success">
+                        {{
+                          props.row.registerValidityEndTime
+                            | dateFormat("YYYY年MM月DD日")
+                        }}
+                      </el-tag>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="企业规模：">
+                      <span>{{ props.row.scale }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="经济类型：">
+                      <span>{{ props.row['zh-economicType'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="上级单位：">
+                      <span>{{ props.row.parentName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="在岗员工数：">
+                      <span>{{ props.row.onDutyEmployeeNumber }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row class="zhou-one">
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="外用工人数：">
+                      <span>{{ props.row.externalWorkerNumber }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="企业状态：">
+                      <span>{{ props.row.state }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="12" class="zhou-colBorder">
+                    <el-form-item label="办公地点GPS坐标：">
+                      <baidu-map
+                        :center="props.row.projectGPSCoordinates"
+                        :zoom="zoom"
+                        style="float:left;width: 520px; height: 250px;"
+                        :scroll-wheel-zoom="true"
+                        @ready="smallEnterpriseMap"
+                      />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+            </template>
+          </el-table-column>
+          <el-table-column sortable prop="enterpriseName" label="企业名称" />
+          <el-table-column sortable prop="legalRepresentative" label="法定代表人" />
+          <el-table-column sortable prop="contactNumber" label="联系电话" />
+          <el-table-column sortable prop="parentName" label="上级单位" />
+          <el-table-column label="注册证件" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <sun-button :type="'view'" @click="viewPics(scope.row.registerCertificates)" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+          <el-table-column prop="operatorName" label="操作人" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+          <el-table-column prop="updateTime" label="操作时间" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+        </el-table>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+
+}
+</script>
+
+<style>
+
+</style>

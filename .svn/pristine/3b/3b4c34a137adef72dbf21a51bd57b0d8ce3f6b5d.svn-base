@@ -1,0 +1,279 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-tabs v-model="activeName">
+        <el-tab-pane
+          v-for="item in tabsData"
+          :key="item"
+          :label="item"
+          :name="item"
+        >
+          <el-row
+            type="flex"
+            justify="space-between"
+            align="top"
+          >
+            <el-button
+              type="primary"
+              size="small"
+              icon="el-icon-upload2"
+              @click="addform"
+            >
+              上传{{ item }}
+            </el-button>
+            <el-button
+              type="primary"
+              size="small"
+              icon="el-icon-view"
+              @click="handleReport(item)"
+            >
+              生成{{ item }}
+            </el-button>
+          </el-row>
+          <sun-table
+            border
+            :loading="tableDataLoading"
+            :columns="columns"
+            :data-source="tableData"
+            :operates="operates"
+            :span-method="objectSpanMethod"
+          >
+            <template v-slot:files="scope">
+              {{ scope.row.files[0].name }}
+            </template>
+          </sun-table>
+        </el-tab-pane>
+      </el-tabs>
+
+    </div>
+
+    <!-- 登记表 -->
+    <el-dialog
+      :title="handle "
+      :visible.sync="formDialog"
+      :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+      :close-on-click-modal="false"
+      @closed="handleDialogClosed('form')"
+    >
+
+      <el-form
+        id="addData"
+        ref="form"
+        size="small"
+        :model="form"
+        :rules="formRules"
+        :label-width="GLOBAL.FORM_LABEL_WIDTH.MEDIUM"
+      >
+
+        <el-form-item label="时间" prop="time">
+          <el-date-picker
+            v-model="form.time"
+            type="month"
+            value-format="yyyy-MM"
+            placeholder="选择时间"
+          />
+        </el-form-item>
+
+        <el-form-item label="附件" prop="files">
+          <sun-upload
+            ref="UPLOAD"
+            :data="GLOBAL.FILE_TYPE.RULES"
+            :file-list.sync="form.files"
+            :limit="1"
+            :btn-loading.sync="btnLoading"
+          />
+        </el-form-item>
+
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="formDialog=false">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="formSubmit">添加</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import SunTable from '@/components/table'
+
+import { getSessionStorage } from '@/utils/storage'
+
+import { downloadClick } from '@/utils'
+
+import { getreportList, addreport } from '@/api/reportStatistics/monthView'
+export default {
+  components: {
+    SunTable
+  },
+  data() {
+    return {
+      activeName: '安全生产综合表',
+      tabsData: ['安全生产综合表', '隐患情况报表', '隐患整改情况报表'],
+      tableData: [],
+      columns: [
+        {
+          prop: 'enterpriseName', // <String>  对应属性名
+          label: '单位'
+        },
+        {
+          prop: 'year', // <String>  对应属性名
+          label: '年份'
+        },
+        {
+          prop: 'month', // <String>  对应属性名
+          label: '月份'
+        },
+        {
+          prop: 'files', // <String>  对应属性名
+          label: '报表名称',
+          slot: true
+        }
+
+      ],
+      operates: [
+        {
+          label: '预览',
+          method: (row, index) => {
+            console.log(row, index)
+            this.handleFileListView(row.files)
+          }
+        },
+        {
+          label: '下载',
+          method: (row, index) => {
+            const { fileId, name } = row.files[0]
+            downloadClick(fileId, name)
+          }
+        }
+      ],
+      form: {
+        reportCategory: 1801, // 报表类别
+        type: '', // 报表类型
+        time: '', // 年月
+        files: []
+      },
+      btnLoading: false,
+      // 验证规则
+      formRules: {
+        type: [
+          { required: true, message: '请选择报表类型', trigger: 'change' }
+        ],
+        time: [
+          { required: true, message: '请选择时间', trigger: 'change' }
+        ],
+        files: [
+          { required: true, message: '请选择文件', trigger: 'change' }
+        ]
+      }
+    }
+  },
+  watch: {
+    activeName: {
+      handler(val) {
+        if (val === '隐患情况报表') {
+          this.form.type = 1702
+        } else if (val === '隐患整改情况报表') {
+          this.form.type = 1703
+        } else {
+          this.form.type = 1701
+        }
+        this.fetchList()
+      },
+      immediate: true
+    }
+  },
+  methods: {
+    fetchList(type) {
+      const params = {}
+      params.type = type || this.form.type
+      getreportList(params)
+        .then(res => {
+          this.tableData = res.data.obj.list
+          this.tableDataLoading = false
+          this.btnLoading = false
+        })
+        .catch(() => {})
+    },
+    // 预览报表
+    handleReport(title) {
+      const { enterpriseCode } = getSessionStorage('user')
+      const baseUrl = process.env.VUE_APP_BASE_API + `/ureport/preview?_u=mysql:${title}.ureport.xml&enterprise_code=${enterpriseCode}`
+      window.open(baseUrl)
+    },
+    formSubmit() {
+      this.$refs.form.validate(async(valid) => {
+        if (valid) {
+          this.btnLoading = true
+          const params = this.depClone(this.form)
+
+          // 改造时间
+          const arr = params.time.split('-')
+          params.year = arr[0]
+          params.month = arr[1]
+
+          // 改造文件
+          params.fileId = params.files[0].fileId
+
+          addreport(params).then((res) => {
+            this.formDialog = false
+          }).finally(() => {
+            this.btnLoading = false
+            this.fetchList()
+          })
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    getSpanArr(data, prop) {
+      const spanArr = []
+      let pos
+      let group
+      for (let i = 0; i < data.length; i++) {
+        if (i === 0) {
+          spanArr.push(1)
+          pos = 0
+        } else {
+          if (Array.isArray(prop)) {
+            group = prop.every(item => {
+              return data[i][item] === data[i - 1][item]
+            })
+          }
+          if (data[i][prop] && data[i][prop] === data[i - 1][prop] || group) {
+            spanArr[pos] += 1
+            spanArr.push(0)
+          } else {
+            spanArr.push(1)
+            pos = i
+          }
+        }
+      }
+
+      return spanArr
+    },
+
+    objectSpanMethod({ row, column, rowIndex, columnIndex }) {
+      if (columnIndex <= 1) {
+        const prop = column.property
+
+        const arr = columnIndex === 1 ? this.getSpanArr(this.tableData, ['name', 'year']) : this.getSpanArr(this.tableData, prop)
+
+        const _row = arr[rowIndex]
+        const _col = _row > 0 ? 1 : 0
+
+        return {
+          rowspan: _row,
+          colspan: _col
+        }
+      }
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+</style>

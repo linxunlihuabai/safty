@@ -1,0 +1,84 @@
+/* eslint-disable no-unused-vars */
+import Vue from 'vue'
+
+import 'normalize.css/normalize.css' // A modern alternative to CSS resets
+
+import ElementUI from 'element-ui'
+import 'element-ui/lib/theme-chalk/index.css'
+// import locale from 'element-ui/lib/locale/lang/en' // lang i18n
+
+import '@/styles/index.scss' // 全局css
+import global from '@/utils/global' // 全局常量
+
+Vue.prototype.GLOBAL = global
+
+import App from './App'
+import store from './store'
+import router from './router'
+import Vuerify from 'vuerify'
+import 'lib-flexible/flexible.js'
+
+// get和post请求
+import { postRequest, getRequest, putRequest, deleteRequest } from '@/utils/request'
+
+Vue.prototype.getRequest = getRequest
+Vue.prototype.postRequest = postRequest
+Vue.prototype.putRequest = putRequest
+Vue.prototype.deleteRequest = deleteRequest
+
+import { filePreview, transformClassify } from '@/utils/auth'
+Vue.prototype.filePreview = filePreview
+Vue.prototype.transformClassify = transformClassify
+
+// 日期转换工具
+import moment from 'moment'
+
+Vue.filter('dateFormat', function(value, formatStr = 'YYYY-MM-DD HH:mm:ss') {
+  return moment(value).format(formatStr)
+})
+Vue.filter('ellipsis', function(value) {
+  if (!value) {
+    return ''
+  }
+  if (value.length > 10) {
+    return value.slice(0, 10) + '...'
+  }
+  return value
+})
+
+// 弹出框
+import { handleCofirm, handleAlert } from '@/utils/messageBox'
+
+Vue.prototype.handleCofirm = handleCofirm
+Vue.prototype.handleAlert = handleAlert
+
+// 全局组件
+import globalUI from '@/components'
+
+Vue.use(globalUI)
+
+Vue.use(Vuerify, {
+  required: {
+    test: /\S+$/,
+    message: '必填项'
+  }
+})
+import '@/icons' // icon
+import '@/permission' // permission control
+// 百度地图
+import BaiduMap from 'vue-baidu-map'
+Vue.use(BaiduMap, {
+  ak: 'sCrmUchPh7eKuHSyuZKx0e1acqyk7REF'
+})
+
+// 如果想要中文版 element-ui，按如下方式声明
+Vue.use(ElementUI)
+
+Vue.config.productionTip = false
+
+new Vue({
+  el: '#app',
+  router,
+  store,
+  render: h => h(App)
+})

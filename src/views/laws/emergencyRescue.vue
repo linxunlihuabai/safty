@@ -1,0 +1,606 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row>
+        <el-col :span="6">
+          <el-button type="primary" size="small" @click="addEmergencyRescueForm">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+        </el-col>
+      </el-row>
+      <el-table
+        ref="table"
+        v-loading="emergencyRescueListLoading"
+        :data="page.list"
+        border
+        size="small"
+        stripe
+        :row-key="getRowKeys"
+        :expand-row-keys="expands"
+        style="width: 100%"
+        @expand-change="expandChange"
+      >
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <el-form class="demo-table-expand">
+              <el-row class="zhou-one">
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="发布时间：">
+                    <span>{{ props.row.issuedDate | dateFormat('YYYY年MM月DD日') }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="修订时间：">
+                    <span>{{ props.row.updateDate | dateFormat('YYYY年MM月DD日') }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="是否演练：">
+                    {{ props.row.isDrill == true ? '是' : '否' }}
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="演练时间：">
+                    <span>{{ props.row.drillDate | dateFormat('YYYY年MM月DD日') }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="演练方式：">
+                    <span>{{ props.row['zh-drillMode'] }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col>
+                  <sun-article
+                    :title="'预案内容'"
+                    :name="props.row.operatorName"
+                    :time="props.row.updateTime"
+                    :content="props.row.planContent"
+                  />
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col>
+                  <sun-article
+                    :title="'演练内容'"
+                    :name="props.row.operatorName"
+                    :time="props.row.updateTime"
+                    :content="props.row.drillContent"
+                  />
+                </el-col>
+              </el-row>
+            </el-form>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="enterpriseName"
+          label="发布单位"
+        />
+        <el-table-column
+          prop="title"
+          label="预案名称"
+        />
+        <el-table-column
+          key="zh-type"
+          prop="zh-type"
+          label="预案类别"
+        />
+        <el-table-column
+          key="zh-level"
+          prop="zh-level"
+          label="预案级别"
+        />
+        <el-table-column
+          key="zh-realm"
+          prop="zh-realm"
+          label="适用领域"
+        />
+        <el-table-column label="附件" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'view'" @click="filePreview(scope.row.planAttachmentsFiles[0])" />
+              <!-- @click="filePreview(scope.row.planAttachmentsFiles)" -->
+              <sun-button :type="'view'" @click="filePreview(scope.row.drillAttachmentsFiles[0])" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editEmergencyRescueForm(scope)" />
+              <sun-button :type="'delete'" @click="delEmergencyRescueList(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'history'" @click="history(scope)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-row>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :current-page="page.page"
+          :total="page.total"
+          :page-sizes="[10, 20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+
+      <el-dialog
+        title="应急预案"
+        :visible.sync="emergencyRescueFromDialog"
+        :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+        @closed="handleDialogClosed('emergencyRescueFrom')"
+      >
+        <el-form
+          ref="emergencyRescueFrom"
+          :rules="emergencyRescueFromRules"
+          size="small"
+          :model="emergencyRescueFrom"
+        >
+          <el-row>
+            <!-- <el-col :span="12">
+              <el-form-item label="发布单位" prop="enterpriseId" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <el-input
+                  v-model="emergencyRescueFrom.enterpriseId"
+                  class="zhou-lei"
+                />
+              </el-form-item>
+            </el-col> -->
+            <el-col :span="12">
+              <el-form-item label="预案名称" prop="title" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <el-input
+                  v-model="emergencyRescueFrom.title"
+                  class="zhou-lei"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="是否演练" prop="isDrill" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <el-radio-group
+                  v-model="emergencyRescueFrom.isDrill"
+                  class="zhou-lei"
+                >
+                  <el-radio :checked="emergencyRescueFrom.isDrill==true" :label="true">是</el-radio>
+                  <el-radio :checked="emergencyRescueFrom.isDrill==false" :label="false">否</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="预案类别" prop="type" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <sun-select v-model="emergencyRescueFrom.type" :module="'预案类别'" class="zhou-lei" placeholder="请选择预案类别" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="预案级别" prop="level" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <sun-select v-model="emergencyRescueFrom.level" :module="'预案级别'" class="zhou-lei" placeholder="请选择预案级别" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="适用领域" prop="realm" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <sun-select v-model="emergencyRescueFrom.realm" :module="'适用领域'" class="zhou-lei" placeholder="请选择适用领域" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="发布时间" prop="issuedDate" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <el-date-picker
+                  v-model="emergencyRescueFrom.issuedDate"
+                  type="date"
+                  value-format="yyyy-MM-dd"
+                  style="width:200px"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="修订时间" prop="updateDate" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <el-date-picker
+                  v-model="emergencyRescueFrom.updateDate"
+                  type="date"
+                  value-format="yyyy-MM-dd"
+                  style="width:200px"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="演练时间" prop="drillDate" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <el-date-picker
+                  v-model="emergencyRescueFrom.drillDate"
+                  type="date"
+                  value-format="yyyy-MM-dd"
+                  style="width:200px"
+                  placeholder="选择日期"
+                />
+                <!--  <el-input-number
+                  v-model="emergencyRescueFrom.drillDate"
+                  :min="0"
+                  :max="1000"
+                  size="small"
+                  class="zhou-lei"
+                /> -->
+                <!-- <el-input v-model="emergencyRescueFrom.drillDate" style="width:199px" /> -->
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="演练方式" prop="drillMode" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <sun-select v-model="emergencyRescueFrom.drillMode" :module="'演练方式'" class="zhou-lei" placeholder="请选择演练方式" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="演练内容" prop="drillContent" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <tinymce v-model="emergencyRescueFrom.drillContent" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="预案内容" prop="planContent" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                <tinymce v-model="emergencyRescueFrom.planContent" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-row>
+                <el-col :span="12">
+                  <el-form-item label="预案附件" prop="planAttachmentsFiles" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                    <sun-upload
+                      ref="UPLOAD"
+                      action="/ajax/upload"
+                      :data="GLOBAL.FILE_TYPE.OTHER"
+                      accept=".pdf,.PDF,.txt,.doc"
+                      :on-success="handleSuccessPlanAttachments"
+                      :on-preview="handlePictureCardPreviewPlanAttachments"
+                      :on-remove="handleRemovePlanAttachments"
+                      :file-list.sync="emergencyRescueFrom.planAttachmentsFiles"
+                    />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="演练附件" prop="drillAttachmentsFiles" :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR">
+                    <sun-upload
+                      ref="upload"
+                      :data="GLOBAL.FILE_TYPE.OTHER"
+                      action="/ajax/upload"
+                      accept=".pdf,.PDF,.txt,.doc"
+                      :on-success="handleSuccessDirllAttachments"
+                      :on-preview="handlePictureCardPreviewDirllAttachments"
+                      :on-remove="handleRemoveDirllAttachments"
+                      :file-list="emergencyRescueFrom.drillAttachmentsFiles"
+                    />
+                  </el-form-item></el-col>
+              </el-row>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="specialEquipmentFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed('emergencyRescueFrom')">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column type="expand">
+            <template slot-scope="props">
+              <el-form class="demo-table-expand">
+                <el-row class="zhou-one">
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="发布时间：">
+                      <span>{{ props.row.issuedDate | dateFormat('YYYY年MM月DD日') }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="修订时间：">
+                      <span>{{ props.row.updateDate | dateFormat('YYYY年MM月DD日') }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="是否演练：">
+                      {{ props.row.isDrill == true ? '是' : '否' }}
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="演练时间：">
+                      <span>{{ props.row.drillDate | dateFormat('YYYY年MM月DD日') }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="演练方式：">
+                      <span>{{ props.row['zh-drillMode'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="9" class="zhou-colBorder">
+                    <el-form-item label="预案内容：">
+                      <span>{{ props.row.planContent }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="9" class="zhou-colBorder">
+                    <el-form-item label="演练内容：">
+                      <span>{{ props.row.drillContent }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="enterpriseName"
+            label="发布单位"
+          />
+          <el-table-column
+            prop="title"
+            label="预案名称"
+          />
+          <el-table-column
+            key="zh-type"
+            prop="zh-type"
+            label="预案类别"
+          />
+          <el-table-column
+            key="zh-level"
+            prop="zh-level"
+            label="预案级别"
+          />
+          <el-table-column
+            key="zh-realm"
+            prop="zh-realm"
+            label="适用领域"
+          />
+          <el-table-column label="附件" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <sun-button :type="'view'" @click="filePreview(scope.row.planAttachmentsFiles[0])" />
+                <!-- @click="filePreview(scope.row.planAttachmentsFiles)" -->
+                <sun-button :type="'view'" @click="filePreview(scope.row.drillAttachmentsFiles[0])" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+          <el-table-column prop="operatorName" label="操作人" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+          <el-table-column prop="updateTime" label="操作时间" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+        </el-table>
+      </el-dialog>
+
+      <!-- 展示图片的 -->
+      <el-dialog append-to-body :visible.sync="dialogViewPics" class="ViewPics">
+        <el-row :gutter="20" type="flex" justify="center">
+          <el-col v-for="(item,index) in files" :key="index" :span="8">
+            <el-image style="width:100%" :src="item.url" />
+          </el-col>
+        </el-row>
+      </el-dialog>
+
+      <!-- 用于预览上传多张图片的dialog -->
+      <pic-dialog :visible.sync="sunViewPics" :pic-list="sunPicList" />
+      <!-- 用于预览多文件的dialog -->
+      <file-dialog :visible.sync="sunFileVisible" :file-list="sunFileList" />
+    </div>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+import { emergencePlansAdd, emergencePlansDelete, emergencePlansUpdate, emergencePlansList, historyEmergencePlans } from '@/api/securityManagement/emergencyRescue'
+import SunUpload from '@/components/upload'
+import SunArticle from '@/components/article' // 文章模板
+import Tinymce from '@/components/Tinymce'
+import { parseTime } from '@/utils'
+export default {
+  components: {
+    SunUpload,
+    SunArticle,
+    Tinymce
+  },
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 10
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      emergencyRescueFrom: {
+        enterpriseId: '',
+        title: '',
+        type: '',
+        level: '',
+        realm: '',
+        issuedDate: '',
+        updateDate: '',
+        planContent: '',
+        isDrill: false,
+        drillDate: '',
+        drillMode: '',
+        drillContent: '',
+        // 预案附件
+        planAttachments: null,
+        planAttachmentsFiles: [],
+        // 演练附件
+        drillAttachmentsFiles: [],
+        drillAttachments: null
+      },
+      emergencyRescueFromRules: {
+        drillAttachmentsFiles: [{ required: true, message: '演练附件不能为空', trigger: 'blur' }],
+        planAttachmentsFiles: [{ required: true, message: '预案附件不能为空', trigger: 'blur' }],
+        planContent: [{ required: true, message: '预案内容不能为空', trigger: 'blur' }],
+        drillContent: [{ required: true, message: '演练内容不能为空', trigger: 'blur' }],
+        enterpriseId: [{ required: true, message: '发布单位不能为空', trigger: 'blur' }],
+        title: [{ required: true, message: '预案名称不能为空', trigger: 'blur' }],
+        type: [{ required: true, message: '预案类别不能为空', trigger: 'blur' }],
+        level: [{ required: true, message: '预案级别不能为空', trigger: 'blur' }],
+        realm: [{ required: true, message: '适用领域不能为空', trigger: 'blur' }],
+        issuedDate: [{ required: true, message: '发布时间不能为空', trigger: 'blur' }],
+        updateDate: [{ required: true, message: '修订时间不能为空', trigger: 'blur' }],
+        isDrill: [{ required: true, message: '是否演练不能为空', trigger: 'blur' }],
+        drillDate: [{ required: true, message: '演练时间不能为空', trigger: 'blur' }],
+        drillMode: [{ required: true, message: '演练方式不能为空', trigger: 'blur' }]
+      },
+      dialogViewPics: false,
+      emergencyRescueFromDialog: false,
+      btnLoading: false,
+      historyTable: false,
+      emergencyRescueListLoading: true,
+      historyDialog: false,
+      files: []
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    // 删除人员持证表单
+    delEmergencyRescueList(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          emergencePlansDelete(row.id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 获取信息
+    fetchData() {
+      emergencePlansList(this.params).then(res => {
+        this.emergencyRescueListLoading = false
+        this.page = res.data.obj
+        /*  this.page.list.forEach(item => {
+          item.planAttachmentsFiles = [item.planFile]
+          item.drillAttachmentsFiles = [item.drillFile]
+        }) */
+        let list = zhClassify(this.page.list, [['预案类别', 'type']])
+        list = zhClassify(this.page.list, [['预案级别', 'level']])
+        list = zhClassify(this.page.list, [['演练方式', 'drillMode']])
+        list = zhClassify(this.page.list, [['适用领域', 'realm']])
+        this.table = list
+      })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyEmergencePlans(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        zhClassify(this.historyTable, [['预案类别', 'type'], ['预案级别', 'level'], ['演练方式', 'drillMode'], ['适用领域', 'realm']])
+        this.historyDialog = true
+      })
+    },
+    addEmergencyRescueForm() {
+      this.handle = '添加'
+      this.emergencyRescueFromDialog = true
+    },
+    specialEquipmentFormSubmit() {
+      this.$refs.emergencyRescueFrom.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            emergencePlansAdd(this.emergencyRescueFrom).then(res => {
+              this.btnLoading = false
+              this.emergencyRescueFromDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            emergencePlansUpdate(this.emergencyRescueFrom).then((res) => {
+              this.btnLoading = false
+              this.emergencyRescueFromDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    editEmergencyRescueForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.emergencyRescueFromDialog = true
+      this.$nextTick(() => {
+        this.emergencyRescueFrom = { ...scope.row }
+      })
+    },
+    // 预案附件
+    handleSuccessPlanAttachments(response, file, files) {
+      this.emergencyRescueFrom.planAttachments = response.obj.fileId
+      this.emergencyRescueFrom.planAttachmentsFiles = files
+    },
+    handleRemovePlanAttachments(file, files) {
+      this.emergencyRescueFrom.planAttachmentsFiles = files
+      this.emergencyRescueFrom.planAttachments = null
+    },
+    handlePictureCardPreviewPlanAttachments(file) {
+      this.viewPics([file])
+    },
+    // 演练附件
+    handleSuccessDirllAttachments(response, file, files) {
+      // drillAttachmentsFiles页面展示的图片
+      this.emergencyRescueFrom.drillAttachments = response.obj.fileId
+      this.emergencyRescueFrom.drillAttachmentsFiles = files
+    },
+    handleRemoveDirllAttachments(file, files) {
+      this.emergencyRescueFrom.drillAttachmentsFiles = files
+      this.emergencyRescueFrom.drillAttachments = null
+    },
+    handlePictureCardPreviewDirllAttachments(file) {
+      this.viewPics([file])
+    },
+    // 查看照片
+    viewPics(files) {
+      if (!files) {
+        alert('没图片呀')
+      } else {
+        this.dialogViewPics = true
+        this.files = files
+      }
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.el-input--small,.el-select--small,.el-input-number--small{
+  width:100%;
+}
+.demo-table-expand .el-form-item {
+  margin-bottom: 0px;
+}
+</style>

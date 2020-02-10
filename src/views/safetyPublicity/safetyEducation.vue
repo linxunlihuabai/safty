@@ -1,0 +1,651 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row type="flex" justify="space-between" align="top">
+
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-plus"
+          @click="addform($event,dialogClosed)"
+        >
+          新增
+        </el-button>
+
+        <div>
+          <el-autocomplete
+            v-model="searchTemp"
+            size="small"
+            :fetch-suggestions="querySearch"
+            placeholder="请输入内容"
+            style="width:180px;margin-right:10px"
+            :trigger-on-focus="false"
+            @select="handleSelect"
+          />
+
+          <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+        </div>
+      </el-row>
+      <el-row>
+        <el-col>
+
+          <el-table
+            ref="table"
+            v-loading="tableDataLoading"
+            border
+            :data="tableData"
+            size="small"
+            :span-method="objectExpandSpanMethod"
+            stripe
+            :row-key="getRowKeys"
+            :expand-row-keys="expands"
+            @expand-change="expandChange"
+          >
+            <!-- 详情展示 -->
+
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <!-- <el-card class="box-card">
+                  <div slot="header" class="card-title">
+                    <span>{{ props.row.title }}</span>
+                  </div>
+                  <div class="card-body">
+                    <div class="card-body-title">
+                      <span class="operatorName">操作人: {{ props.row.operatorName }}</span>
+                      <span>提交时间: {{ props.row.updateTime | dateFormat('YYYY-MM-DD') }}</span>
+                    </div>
+                    <div class="card-body-content">
+                      {{ props.row.content }}
+                    </div>
+
+                  </div>
+                  <el-divider content-position="left">附件</el-divider>
+                  <div>
+                    <el-button
+                      type="text"
+                      size="mini"
+                      @click="handleFileListView(props.row.teachingMaterialFiles)"
+                    >教材</el-button>
+                    <el-divider direction="vertical" />
+                    <el-button
+                      type="text"
+                      size="mini"
+                      @click="handleFileListView(props.row.attendanceFiles)"
+                    >签到情况</el-button>
+                    <el-divider direction="vertical" />
+                    <el-button
+                      type="text"
+                      size="mini"
+                      @click="handleFileListView(props.row.sceneFiles)"
+                    >现场照片</el-button>
+                    <el-divider direction="vertical" />
+                    <el-button
+                      type="text"
+                      size="mini"
+                      @click="handleFileListView(props.row.trainingFormFiles)"
+                    >培训表</el-button>
+                    <el-divider direction="vertical" />
+                    <el-button
+                      type="text"
+                      size="mini"
+                      @click="handleFileListView(props.row.otherFiles)"
+                    >其他材料</el-button>
+                    <el-divider direction="vertical" />
+                  </div>
+                </el-card> -->
+                <sun-article
+                  :title="props.row.title"
+                  :name="props.row.operatorName"
+                  :time="props.row.updateTime"
+                  :content="props.row.content"
+                >
+
+                  <template v-slot:footer>
+                    <el-divider content-position="left">附件</el-divider>
+                    <div>
+                      <el-button
+                        type="text"
+                        size="mini"
+                        @click="handleFileListView(props.row.teachingMaterialFiles)"
+                      >教材</el-button>
+                      <el-divider direction="vertical" />
+                      <el-button
+                        type="text"
+                        size="mini"
+                        @click="handleFileListView(props.row.attendanceFiles)"
+                      >签到情况</el-button>
+                      <el-divider direction="vertical" />
+                      <el-button
+                        type="text"
+                        size="mini"
+                        @click="handleFileListView(props.row.sceneFiles)"
+                      >现场照片</el-button>
+                      <el-divider direction="vertical" />
+                      <el-button
+                        type="text"
+                        size="mini"
+                        @click="handleFileListView(props.row.trainingFormFiles)"
+                      >培训表</el-button>
+                      <el-divider direction="vertical" />
+                      <el-button
+                        type="text"
+                        size="mini"
+                        @click="handleFileListView(props.row.otherFiles)"
+                      >其他材料</el-button>
+                      <el-divider direction="vertical" />
+                    </div>
+                  </template>
+
+                </sun-article>
+              </template>
+            </el-table-column>
+            <el-table-column prop="enterpriseName" label="企业名称" width="250" />
+
+            <el-table-column prop="title" label="培训名称" />
+            <el-table-column label="培训类别">
+              <template slot-scope="scope">
+                {{ scope.row.type | classifyFormat('培训类别') }}
+              </template>
+            </el-table-column>
+            <el-table-column label="培训方式">
+              <template slot-scope="scope">
+                {{ scope.row.mode | classifyFormat('培训方式') }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="participants" label="参与人数" />
+            <el-table-column prop="leaders" label="领导参与情况" />
+
+            <el-table-column prop="lecturer" label="讲师" />
+
+            <el-table-column prop="startTime" label="开始时间" />
+            <el-table-column prop="endTime" label="结束时间" />
+
+            <el-table-column label="操作" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'edit'" @click="editItem(scope)" />
+                  <sun-button :type="'delete'" @click="delItem(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="历史修改" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'history'" @click="history(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-row>
+      <!-- 分页栏 -->
+
+      <el-row ref="page">
+        <!-- 分页栏 -->
+        <el-pagination
+          :current-page.sync="cpage"
+          :page-sizes="[5, 10, 15, 20]"
+          :page-size.sync="pageSize"
+          layout="sizes, prev, pager, next"
+          :total="total"
+          @size-change="handlePageSizeChange"
+          @current-change="handleCpageChange"
+        />
+      </el-row>
+      <!-- 弹出添加窗口 -->
+
+      <!-- 登记表 -->
+      <el-dialog
+        :title="handle "
+        :visible.sync="formDialog"
+        :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+        :close-on-click-modal="false"
+        @closed="handleDialogClosed('form')"
+      >
+
+        <el-form
+          id="addData"
+          ref="form"
+          size="small"
+          :model="form"
+          :rules="formRules"
+          :label-width="GLOBAL.FORM_LABEL_WIDTH.MEDIUM"
+        >
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="培训名称" prop="title">
+                <el-input v-model="form.title" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="培训类别" prop="type">
+                <sun-select v-model="form.type" :module="'培训类别'" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="培训方式" prop="mode">
+                <sun-select v-model="form.mode" :module="'培训方式'" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="讲师" prop="lecturer">
+                <el-input v-model="form.lecturer" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="开始时间" prop="timeFrame">
+                <el-date-picker
+                  v-model="form.timeFrame"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  format="yyyy-MM-dd"
+                  value-format="yyyy-MM-dd"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="参与人数" prop="participants">
+                <el-input-number v-model="form.participants" :min="0" />
+              </el-form-item>
+            </el-col>
+
+          </el-row>
+
+          <el-row>
+
+            <el-col :span="8">
+              <el-form-item label="领导是否参与" prop="leadersParticipate">
+                <el-radio-group v-model="form.leadersParticipate">
+                  <el-radio :label="true">是</el-radio>
+                  <el-radio :label="false">否</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+            <el-col v-show="form.leadersParticipate" :span="8">
+              <el-form-item
+                label="参与领导"
+                prop="leaders"
+                :rules="form.leadersParticipate ? { required: true, message: '请输入参与领导', trigger: 'blur' } : {}"
+              >
+                <el-input v-model="form.leaders" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-form-item label="培训内容" prop="content">
+            <tinymce v-model="form.content" @blur="handleBlur" />
+          </el-form-item>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="教材" prop="teachingMaterialFiles">
+                <sun-upload
+                  ref="TEACHUPLOAD"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  :file-list.sync="form.teachingMaterialFiles"
+                  :btn-loading.sync="btnLoading"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="培训表" prop="trainingFormFiles">
+                <sun-upload
+                  ref="TRAINUPLOAD"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  :file-list.sync="form.trainingFormFiles"
+                  :btn-loading.sync="btnLoading"
+                  :limit="1"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="签到情况" prop="attendanceFiles">
+                <sun-upload
+                  ref="ATTENDANCEUPLOAD"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  :file-list.sync="form.attendanceFiles"
+                  :btn-loading.sync="btnLoading"
+                  :limit="1"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="现场照片" prop="sceneFiles">
+                <sun-upload
+                  ref="SCENEUPLOAD"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  :file-list.sync="form.sceneFiles"
+                  :btn-loading.sync="btnLoading"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="其他材料" prop="otherFiles">
+                <sun-upload
+                  ref="UPLOAD5"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  :file-list.sync="form.otherFiles"
+                  :btn-loading.sync="btnLoading"
+                  :limit="1"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="formDialog=false">取 消</el-button>
+          <el-button type="primary" :loading="btnLoading" @click="formSubmit">{{ handle }}</el-button>
+        </div>
+      </el-dialog>
+    </div>
+    <!-- 用于预览上传多张图片的dialog -->
+    <pic-dialog :visible.sync="sunViewPics" :pic-list="sunPicList" />
+
+    <!-- 用于查看历史记录的dialog -->
+    <el-dialog
+      title="历史记录"
+      :visible.sync="historyDialog"
+      :close-on-click-modal="false"
+      :width="GLOBAL.DIALOG_WIDTH.BIG"
+    >
+      <el-table
+        ref="table"
+        border
+        :data="historyTable"
+        size="small"
+        stripe
+        :row-key="getRowKeys"
+        :expand-row-keys="expands"
+        @expand-change="expandChange"
+      >
+        <!-- 历史记录详情展示 -->
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <sun-article
+              :title="props.row.title"
+              :name="props.row.operatorName"
+              :time="props.row.updateTime"
+              :content="props.row.content"
+            >
+
+              <template v-slot:footer>
+                <el-divider content-position="left">附件</el-divider>
+                <div>
+                  <el-button
+                    type="text"
+                    size="mini"
+                    @click="handleFileListView(props.row.teachingMaterialFiles)"
+                  >教材</el-button>
+                  <el-divider direction="vertical" />
+                  <el-button
+                    type="text"
+                    size="mini"
+                    @click="handleFileListView(props.row.attendanceFiles)"
+                  >签到情况</el-button>
+                  <el-divider direction="vertical" />
+                  <el-button
+                    type="text"
+                    size="mini"
+                    @click="handleFileListView(props.row.sceneFiles)"
+                  >现场照片</el-button>
+                  <el-divider direction="vertical" />
+                  <el-button
+                    type="text"
+                    size="mini"
+                    @click="handleFileListView(props.row.trainingFormFiles)"
+                  >培训表</el-button>
+                  <el-divider direction="vertical" />
+                  <el-button
+                    type="text"
+                    size="mini"
+                    @click="handleFileListView(props.row.otherFiles)"
+                  >其他材料</el-button>
+                  <el-divider direction="vertical" />
+                </div>
+              </template>
+
+            </sun-article>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="enterpriseName" label="企业名称" width="250" />
+
+        <el-table-column prop="title" label="培训名称" />
+        <el-table-column label="培训类别">
+          <template slot-scope="scope">
+            {{ scope.row.type | classifyFormat('培训类别') }}
+          </template>
+        </el-table-column>
+        <el-table-column label="培训方式">
+          <template slot-scope="scope">
+            {{ scope.row.mode | classifyFormat('培训方式') }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="participants" label="参与人数" />
+        <el-table-column prop="leaders" label="领导参与情况" />
+
+        <el-table-column prop="lecturer" label="讲师" />
+
+        <el-table-column prop="startTime" label="开始时间" />
+        <el-table-column prop="endTime" label="结束时间" />
+        <el-table-column prop="operatorName" label="操作人" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+        <el-table-column label="操作时间" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL">
+          <template slot-scope="scope">
+            {{ scope.row.updateTime | dateFormat('YYYY-MM-DD') }}
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
+    <!-- 用于预览多文件的dialog -->
+    <file-dialog :visible.sync="sunFileVisible" :file-list="sunFileList" />
+  </div>
+</template>
+
+<script>
+import SunArticle from '@/components/article' // 文章模板
+import Tinymce from '@/components/Tinymce'
+import {
+  getTrainsList,
+  addTrains,
+  updateTrains,
+  deleteTrains,
+  historyTrains
+} from '@/api/safetyPublicity/safetyEducation' // 法律法规API
+export default {
+  components: {
+    SunArticle,
+    Tinymce
+  },
+  data() {
+    return {
+      tableDataLoading: true,
+      form: {
+        title: '',
+        type: '', // 培训类别
+        mode: '', // 培训方式
+        timeFrame: [], // 时间范围
+        participants: 0, // 参与人数
+        leadersParticipate: '', // 领导是否参与
+        leaders: '', // 参与领导
+        lecturer: '', // 讲师
+        content: null, // 培训内容
+        teachingMaterialFiles: [], // 教材
+        trainingFormFiles: [], // 培训表
+        attendanceFiles: [], // 签到情况
+        sceneFiles: [], // 现场照片
+        otherFiles: [] // 其他材料
+      },
+      disabled: false,
+      btnLoading: false,
+      // 验证规则
+      formRules: {
+        type: [
+          { required: true, message: '请选择培训类别', trigger: 'change' }
+        ],
+        mode: [
+          { required: true, message: '请选择培训方式', trigger: 'change' }
+        ],
+        title: [
+          { required: true, message: '请输入标题', trigger: 'blur' }
+        ],
+        timeFrame: [
+          { required: true, message: '请选择起止时间', trigger: 'change' }
+        ],
+        participants: [
+          { required: true, message: '请选择参与人数', trigger: 'change' }
+        ],
+        leadersParticipate: [
+          { required: true, message: '请选择领导是否参与', trigger: 'change' }
+        ],
+        lecturer: [
+          { required: true, message: '请输入讲师名称', trigger: 'blur' }
+        ],
+        content: [
+          { required: true, message: '请输入培训内容', trigger: 'blur' }
+        ],
+        teachingMaterialFiles: [
+          { required: true, message: '请上传教材', trigger: 'change' }
+        ],
+        trainingFormFiles: [
+          { required: true, message: '请上传培训表', trigger: 'change' }
+        ],
+        attendanceFiles: [
+          { required: true, message: '请上传签到情况', trigger: 'change' }
+        ],
+        sceneFiles: [
+          { required: true, message: '请上传现场照片', trigger: 'change' }
+        ],
+        otherFiles: [
+          { required: true, message: '请上传其他材料', trigger: 'change' }
+        ]
+      },
+      formDialog: false, // 弹出框标志
+      table: [],
+      cpage: 1,
+      pageSize: 5,
+      total: 0,
+      historyDialog: false,
+      historyTable: [] // 历史记录
+    }
+  },
+  computed: {
+    tableData() {
+      const search = this.search
+      return this.fuzzySearch(this.table, search, 'title')
+    },
+    queryList() {
+      return this.table.map(data => {
+        return { value: data.title }
+      })
+    }
+  },
+  created() {
+    this.fetchList()
+  },
+  methods: {
+    // 动态分页查询企业资质信息
+    fetchList(cpage, pageSize) {
+      this.tableDataLoading = true
+      const params = {}
+      params.page = cpage || this.cpage
+      params.size = pageSize || this.pageSize
+      // params.rule_type = 201
+      getTrainsList(params)
+        .then(res => {
+          const pageObj = res.data.obj
+          this.total = pageObj.total
+          const list = pageObj.list.map(item => {
+            return {
+              ...item,
+              timeFrame: [item.startTime, item.endTime]
+            }
+          })
+
+          this.table = list
+          this.tableDataLoading = false
+          this.btnLoading = false
+        }).catch(() => {})
+    },
+    // 提交登记表
+    formSubmit() {
+      this.$refs.form.validate(async(valid) => {
+        if (valid) {
+          this.btnLoading = true
+          const params = this.depClone(this.form)
+
+          // 领导参与情况
+          if (params.leadersParticipate === false) {
+            params.leaders = '未参与'
+          }
+
+          // 起止时间
+          params.startTime = params.timeFrame[0]
+          params.endTime = params.timeFrame[1]
+
+          params.teachingMaterials = params.teachingMaterialFiles.map(item => {
+            return item.fileId
+          }) // 教材
+          params.trainingForm = params.trainingFormFiles[0].fileId // 培训表
+          params.attendance = params.attendanceFiles[0].fileId // 签到情况
+          params.scenes = params.sceneFiles.map(item => {
+            return item.fileId
+          })// 现场照片
+          params.other = params.otherFiles[0].fileId // 其他附件
+
+          if (this.handle === '添加') {
+            await addTrains(params)
+          } else if (this.handle === '修改') {
+            await updateTrains(params.id, params)
+          }
+          this.formDialog = false
+          this.fetchList()
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 删除
+    delItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning')
+        .then(() => {
+          deleteTrains(scope.row.id).then((res) => {
+            this.fetchList()
+          })
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyTrains(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyDialog = true
+      })
+    },
+    // 富文本失去焦点后验证
+    handleBlur() {
+      this.$nextTick(() => {
+        this.$refs.form.validateField('content')
+      })
+    }
+
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+
+</style>

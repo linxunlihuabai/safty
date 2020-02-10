@@ -1,0 +1,304 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row>
+        <el-col :span="6">
+          <el-button type="primary" size="small" @click="addPhysicalExaminationForm">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+        </el-col>
+      </el-row>
+      <!-- 日常文化建设 -->
+      <el-table
+        v-loading="physicalExaminationListLoading"
+        :data="page.list"
+        border
+        style="width: 100%"
+      ><el-table-column
+         prop="enterpriseName"
+         label="企业名称"
+       />
+        <el-table-column
+          prop="number"
+          label="体检人数"
+        />
+        <el-table-column
+          prop="cost"
+          label="金额/元"
+        />
+        <el-table-column
+          key="zh-insuranceType"
+          prop="zh-insuranceType"
+          label="保险类别"
+        />
+        <el-table-column
+          prop="startDate"
+          label="开始时间"
+        />
+        <el-table-column
+          prop="endDate"
+          label="结束时间"
+        />
+        <el-table-column
+          prop="remarks"
+          label="备注"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editPhysicalExaminationForm(scope)" />
+              <sun-button :type="'delete'" @click="delPhysicalExaminationForm(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'history'" @click="history(scope)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-row>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :current-page="page.page"
+          :total="page.total"
+          :page-sizes="[10, 20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column
+            prop="number"
+            label="体检人数"
+          />
+          <el-table-column
+            prop="cost"
+            label="金额/元"
+          />
+          <el-table-column
+            prop="zh-insuranceType"
+            label="保险类别"
+          />
+          <el-table-column
+            prop="remarks"
+            label="备注"
+          />
+          <el-table-column
+            prop="startDate"
+            label="开始时间"
+          />
+          <el-table-column
+            prop="endDate"
+            label="结束时间"
+          />
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <el-dialog
+        title="职工体检"
+        :visible.sync="physicalExaminationFormDialog"
+        width="500px"
+        @closed="handleDialogClosed('physicalExaminationForm')"
+      >
+        <el-form
+          ref="physicalExaminationForm"
+          :rules="physicalExaminationFormRules"
+          size="small"
+          :model="physicalExaminationForm"
+          :label-width="GLOBAL.DIALOG_LABLEWIDTH.FOUR"
+        >
+
+          <el-form-item label="金额" prop="cost">
+            <el-input v-model="physicalExaminationForm.cost" placeholder="请输入金额">
+              <template slot="append">元</template>
+            </el-input>
+          </el-form-item>
+          <el-form-item label="开始时间" prop="startDate">
+            <el-date-picker
+              v-model="physicalExaminationForm.startDate"
+              value-format="yyyy-MM-dd"
+              size="small"
+              :picker-options="pickerOptionsStart"
+              type="date"
+              placeholder="选择日期"
+            />
+          </el-form-item>
+          <el-form-item label="结束时间" prop="endDate">
+            <el-date-picker
+              v-model="physicalExaminationForm.endDate"
+              value-format="yyyy-MM-dd"
+              :picker-options="pickerOptionsEnd"
+              size="small"
+              type="date"
+              placeholder="选择日期"
+            />
+          </el-form-item>
+          <el-form-item label="保险类别" prop="insuranceType">
+            <sun-select v-model="physicalExaminationForm.insuranceType" :module="'保险类别'" />
+          </el-form-item>
+          <el-form-item label="人数" prop="number">
+            <el-input-number v-model="physicalExaminationForm.number" :min="0" :max="1000" label="人数" />
+          </el-form-item>
+          <el-form-item label="备注" prop="remarks">
+            <el-input v-model="physicalExaminationForm.remarks" type="textarea" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="physicalExaminationFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed('physicalExaminationForm')">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+import { insuranceAdd, insuranceDelete, insuranceUpdate, insuranceList, historyInsurance } from '@/api/occupationalHealth/insurance'
+export default {
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 10
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      physicalExaminationForm: {
+        cost: '',
+        number: '',
+        remarks: '',
+        startDate: '',
+        endDate: '',
+        insuranceType: ''
+      },
+      physicalExaminationFormRules: {
+        cost: [{ required: true, message: '金额不能为空', trigger: 'blur' }],
+        number: [{ required: true, message: '人数不能为空', trigger: 'blur' }],
+        startDate: [{ required: true, message: '开始日期不能为空', trigger: 'blur' }],
+        endDate: [{ required: true, message: '结束日期不能为空', trigger: 'blur' }],
+        insuranceType: [{ required: true, message: '保险类别不能为空', trigger: 'blur' }]
+      },
+      pickerOptionsStart: {
+        disabledDate: time => {
+          if (this.physicalExaminationForm.endDate) {
+            return time.getTime() > new Date(this.physicalExaminationForm.endDate).getTime()
+          }
+        }
+      },
+      pickerOptionsEnd: {
+        disabledDate: time => {
+          if (this.physicalExaminationForm.startDate) {
+            return time.getTime() < new Date(this.physicalExaminationForm.startDate).getTime() - 86400000
+          }
+        }
+      },
+      physicalExaminationListLoading: true,
+      physicalExaminationFormDialog: false,
+      btnLoading: false,
+      accidentReportListLoading: true,
+      historyTable: false,
+      historyDialog: false
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 获取信息
+    fetchData() {
+      insuranceList(this.params).then(res => {
+        this.physicalExaminationListLoading = false
+        this.page = res.data.obj
+        const list = zhClassify(this.page.list, [['保险类别', 'insuranceType']])
+        this.table = list
+      })
+    },
+    // 提交安全生产会
+    physicalExaminationFormSubmit() {
+      this.$refs.physicalExaminationForm.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            insuranceAdd(this.physicalExaminationForm).then(res => {
+              this.btnLoading = false
+              this.physicalExaminationFormDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            insuranceUpdate(this.physicalExaminationForm).then((res) => {
+              this.btnLoading = false
+              this.physicalExaminationFormDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    addPhysicalExaminationForm() {
+      this.handle = '添加'
+      this.physicalExaminationFormDialog = true
+    },
+    editPhysicalExaminationForm(scope) {
+      this.handle = '修改'
+      // 编辑信息模态框显示
+      this.physicalExaminationFormDialog = true
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.physicalExaminationForm = { ...scope.row }
+      })
+    },
+    // 删除人员持证表单
+    delPhysicalExaminationForm(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          insuranceDelete(row.id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyInsurance(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        zhClassify(this.historyTable, [['保险类别', 'insuranceType']])
+        this.historyDialog = true
+      })
+    }
+  }
+}
+</script>
+
+<style>
+
+</style>

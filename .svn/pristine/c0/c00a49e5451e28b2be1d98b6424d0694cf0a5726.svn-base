@@ -1,0 +1,70 @@
+const mixin = {
+  data() {
+    return {
+      handle: '', // 处理方式
+      search: '', // 搜索字段
+      searchTemp: '', // 搜索字段中间变量
+      tableDataLoading: true, // 表格加载
+
+      formDialog: false, // 弹出框标志
+
+      sunViewPics: false,
+      sunPicList: [],
+
+      sunFileVisible: false, // 多文件预览-弹出框标志
+      sunFileList: [], // 多文件预览-文件列表
+
+      historyDialog: false,
+      historyTable: [] // 历史记录
+    }
+  },
+  watch: {
+    searchTemp(val) {
+      if (!val) {
+        this.search = ''
+      }
+    }
+  },
+  methods: {
+    // 过滤表格
+    onSearch() {
+      this.search = this.searchTemp
+    },
+    querySearch(queryString, cb) {
+      var results = this.fuzzySearch(this.queryList, queryString, 'value')
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    handleSelect() {
+      this.onSearch()
+    },
+    // 添加按钮
+    addform() {
+      this.formDialog = true
+      this.handle = '添加'
+    },
+    // 编辑单行表格
+    editItem(scope) {
+      this.formDialog = true
+      this.handle = '修改'
+      this.$nextTick(() => {
+        this.form = { ...scope.row }
+      })
+    },
+    // 查看照片
+    viewPics(picList) {
+      this.picsPreview(this, picList)
+    },
+    // 多文件预览方法
+    handleFileListView(fileList) {
+      this.sunFileVisible = true
+      this.sunFileList = fileList
+    },
+    // 处理dialog关闭
+    handleDialogClosed(formName) {
+      this.dialogClosed(this, formName)
+    }
+  }
+}
+
+export default mixin

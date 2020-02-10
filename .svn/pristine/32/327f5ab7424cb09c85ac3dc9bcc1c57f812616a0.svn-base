@@ -1,0 +1,63 @@
+export default {
+  namespaced: true,
+  state: {
+    menulist: [
+      {
+        id:1,
+        name:'企业基础数据',
+        path:'/basedata/baseinfo',
+        list:[
+          {
+            name:'企业基本信息',
+            path:'/basedata/baseinfo',
+            list:[
+              {name:'局里信息',path:'/s'},
+              {name:'大队信息',path:'/oo'}
+            ]
+          },
+          {name:'企业资质',path:'/basedata/qualification'},
+          {name:'企业规章制度',path:'3'},
+          {name:'安全费用使用',path:'4'},
+          {name:'人员持证情况',path:'5'},
+          {name:'月报表管理',path:'6'},
+          {name:'项目管理',path:'7'}
+        ]
+      },
+      {
+        id:2,
+        name:'法律法规',
+        path:'/law',
+        list:[
+          {name:'行业法规',path:'tt'},
+          {name:'国家法规',path:'yy'},
+          {name:'地方法规',path:'uu'}
+        ]
+      },
+      {
+        id:3,
+        name:'安全管理',
+        path:'/safe',
+        list:[
+          {name:'安全培训',path:'oo'},
+          {name:'安全文化',path:'pp'},
+          {name:'应急救援',path:'ll'}
+        ]
+      },
+      {
+        id:4,
+        path:'/safe',
+        name:'事故报告'
+      },
+      {
+        id:5,
+        path:'/safe',
+        name:'职业健康'
+      }
+    ]
+  },
+  mutations: {
+  },
+  actions: {
+  }
+}
+

@@ -1,0 +1,217 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+
+      <el-row
+        type="flex"
+        justify="space-between"
+        align="top"
+      >
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-view"
+          @click="handleView('安全生产综合表')"
+        >
+          生成安全生产综合表
+        </el-button>
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-view"
+          @click="handleView('隐患情况报表')"
+        >
+          生成隐患情况报表
+        </el-button>
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-view"
+          @click="handleView('隐患整改情况报表')"
+        >
+          生成隐患整改情况报表
+        </el-button>
+      </el-row>
+
+      <sun-table
+        border
+        :loading="tableDataLoading"
+        :columns="columns"
+        :data-source="tableData"
+        :operates="operates"
+        :span-method="objectSpanMethod"
+      >
+        <template v-slot:state="scope">
+          <el-button-group class="operate">
+            <el-tag
+              v-if="scope.row.dangerQuantity==0"
+              type="info"
+            >
+              无隐患
+            </el-tag>
+            <el-tag
+              v-else-if="scope.row.state==1"
+              type="danger"
+            >待整改</el-tag>
+            <el-tag
+              v-else-if="scope.row.state==2"
+              type="warning"
+            >整改中</el-tag>
+            <el-tag v-else-if="scope.row.state==3">
+              待验收
+            </el-tag>
+            <el-tag
+              v-else-if="scope.row.state==4"
+              type="success"
+            >
+              整改完成
+            </el-tag>
+          </el-button-group>
+        </template>
+      </sun-table>
+
+    </div>
+  </div>
+</template>
+
+<script>
+import SunTable from '@/components/table'
+
+import {
+  getSessionStorage
+} from '@/utils/storage'
+export default {
+  components: {
+    SunTable
+  },
+  data() {
+    return {
+      tableData: [
+        {
+          id: 0,
+          year: '2019',
+          name: '二六一大队',
+          title: '月报名一'
+        },
+        {
+          id: 1,
+          year: '2020',
+          name: '二六三大队',
+          title: '月报名称二'
+        },
+        {
+          id: 2,
+          year: '2018',
+          name: '二六三大队',
+          title: '月报名称二'
+        },
+        {
+          id: 3,
+          year: '2018',
+          name: '二六三大队',
+          title: '月报名称二'
+        },
+        {
+          id: 4,
+          year: '2018',
+          name: '二六三大队',
+          title: '月报名称二'
+        },
+        {
+          id: 5,
+          year: '2017',
+          name: '二六六大队',
+          title: '月报名三'
+        }
+
+      ],
+      columns: [
+        {
+          prop: 'name', // <String>  对应属性名
+          label: '单位'
+        },
+        {
+          prop: 'year', // <String>  对应属性名
+          label: '年份'
+        },
+        {
+          prop: 'title', // <String>  对应属性名
+          label: '报表名称'
+        }
+
+      ],
+      operates: [
+        {
+          label: '预览',
+          method: (row, index) => {
+            console.log(row, index)
+          }
+        },
+        {
+          label: '下载',
+          method: (row, index) => {
+            console.log(row, index)
+          }
+        }
+      ]
+    }
+  },
+  created() {
+    this.tableDataLoading = false
+  },
+  methods: {
+    handleView(title) {
+      const { enterpriseCode } = getSessionStorage('user')
+      const baseUrl = process.env.VUE_APP_BASE_API + `/ureport/preview?_u=mysql:${title}.ureport.xml&enterprise_code=${enterpriseCode}`
+      window.open(baseUrl)
+      // let form=document.createElement('form')
+      // form.style=
+      console.log(enterpriseCode)
+    },
+    getSpanArr(prop) {
+      const data = this.tableData
+      const spanArr = []
+      let pos
+      for (let i = 0; i < data.length; i++) {
+        if (i == 0) {
+          spanArr.push(1)
+          pos = 1
+        } else {
+          // console.log(data[i][prop], 'ss')
+          if (data[i][prop] && data[i][prop] == data[i - 1][prop]) {
+            spanArr[pos] += 1
+            spanArr.push(0)
+            // console.log(spanArr)
+          } else {
+            spanArr.push(1)
+            pos = i
+          }
+        }
+      }
+
+      return spanArr
+    },
+    objectSpanMethod({ row, column, rowIndex, columnIndex }) {
+      if (columnIndex <= 1) {
+        const prop = column.property
+
+        const arr = this.getSpanArr(prop)
+        // console.log(prop)
+        const _row = arr[rowIndex]
+        const _col = _row > 0 ? 1 : 0
+        console.log(arr, columnIndex)
+        return {
+          rowspan: _row,
+          colspan: _col
+        }
+      }
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+</style>

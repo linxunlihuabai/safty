@@ -1,0 +1,234 @@
+export default {
+  namespaced: true,
+  state: {
+    menulist: [
+      {
+        id: 0,
+        name: '首页',
+        path: '/home',
+        icon: '',
+        list: [
+          {
+            name: '我的工作台',
+            path: '/home/workbench'
+          }
+        ]
+      },
+      {
+        id: 1,
+        name: '企业基础数据',
+        path: '/basedata',
+        icon: '',
+        list: [
+          {
+            name: '企业基本信息',
+            path: '/basedata/baseInfo'
+          },
+          {
+            name: '企业资质',
+            path: '/basedata/qualification'
+          },
+          {
+            name: '安全生产许可',
+            path: '/basedata/safetyProductionLicense'
+          },
+          {
+            name: '矿山登记',
+            path: '/basedata/mineRegistration'
+          },
+          {
+            name: '项目情况',
+            path: '/basedata/projectSituation'
+          },
+          {
+            name: '风险点',
+            path: '/basedata/riskPoint'
+          },
+          {
+            name: '老基地情况',
+            path: '/basedata/oldBase'
+          },
+          {
+            name: '人员持证情况',
+            path: '/basedata/personnelCertificate'
+          },
+          {
+            name: '企业日常安全检查',
+            path: '/basedata/dailySafetyInspection'
+          },
+          {
+            name: '安全费用使用',
+            path: '/basedata/safetyCost'
+          }
+        ]
+      },
+      {
+        id: 2,
+        name: '企业制度标准',
+        path: '/institution',
+        list: [
+          { 
+            name: '目标管理制度', 
+            path: '/institution/targetManagement' 
+          },
+          { 
+            name: '安全生产责任制',
+            path: '/institution/safetyProductionResponsibility'
+          },
+          { 
+            name: '安全生产费用提取和使用制度', 
+            path: '/institution/safeCostInstitution' 
+          },
+          { 
+            name: '员工保险制度', 
+            path: '/institution/employeeInsuranceSystem' 
+          },
+          { 
+            name: '操作规程', 
+            path: '/institution/operatingProcedures' 
+          },
+          { 
+            name: '教育培训制度', 
+            path: '/institution/educationAndTraining' 
+          },
+          { 
+            name: '职业健康制度', 
+            path: '/institution/occupationalHealthSystem' 
+          },
+          { 
+            name: '应急救援制度', 
+            path: '/institution/emergencyRescue' 
+          },
+          { 
+            name: '排查隐患制度', 
+            path: '/institution/troubleshooting' 
+          },
+          { 
+            name: '事故报告制度', 
+            path: '/institution/accidentReport' 
+          }
+        ]
+      },
+      {
+        id: 3,
+        name: '安全管理',
+        path: '/securityManagement',
+        list: [
+          { 
+            name: '安全管理机构设置', 
+            path: '/securityManagement/institutionalSetup' 
+          },
+          { 
+            name: '领导履职情况', 
+            path: '/securityManagement/performanceOfLeaders' 
+          },
+          { 
+            name: '特种设备情况', 
+            path: '/securityManagement/specialEquipment' 
+          },
+          { 
+            name: '应急救援', 
+            path: '/securityManagement/emergencyRescue' 
+          }
+        ]
+      },
+      {
+        id: 4,
+        path: '/laws',
+        name: '法律法规'
+      },
+      {
+        id: 5,
+        path: '/safetyPublicity',
+        name: '安全宣传',
+        list: [
+          { 
+            name: '安全教育培训', 
+            path: '/safetyPublicity/safetyEducation' 
+          },
+          { 
+            name: '日常文化建设', 
+            path: '/safetyPublicity/dailyCulturalConstruction' 
+          },
+          { 
+            name: '安全生产月计划', 
+            path: '/safetyPublicity/monthlySafetyProductionPlan' 
+          }
+        ]
+      },
+      {
+        id: 6,
+        path: '/occupationalHealth',
+        name: '职业健康',
+        list: [
+          { 
+            name: '负责人', 
+            path: '/occupationalHealth/leader' 
+          },
+          { 
+            name: '建设项目职业卫生"三同时"', 
+            path: '/occupationalHealth/projectOccupationalHealth' 
+          },
+          { 
+            name: '职业病危害定期检测、评价情况', 
+            path: '/occupationalHealth/occupationalDiseasesContent' 
+          },
+          { 
+            name: '职业病', 
+            path: '/occupationalHealth/occupationalDiseases' 
+          },
+          { 
+            name: '工伤', 
+            path: '/occupationalHealth/industrialInjury' 
+          },
+          { 
+            name: '职工体检', 
+            path: '/occupationalHealth/staffPhysicalExamination' 
+          },
+          { 
+            name: '保险', 
+            path: '/occupationalHealth/insurance' 
+          },
+          { 
+            name: '经费使用情况', 
+            path: '/occupationalHealth/useOfFunds' 
+          }
+        ]
+      },
+      {
+        id: 7,
+        path: '/hiddenTroubleInvestigation',
+        name: '隐患排查',
+        list: [
+          { 
+            name: '隐患整体情况', 
+            path: '/hiddenTroubleInvestigation/overallSituation' 
+          },
+          { 
+            name: '隐患登记', 
+            path: '/hiddenTroubleInvestigation/hiddenDangerRegistration' 
+          },
+          { 
+            name: '隐患排查', 
+            path: '/hiddenTroubleInvestigation/hiddenTroubleInvestigation' 
+          },
+          { 
+            name: '隐患验收', 
+            path: '/hiddenTroubleInvestigation/hiddenDangerAcceptance' 
+          }
+        ]
+      },
+      {
+        id: 8,
+        path: '/accidentReport',
+        name: '事故报告',
+        list:[]
+      }
+    ]
+  },
+  mutations: {
+  },
+  actions: {
+  }
+}
+

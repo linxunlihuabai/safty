@@ -1,0 +1,108 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <sun-table
+        :loading="tableDataLoading"
+        :columns="columns"
+        :data-source="tableData"
+        class="message-table"
+        @row-click="handleRowClick"
+      >
+
+        <template v-slot:readstate="scope">
+          <el-button-group class="operate">
+            <el-tag
+              v-if="scope.row.readstate===0"
+              type="info"
+            >
+              未读
+            </el-tag>
+            <el-tag
+              v-else-if="scope.row.readstate==1"
+              type="success"
+            >
+              已读
+            </el-tag>
+          </el-button-group>
+        </template>
+
+        <template v-slot:createdate="scope">
+          {{ scope | dateFormat('YYYY-MM-DD') }}
+        </template>
+
+      </sun-table>
+
+    </div>
+  </div>
+</template>
+
+<script>
+import SunTable from '@/components/table'
+import {
+  getMessagesList
+} from '@/api/messageNotify/message'
+export default {
+  components: {
+    SunTable
+  },
+  data() {
+    return {
+      tableData: [],
+      columns: [
+        {
+          prop: 'readstate', // <String>  对应属性名
+          label: '状态', // <String>   表头标签
+          align: 'center',
+          width: '120px',
+          slot: true
+        },
+        {
+          prop: 'sendname', // <String>  对应属性名
+          label: '发送人' // <String>   表头标签
+        },
+        {
+          prop: 'title', // <String>  对应属性名
+          label: '标题' // <String>   表头标签
+        },
+
+        {
+          prop: 'createdate', // <String>  对应属性名
+          label: '时间', // <String>   表头标签
+          align: 'right',
+          slot: true
+        }
+      ],
+      options: {
+        label: '全部',
+        selection: true
+      }
+    }
+  },
+  created() {
+    this.fetchList()
+  },
+  methods: {
+    fetchList() {
+      getMessagesList().then(res => {
+        this.tableData = res.data.obj
+        this.tableDataLoading = false
+      })
+    },
+    handleRowClick(row, column, event) {
+      this.$router.push(`/messageNotify/messageDetails/${row.id}`)
+    }
+  }
+
+}
+</script>
+
+<style lang="scss" scoped>
+.message-table{
+  /deep/ .el-table__row{
+    cursor: pointer;
+  }
+}
+</style>

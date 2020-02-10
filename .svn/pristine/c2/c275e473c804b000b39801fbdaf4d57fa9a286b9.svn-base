@@ -1,0 +1,593 @@
+<template>
+  <div class="dashboard-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-button type="primary" size="small" @click="addDialog=true">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <el-table
+        size="small"
+        :data="tableData"
+        border
+        stripe
+        :expand-row-keys="expands"
+        :row-key="getRowKeys"
+        style="width: 100%"
+        @expand-change="expandSelect"
+      >
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <el-form class="demo-table-expand">
+              <el-row>
+                <el-col :span="6">
+                  <el-form-item label="项目名称：">
+                    <span>{{ props.row.entryName }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="项目开始时间：">
+                    <span>{{ props.row.projectStartTime }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="项目预计结束时间：">
+                    <span>{{ props.row.projectEstimatedEndTime }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="项目所在地：">
+                    <span>{{ props.row.projectLocation }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="6">
+                  <el-form-item label="项目类型：">
+                    <span>{{ props.row.projectType }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="合同产值：">
+                    <span>{{ props.row.contractOutputValue }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="主要工作内容：">
+                    <span>{{ props.row.mainWorkContent }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="危险源登记：">
+                    <span>{{ props.row.hazardSourceRegistration }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="6">
+                  <el-form-item label="主要风险或重点部位：">
+                    <span>{{ props.row.majorRisksOrKeyPositions }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="是否为重大危险源：">
+                    <span>{{ props.row.WhetherItIsAMajorHazard }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="办公地点GPS坐标：">
+                    <baidu-map
+                      :center="props.row.projectGPSCoordinates"
+                      :zoom="zoom"
+                      style="float:left; width: 400px; height: 280px"
+                      :scroll-wheel-zoom="true"
+                      @ready="handler"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="entryName"
+          label="项目名称"
+        />
+        <el-table-column
+          prop="projectStartTime"
+          label="项目开始时间"
+          width="180"
+        />
+        <el-table-column
+          prop="projectEstimatedEndTime"
+          label="预计结束时间"
+        />
+        <el-table-column
+          prop="contractOutputValue"
+          label="合同产值"
+        />
+        <el-table-column label="操作">
+          <template slot-scope="scope">
+            <el-button
+              type="text"
+              size="small"
+              @click="editOpenDialog(scope.$index,scope.row)"
+            >编辑</el-button>
+            <el-button type="text" size="small">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!-- 分页栏 -->
+      <el-row>
+        <el-pagination
+          :current-page.sync="currentPage"
+          :page-sizes="[100, 200, 300, 400]"
+          :page-size="100"
+          layout="sizes, prev, pager, next"
+          :total="1000"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!-- 修改 -->
+      <el-dialog title="修改" :visible.sync="editDialog" width="60%" :before-close="handleClose">
+        <el-form ref="editData" style="border:1px red solid;padding:20px;" class="editData" :rules="rules" size="small" :model="editData">
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="项目名称" prop="entryName">
+                <el-input
+                  v-model="editData.entryName"
+                  style="padding-right:20px;"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="项目开始时间" prop="projectStartTime">
+                <el-input v-model="editData.projectStartTime" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="项目预计结束时间" prop="projectEstimatedEndTime">
+                <el-input v-model="editData.projectEstimatedEndTime" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="项目所在地" prop="projectLocation">
+                <el-input v-model="editData.projectLocation" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="是否为重大危险源" prop="WhetherItIsAMajorHazard">
+                <el-input v-model="editData.WhetherItIsAMajorHazard" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="项目类型" prop="projectType">
+                <el-input v-model="editData.projectType" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="合同产值" prop="contractOutputValue">
+                <el-input v-model="editData.contractOutputValue" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="主要工作内容" prop="mainWorkContent">
+                <el-input v-model="editData.mainWorkContent" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="危险源登记" prop="hazardSourceRegistration">
+                <el-input v-model="editData.hazardSourceRegistration" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="主要风险或重点部位" prop="majorRisksOrKeyPositions">
+                <el-input v-model="editData.majorRisksOrKeyPositions" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12" prop="lng">
+              <el-form-item label="办公地点坐标经度">
+                <el-input v-model="editData.projectGPSCoordinates.lng" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" prop="lat">
+              <el-form-item label="办公地点坐标纬度">
+                <el-input v-model="editData.projectGPSCoordinates.lat" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary">确定</el-button>
+            <el-button @click="editDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+      <!-- 弹出添加窗口 -->
+      <el-dialog title="新增" :visible.sync="addDialog" width="60%" :before-close="handleClose">
+        <el-form
+          id="addData"
+          ref="addData"
+          size="small"
+          :model="addData"
+          :rules="rules"
+          label-width="150px"
+        >
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="项目名称" prop="entryName">
+                <el-input v-model="addData.entryName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="项目开始时间" prop="projectStartTime">
+                <el-input v-model="addData.projectStartTime" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="项目预计结束时间" prop="projectEstimatedEndTime">
+                <el-input v-model="addData.projectEstimatedEndTime" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="项目所在地" prop="projectLocation">
+                <el-input v-model="addData.projectLocation" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="是否为重大危险源" prop="WhetherItIsAMajorHazard">
+                <el-input v-model="addData.WhetherItIsAMajorHazard" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="项目类型" prop="projectType">
+                <el-input v-model="addData.projectType" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="合同产值" prop="contractOutputValue">
+                <el-input v-model="addData.contractOutputValue" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="主要工作内容" prop="mainWorkContent">
+                <el-input v-model="addData.mainWorkContent" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="危险源登记" prop="hazardSourceRegistration">
+                <el-input v-model="addData.hazardSourceRegistration" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="主要风险或重点部位" prop="majorRisksOrKeyPositions">
+                <el-input v-model="addData.majorRisksOrKeyPositions" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12" prop="projectGPSCoordinates.lng">
+              <el-form-item label="办公地点坐标经度">
+                <el-input v-model="addData.projectGPSCoordinates.lng" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" prop="projectGPSCoordinates.lat">
+              <el-form-item label="办公地点坐标纬度">
+                <el-input v-model="addData.projectGPSCoordinates.lat" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="submitForm('addData')">确定</el-button>
+            <el-button @click="addDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+      <!-- 地图 -->
+      <el-row>
+        <el-col :span="24">
+          <baidu-map
+            :zoom="zoom"
+            style="width: 100%;height:300px;"
+            :scroll-wheel-zoom="true"
+            @ready="mapReady"
+          />
+        </el-col>
+      </el-row>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      tableData: [
+        {
+          entryName: 'COO项目',
+          projectStartTime: '2016-05-02',
+          projectEstimatedEndTime: '2016-12-02',
+          projectLocation: '江西上饶',
+          projectType: '公益类',
+          contractOutputValue: '1000w',
+          mainWorkContent: '买话麦草',
+          hazardSourceRegistration: '非常危险',
+          majorRisksOrKeyPositions: '没钱',
+          WhetherItIsAMajorHazard: '是',
+          id: '1',
+          projectGPSCoordinates: {
+            lng: 116.007802,
+            lat: 29.658627
+          }
+        },
+        {
+          entryName: 'COO项目',
+          projectStartTime: '2016-05-02',
+          projectEstimatedEndTime: '2016-12-02',
+          projectLocation: '江西上饶',
+          projectType: '公益类',
+          contractOutputValue: '1010w',
+          mainWorkContent: '买话麦草',
+          hazardSourceRegistration: '非常危险',
+          majorRisksOrKeyPositions: '没钱',
+          WhetherItIsAMajorHazard: '是',
+          id: '2',
+          projectGPSCoordinates: {
+            lng: 115.822616,
+            lat: 28.73558
+          }
+        },
+        {
+          entryName: 'COO项目',
+          projectStartTime: '2016-05-02',
+          projectEstimatedEndTime: '2016-12-02',
+          projectLocation: '江西上饶',
+          projectType: '公益类',
+          contractOutputValue: '1200w',
+          mainWorkContent: '买话麦草',
+          hazardSourceRegistration: '非常危险',
+          majorRisksOrKeyPositions: '没钱',
+          WhetherItIsAMajorHazard: '是',
+          id: '3',
+          projectGPSCoordinates: {
+            lng: 115.822616,
+            lat: 28.73558
+          }
+        }
+      ],
+      editData: {
+        entryName: '',
+        projectStartTime: '',
+        projectEstimatedEndTime: '',
+        projectLocation: '',
+        projectType: '',
+        contractOutputValue: '',
+        mainWorkContent: '',
+        hazardSourceRegistration: '',
+        majorRisksOrKeyPositions: '',
+        WhetherItIsAMajorHazard: '',
+        id: '',
+        projectGPSCoordinates: {
+          lng: '',
+          lat: ''
+        }
+      },
+      addData: {
+        entryName: '',
+        projectStartTime: '',
+        projectEstimatedEndTime: '',
+        projectLocation: '',
+        projectType: '',
+        contractOutputValue: '',
+        mainWorkContent: '',
+        hazardSourceRegistration: '',
+        majorRisksOrKeyPositions: '',
+        WhetherItIsAMajorHazard: '',
+        id: '',
+        projectGPSCoordinates: {
+          lng: '',
+          lat: ''
+        }
+      },
+      rules: {
+        /* projectGPSCoordinates: {
+          lng: [
+            { required: true, message: '地图经度不能为空', trigger: 'blur' }
+          ],
+          lat: [
+            { required: true, message: '地图纬度不能为空', trigger: 'blur' }
+          ]
+        }, */
+        lat: [
+          { required: true, message: '地图纬度不能为空', trigger: 'blur' }
+        ],
+        lng: [
+          { required: true, message: '地图经度不能为空', trigger: 'blur' }
+        ],
+        entryName: [
+          { required: true, message: '项目名称不能为空', trigger: 'blur' }
+        ],
+        projectStartTime: [
+          { required: true, message: '项目开始时间不能为空', trigger: 'blur' }
+        ],
+        projectEstimatedEndTime: [
+          { required: true, message: '项目预计结束时间不能为空', trigger: 'blur' }
+        ],
+        projectLocation: [
+          { required: true, message: '项目所在地不能为空', trigger: 'blur' }
+        ],
+        projectType: [
+          { required: true, message: '项目类型不能为空', trigger: 'blur' }
+        ],
+        contractOutputValue: [
+          { required: true, message: '合同产值不能为空', trigger: 'blur' }
+        ],
+        mainWorkContent: [
+          { required: true, message: '主要工作内容不能为空', trigger: 'blur' }
+        ],
+        hazardSourceRegistration: [
+          { required: true, message: '危险源登记不能为空', trigger: 'blur' }
+        ],
+        majorRisksOrKeyPositions: [
+          { required: true, message: '主要风险或重点部位不能为空', trigger: 'blur' }
+        ],
+        WhetherItIsAMajorHazard: [
+          { required: true, message: '是否为重大危险源不能为空', trigger: 'blur' }
+        ]
+      },
+      // 引入百度地图默认经纬度以及倍数
+      zoom: 11,
+      /* 默认只要打开另一个就关闭之前的 */
+      getRowKeys(row) {
+        // console.log(row)
+        return row.id
+      },
+      projectGPSCoordinates: {
+        lng: 0,
+        lat: 0
+      },
+      GPSCoordinatesCenter: [
+        [106.653298, 29.732213, '重庆江北国际机场'],
+        [115.807698, 28.662684, '地址：南昌市红谷滩新区学府大道999号'],
+        [116.412222, 39.912345, '地址：北京市东城区正义路甲5号'],
+        [111.716982, 40.890667, '呼和浩特']
+      ],
+      expands: [],
+      // 分页
+      currentPage: 5,
+      editDialog: false,
+      btnLoading: false,
+      addDialog: false
+    }
+  },
+  methods: {
+    handleSizeChange(val) {
+      console.log(`每页 ${val} 条`)
+    },
+    handleCurrentChange(val) {
+      console.log(`当前页: ${val}`)
+    },
+    mapReady({ BMap, map }) {
+      map.centerAndZoom(new BMap.Point(104.769128, 34.972443), 5)
+      var data_info = this.GPSCoordinatesCenter
+      var opts = {
+        width: 250, // 信息窗口宽度
+        height: 60, // 信息窗口高度
+        title: '信息窗口', // 信息窗口标题
+        enableMessage: true // 设置允许信息窗发送短息
+      }
+      for (var i = 0; i < data_info.length; i++) {
+      // eslint-disable-next-line no-undef
+        var marker = new BMap.Marker(
+          new BMap.Point(data_info[i][0], data_info[i][1])
+        )
+        // 创建标注
+        var content = data_info[i][2]
+        map.addOverlay(marker)
+        // 将标注添加到地图中
+        addClickHandler(content, marker)
+      }
+      function addClickHandler(content, marker) {
+        marker.addEventListener('click', function(e) {
+          openInfo(content, e)
+        })
+      }
+      function openInfo(content, e) {
+        var p = e.target
+        var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat)
+        var infoWindow = new BMap.InfoWindow(content, opts) // 创建信息窗口对象
+        map.openInfoWindow(infoWindow, point) // 开启信息窗口
+      }
+    },
+
+    // 设置当前对象所在的下标，用于点击详情前获取数组中该对象的经纬度
+    setCurrentIndex(index) {
+      this.tableData[index].index = index
+    },
+    // 折叠面板每次只能展开一行
+    expandSelect(row, expandedRows) {
+      console.log(row)
+      console.log(expandedRows)
+
+      var that = this
+      if (expandedRows.length) {
+        that.expands = []
+        if (row) {
+          this.projectGPSCoordinates = row.projectGPSCoordinates
+          // 打开当前点击的 详情
+          that.expands.push(row.id)// 每次push进去的是每行的ID
+        }
+      } else {
+        console.log(111)
+
+        that.expands = []// 默认不展开
+      }
+    },
+    handler({ BMap, map }) {
+      // window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(this.projectGPSCoordinates.lng, this.projectGPSCoordinates.lat) // 初始化地图,设置中心点坐标和地图级别
+      map.centerAndZoom(point, this.zoom)
+      var marker = new BMap.Marker(point) // 创建标注
+      map.addOverlay(marker) // 将标注添加到地图中
+      var circle = new BMap.Circle(point, 6, {
+        strokeColor: 'Red',
+        strokeWeight: 6,
+        strokeOpacity: 1,
+        Color: 'Red',
+        fillColor: '#f03'
+      })
+      // 将标注添加到地图中
+      map.addOverlay(circle)
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          alert('添加成功')
+        }
+      })
+    },
+    handleClose(done) {
+      this.$confirm('确认关闭？')
+        .then(_ => {
+          done()
+        })
+        .catch(_ => {})
+    },
+    editOpenDialog(index, row) {
+      this.editDialog = true // 编辑信息模态框显示
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editData = Object.assign({}, row)
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+.el-input__inner{
+  padding-right:20px !important;
+}
+</style>

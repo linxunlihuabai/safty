@@ -1,0 +1,151 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <transaction-table
+        :tag-type="'success'"
+        :show-header="false"
+        :data="list1"
+        class="message-table"
+        @row-click="handleRowClick"
+      >
+
+        <template v-slot="scope">
+          <el-button-group class="operate">
+            <el-tag
+              v-if="scope.row.state===0"
+              type="info"
+            >
+              未读
+            </el-tag>
+            <el-tag
+              v-else-if="scope.row.state==1"
+              type="success"
+            >
+              已读
+            </el-tag>
+          </el-button-group>
+        </template>
+
+      </transaction-table>
+
+    </div>
+  </div>
+</template>
+
+<script>
+import TransactionTable from '@/views/workbench/components/TransactionTable'
+export default {
+  components: {
+    TransactionTable
+  },
+  data() {
+    return {
+      list1: [{
+        id: 0,
+        title: '查看消息',
+        data: [
+          {
+            title: '庆祝新中国',
+            number: 1,
+            state: 0,
+            time: '2019-07-17'
+          },
+          {
+            title: '关于举办',
+            number: 1,
+            state: 1,
+            time: '2019-12-18 '
+          },
+          {
+            title: '用于多',
+            number: 1,
+            state: 1,
+            time: '2019-12-18 '
+          },
+          {
+            title: '用于单选表',
+            number: 1,
+            state: 0,
+            time: '2019-12-18 '
+          },
+          {
+            title: '高级研修班',
+            number: 1,
+            state: 1,
+            time: '2019-12-18 '
+          },
+          {
+            title: '素由隐藏切换 ',
+            number: 1,
+            state: 1,
+            time: '2019-12-18 '
+          },
+          {
+            title: '对隐藏切换 ',
+            number: 1,
+            state: 0,
+            time: '2019-12-18 '
+          },
+          {
+            title: '素由隐藏切换 ',
+            number: 1,
+            state: 1,
+            time: '2019-12-18 '
+          },
+          {
+            title: '对隐藏切换 ',
+            number: 1,
+            state: 1,
+            time: '2019-12-18 '
+          },
+          {
+            title: '当其祖切换 ',
+            number: 1,
+            state: 1,
+            time: '2019-12-18 '
+          }
+        ],
+        columns: [
+          {
+            prop: 'state', // <String>  对应属性名
+            label: '状态', // <String>   表头标签
+            width: '100px',
+            slot: true
+          },
+          {
+            prop: 'title', // <String>  对应属性名
+            label: '发送人' // <String>   表头标签
+          },
+          {
+            prop: 'number', // <String>  对应属性名
+            label: '主题' // <String>   表头标签
+          },
+
+          {
+            prop: 'time', // <String>  对应属性名
+            label: '时间', // <String>   表头标签
+            align: 'right'
+          }
+        ]
+      }]
+    }
+  },
+  methods: {
+    handleRowClick(row, column, event) {
+      console.log(row, column, event)
+    }
+  }
+
+}
+</script>
+
+<style lang="scss" scoped>
+.message-table{
+  /deep/ .el-table__row{
+    cursor: pointer;
+  }
+}
+</style>

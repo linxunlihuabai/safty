@@ -1,0 +1,18 @@
+import { postRequest,getRequest } from '@/utils/request'
+
+
+
+export function getRegisterCaptcha(data) {
+  return postRequest(
+    '/register/captcha', 
+    data
+    )
+}
+
+export function login(data) {
+  return postRequest(
+    '/login',
+    data
+  )
+}
+

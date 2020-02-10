@@ -1,0 +1,492 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row type="flex" justify="space-between" align="top">
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-plus"
+          @click="addform"
+        >
+          新增
+        </el-button>
+
+        <div>
+          <el-autocomplete
+            v-model="searchTemp"
+            size="small"
+            :fetch-suggestions="querySearch"
+            placeholder="请输入内容"
+            style="width:180px;margin-right:10px"
+            :trigger-on-focus="false"
+            @select="handleSelect"
+          />
+
+          <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+        </div>
+      </el-row>
+      <el-row>
+        <el-col>
+          <!-- v-btnLoading="listLoading" -->
+          <!-- 安全费用使用情况 -->
+          <el-table
+            ref="table"
+            class="usage-of-safety-expenses"
+            border
+            :data="tableData"
+            size="small"
+            stripe
+          >
+            <!-- 安全费用详情展示 -->
+            <el-table-column prop="name" label="制度名称" />
+            <el-table-column prop="type" label="制度类型" />
+            <el-table-column prop="unit" label="编制单位" />
+            <el-table-column prop="time" label="生效日期" />
+            <el-table-column label="操作">
+              <template slot-scope="scope">
+                <el-button-group>
+                  <el-button
+                    type="primary"
+                    size="mini"
+                    icon="el-icon-edit"
+                    @click="editItem(scope)"
+                  >编辑</el-button>
+                  <el-button
+                    type="primary"
+                    size="mini"
+                    icon="el-icon-delete"
+                    @click="delItem(scope)"
+                  >删除</el-button>
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column prop="name" label="历史记录" />
+          </el-table>
+        </el-col>
+      </el-row>
+      <!-- 分页栏 -->
+
+      <el-row v-if="false" ref="page">
+        <!-- 分页栏 -->
+        <el-pagination
+          :current-page.sync="currentPage2"
+          :page-sizes="[100, 200, 300, 400]"
+          :page-size="100"
+          layout="sizes, prev, pager, next"
+          :total="1000"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+
+      <!-- 弹出添加窗口 -->
+
+      <!-- 日常检查登记表 -->
+      <el-dialog
+        title="日常检查登记表"
+        :visible.sync="formDialog"
+        width="60%"
+        :close-on-click-modal="false"
+        @closed="handleDialogClosed('form')"
+      >
+        <el-form
+          ref="form"
+          size="small"
+          :model="form"
+          :rules="rules"
+          label-width="130px"
+        >
+          <table border="1" class="formTable">
+            <tr>
+              <td>
+                <el-form-item label="制度名称" prop="name">
+                  <el-input v-model="form.name" placeholder="请输入制度名称" />
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <el-form-item label="制度分类" prop="type">
+                  <el-select v-model="form.type" placeholder="请选择">
+                    <el-option
+                      v-for="item in options"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
+                  </el-select>
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <el-form-item label="编制单位" prop="unit">
+                  <el-input v-model="form.unit" placeholder="请输入编制单位" />
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <el-form-item label="生效日期" prop="time">
+                  <el-date-picker
+                    v-model="form.time"
+                    type="date"
+                    value-format="yyyy-MM-dd"
+                    placeholder="选择日期"
+                  />
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <el-form-item label="文件" prop="fileList">
+                  <el-upload
+                    ref="upload"
+                    name="file"
+                    :data="GLOBAL.FILE_TYPE.RULES"
+                    drag
+                    action="/ajax/upload"
+                    :on-progress="handleProgress"
+                    :on-error="handleError"
+                    :on-success="handleSuccess"
+                    :on-preview="handlePreview"
+                    :on-remove="handleRemove"
+                    :file-list="form.fileList"
+                    multiple
+                    :class=" {disabled: form.type==false} "
+                    :disabled="form.type==false"
+                  >
+                    <i class="el-icon-upload" />
+                    <div class="el-upload__text">点击上传</div>
+                    <div slot="tip" class="el-upload__tip">请先选择制度分类</div>
+                  </el-upload>
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+
+                <el-button @click="resetForm('form')">重置</el-button>
+                <el-button @click="onSave()">暂存</el-button>
+                <el-button type="primary" :loading="btnLoading" @click="formSubmit">{{ handle }}</el-button>
+
+              </td>
+            </tr>
+          </table>
+        </el-form>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { saveLocalStorage, getLocalStorage, delLocalStorage } from '@/utils/storage'
+export default {
+  data() {
+    return {
+      handle: '', // 处理方式
+      search: '',
+      searchTemp: '',
+      // 规章制度登记表
+      form: {
+        name: '',
+        type: '',
+        unit: '', // 编制单位
+        time: '', // 生效日期
+        fileList: []
+      },
+      // 规章制度登记表验证规则
+      rules: {
+        name: [
+          { required: true, message: '请输入制度名称', trigger: 'blur' }
+        ],
+        type: [
+          { required: true, message: '请选择制度类型', trigger: 'change' }
+        ],
+        unit: [
+          { required: true, message: '请输入编制单位', trigger: 'blur' }
+        ],
+        time: [
+          { required: true, message: '请选择生效日期', trigger: 'change' }
+        ],
+        fileList: [{ required: true, message: '请上传文件', trigger: 'change' }]
+      },
+      table: [],
+      formDialog: false, // 登记表弹出框标志
+      options: [
+        {
+          value: '目标管理制度',
+          label: '目标管理制度'
+        },
+        {
+          value: '安全生产责任制度',
+          label: '安全生产责任制度'
+        }
+      ],
+      active: 0,
+      fileList: [],
+      btnLoading: false,
+      dialogViewPic: false,
+      dialogViewPics: false,
+      dialogImageUrl: ''
+    }
+  },
+  computed: {
+    tableData() {
+      const search = this.search
+      return this.fuzzySearch(this.table, search, 'name')
+    },
+    queryList() {
+      return this.table.map(data => {
+        return { value: data.name }
+      })
+    }
+  },
+  watch: {
+    searchTemp(val) {
+      if (!val) {
+        this.search = ''
+      }
+    }
+  },
+  methods: {
+    // 过滤表格
+    onSearch() {
+      this.search = this.searchTemp
+    },
+    querySearch(queryString, cb) {
+      var results = this.fuzzySearch(this.queryList, queryString, 'value')
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    handleSelect() {
+      this.onSearch()
+    },
+    // 查看照片
+    viewPics(fileList) {
+      console.log(fileList)
+      this.dialogViewPics = true
+      this.fileList = fileList
+    },
+    onSave() {
+      saveLocalStorage('rules-regulations', this.form)
+    },
+    // 重置表单
+    resetForm(formName) {
+      this.$refs[formName].resetFields()
+      delLocalStorage('rules-regulations')
+      this.$refs.upload.abort()
+    },
+    // 添加日常登记表按钮
+    addform() {
+      this.formDialog = true
+      this.$nextTick(() => {
+        if (getLocalStorage('rules-regulations')) {
+          this.form = getLocalStorage('rules-regulations')
+        }
+      })
+      this.handle = '添加'
+    },
+    // 提交日常登记表
+    formSubmit() {
+      console.log(this.form)
+      this.$refs.form.validate(valid => {
+        if (valid) {
+          if (this.handle === '添加') {
+            this.table.push(this.depClone(this.form))
+            this.formDialog = false
+            delLocalStorage('rules-regulations')
+          } else if (this.handle === '修改') {
+            this.formDialog = false
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    handleSizeChange(val) {
+      console.log(`每页 ${val} 条`)
+    },
+    handleCurrentChange(val) {
+      console.log(`当前页: ${val}`)
+    },
+
+    // 编辑单行表格
+    editItem(scope) {
+      this.formDialog = true
+      this.handle = '修改'
+      this.form = { ...scope.row }
+      console.log(scope)
+    },
+    // 删除
+    delItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning').then(() => {
+        this.tableData.splice(scope.$index, 1)
+        console.log(scope.$index)
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed(formName) {
+      this.dialogClosed(this, formName)
+    },
+    // 日常检查登记表的上传处理
+    handleProgress(event, file, fileList) {
+      this.btnLoading = true
+    },
+    handleSuccess(response, file, fileList) {
+      this.form.fileList = fileList
+      this.btnLoading = false
+    },
+    handleError(err, file, fileList) {
+      this.btnLoading = false
+      if (err.status === 401) {
+        this.$confirm(
+          '您的登录信息已过期，您可以取消以停留在此页，或重新登录',
+          '系统提示', {
+            confirmButtonText: '重新登录',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        ).then(() => {
+          this.$router.replace('/login')
+        })
+      }
+      console.log({ ...err })
+    },
+    handleRemove(file, fileList) {
+      this.form.fileList = fileList
+    },
+    handlePreview(file) {
+      const url = process.env.VUE_APP_BASE_API + file.response.obj.url
+      window.open('http://47.99.113.105:8012/onlinePreview?url=' + encodeURIComponent(url))
+      console.log('http://47.99.113.105:8012/onlinePreview?url=' + encodeURIComponent(url))
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+.usage-of-safety-expenses {
+  /deep/ .inner-table {
+    margin-bottom: 20px;
+    thead th {
+      font-size: 1.6rem;
+    }
+  }
+}
+.slot-header {
+  position: relative;
+  .operation-group {
+    position: absolute;
+    right: 0;
+    width: auto;
+  }
+}
+.btn-text-group {
+  /deep/ .el-button {
+    padding: 5px;
+    border: none;
+  }
+}
+.ViewPics {
+  /deep/ .el-dialog__body {
+    text-align: center;
+  }
+}
+//嵌套表单输入框的表格
+.formTable{
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #ebeef5;
+  tr{
+      &:nth-child(even){
+        background-color: #fafafa;
+      }
+      &:last-of-type{
+        background-color: #fff;
+        td{
+          padding-right: 0;
+          text-align: center
+        }
+        .el-button{
+          padding-left: 60px;
+          padding-right: 60px;
+        }
+      }
+    td{
+      padding: 10px 0;
+      padding-right: 20%;
+      vertical-align: middle;
+
+      white-space: nowrap;
+      /deep/ .el-form-item--mini.el-form-item,.el-form-item--small.el-form-item{
+        margin-bottom: 0 ;
+      }
+      /deep/ .el-upload--picture-card{
+          line-height: normal;
+        i{
+          font-size: 67px;
+          color: #c0c4cc;
+          margin: 40px 0 16px;
+          line-height: 50px;
+        }
+        .el-upload__text{
+          color: #606266;
+          font-size: 14px;
+          text-align: center;
+          line-height: normal;
+        }
+
+      }
+    }
+  }
+}
+
+.header-label{
+    display: inline-block;
+    line-height: 1;
+    white-space: nowrap;
+    background: #fff;
+    border: 1px solid #dcdfe6;
+    color: #606266;
+    text-align: center;
+    box-sizing: border-box;
+    outline: none;
+    margin: 0;
+    font-weight: 500;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    padding: 9px 0;
+    width: 88px;
+    text-align: center;
+    border-radius: 3px;
+}
+
+.disabled{
+  /deep/ .el-upload{
+    cursor: not-allowed
+  }
+  /deep/ .el-upload-dragger{
+    cursor: not-allowed;
+    &:hover{
+      border-color: #d9d9d9
+    }
+  }
+
+}
+
+</style>

@@ -1,0 +1,59 @@
+<template>
+  <el-select v-model="selectVal" placeholder="请选择">
+    <el-option
+      v-for="item in selectOptions"
+      :key="item.value"
+      :label="item.label"
+      :value="item.value"
+    />
+  </el-select>
+</template>
+
+<script>
+import { mapGetters } from 'vuex'
+export default {
+  props: {
+    value: {
+      default: null
+    },
+    module: {
+      type: String,
+      default: null
+    },
+    options: {
+      type: Array,
+      default: null
+    }
+  },
+  data() {
+    return {
+      selectVal: this.value
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'classify_options'
+    ]),
+    selectOptions() {
+      if (this.options) {
+        return this.options
+      } else {
+        const data = this.classify_options[this.module]
+        return data
+      }
+    }
+  },
+  watch: {
+    value(val) {
+      this.selectVal = val
+    },
+    selectVal(val) {
+      this.$emit('update:value', val)
+    }
+  }
+}
+</script>
+
+<style>
+
+</style>

@@ -1,0 +1,248 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <!-- <div class="photo-op-item j-album-new-upload-btn">
+        <el-button type="primary" @click="fileUploadForm()">上传照片/文件</el-button>
+      </div> -->
+      <!-- 看我 -->
+      <!--   <el-dialog title="上传照片文件" class="fileUp" :visible.sync="historyDialog" :close-on-click-modal="false" width="21%">
+        <el-upload
+          class="upload-demo"
+          drag
+          action="https://jsonplaceholder.typicode.com/posts/"
+          multiple
+        >
+          <i class="el-icon-upload" />
+          <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+          <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
+        </el-upload>
+        <sun-upload
+          ref="UPLOAD"
+          :data="GLOBAL.FILE_TYPE.QUALIFICATION"
+          :file-list.sync="form.qualificationScanFiles"
+          :multiple="true"
+          :btn-loading.sync="btnLoading"
+        />
+      </el-dialog> -->
+      <div class="panel-main">
+        <!-- <el-input v-model="filterText" placeholder="输入关键字进行过滤" /> -->
+        <el-row>
+          <el-col :span="10">
+            <el-tree
+              ref="tree"
+              v-loading="loading"
+              node-key="id"
+              expand-on-click-node
+              :filter-node-method="filterNode"
+              :default-expanded-keys="treeExpandedKeys"
+              class="accessibleResources"
+              :data="fileCategoryList"
+              accordion
+              draggable
+              @node-click="treeClick"
+            > <!-- @node-expand="treeExpand" -->
+              <!-- :props="defaultProps" -->
+              <span slot-scope="{ node, data }" class="custom-tree-node">
+                <span class="el-tree-node__label ">{{ node.label }}</span>
+                <!-- <span>{{ data.fileSize }} KB </span> -->
+                <span>{{ data.operatorName }}</span>
+              </span>
+            </el-tree>
+          </el-col>
+          <el-col :span="14">
+            <el-card>
+              <div slot="header" class="clearfix">
+                <el-row>
+                  <span class="information">详情</span>
+                  <!-- <el-table-column label="附件" :width="GLOBAL.TABLE_CELL_WIDTH.MINI"> -->
+                  <!-- <template slot-scope="scope"> -->
+                  <el-button-group class="operate">
+                    <el-button style="float: right;" type="text" @click="downloadClick(id)">下载</el-button>
+                    <sun-button :type="'view'" @click="filePreview(scope.row.drillAttachmentsFiles[0])">查看文件</sun-button>
+                  </el-button-group>
+                </el-row>
+                <!-- </template> -->
+                <!-- </el-table-column> -->
+
+              </div>
+              <el-row>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-user-solid" />文件名
+                  </strong>
+                  <span class="rightSpan">{{ 'fileName' }}</span>
+                </el-col>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-user-solid" />文件大小
+                  </strong>
+                  <span class="rightSpan">{{ 'fileSize' }}</span>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-user-solid" />操作人
+                  </strong>
+                  <span class="rightSpan">{{ 'operatorName' }}</span>
+                </el-col>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-user-solid" />文件目录
+                  </strong>
+                  <span class="rightSpan">{{ 'diskDirectory' }}</span>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-user-solid" />下载次数
+                  </strong>
+                  <span class="rightSpan">{{ 'downloads' }}</span>
+                </el-col>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-user-solid" />创建时间
+                  </strong>
+                  <span class="rightSpan">{{ 'createTime' }}</span>
+                </el-col>
+              </el-row>
+            </el-card>
+          </el-col>
+        </el-row>
+      </div>
+      <!-- 用于预览上传多张图片的dialog -->
+      <pic-dialog :visible.sync="sunViewPics" :pic-list="sunPicList" />
+    </div>
+  </div>
+</template>
+
+<script>
+import { fileManageList, fileDownload } from '@/api/basedata/fileManage'
+import { mapGetters } from 'vuex'
+import { DownloadBtn } from '@/components/fileDownload/index'
+export default {
+  components: {
+    DownloadBtn
+  },
+  data() {
+    return {
+      // filterText: '',
+      fileCategoryList: [],
+      treeExpandedKeys: [],
+      temp: [], // 用于保存树的状态
+      defaultProps: {
+        children: 'children'
+      },
+      loading: false,
+      historyDialog: false
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'classify_options'
+    ])
+  },
+  // watch: {
+  //   filterText(val) {
+  //     this.$refs.tree.filter(val)
+  //   }
+  // },
+  mounted() {
+    const categoryMap = this.classify_options['上传文件类别']
+    for (const key in categoryMap) {
+      var item = categoryMap[key]
+      if (!item.children) {
+        item.children = [{ label: '暂无' }]
+        // item.children = [...res.data.obj.list]
+      }
+      this.fileCategoryList.push(item)
+    }
+  },
+  created() {
+  },
+  methods: {
+    downloadClick(id) {
+      fileDownload(id).then(res => {
+      }).catch(() => {})
+    },
+    getFileList(id, node) {
+      this.loading = true
+      fileManageList(id).then(res => {
+        this.loading = false
+        this.temp = this.depClone(res.data.obj.list)
+        node.data.children = this.depClone(res.data.obj.list)
+        this.fileListX = this.temp
+        console.log(node.data)
+      }).catch(() => {})
+    },
+    // 过滤筛选
+    filterNode(value, data) {
+      if (!value) return true
+      return data.meta.title.indexOf(value) !== -1
+    },
+    // 当节点打开时，记录下打开节点的id
+    treeExpand(data, node, self) {
+      this.treeExpandedKeys.push(data.id)
+    },
+    // 当节点关闭时，移除节点的id
+    treeCollapse(data) {
+      const index = this.treeExpandedKeys.indexOf(data.id)
+      if (index > -1) {
+        this.treeExpandedKeys.splice(index, 1)
+      }
+    },
+    fileUploadForm() {
+      // 编辑信息模态框显示
+      this.historyDialog = true
+    },
+    treeClick(data, node, thisNode) {
+      // 编辑信息模态框显示
+      this.getFileList(data.id, node)
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.accessibleResources {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  /deep/ .el-tree-node__content {
+    height: 40px;
+  }
+  /deep/ .custom-tree-node {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    padding-right: 8px;
+  }
+
+  /deep/ .el-tree-node.is-drop-inner>.el-tree-node__content .el-tree-node__label {
+    background-color: #409eff;
+    color: #fff;
+}
+}
+.panel-main{
+  position: relative;
+  top: 20px;
+  border: 2px black solid;
+  margin-bottom: 20px;
+}
+.operate{
+  position: relative;
+  bottom: 14px;
+  left: 350px;
+}
+.information{
+  position: relative;
+  left: 50%;
+  font-size: 24px;
+  font-weight: bold;
+}
+</style>

@@ -1,0 +1,545 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row type="flex" justify="space-between" align="top">
+
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-plus"
+          @click="addform"
+        >
+          新增
+        </el-button>
+
+        <div>
+          <el-autocomplete
+            v-model="searchTemp"
+            size="small"
+            :fetch-suggestions="querySearch"
+            placeholder="请输入内容"
+            style="width:180px;margin-right:10px"
+            :trigger-on-focus="false"
+            @select="handleSelect"
+          />
+
+          <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+        </div>
+      </el-row>
+      <el-row>
+        <el-col>
+          <!-- v-loading="listLoading" -->
+          <!-- 企业资质 -->
+          <el-table ref="table" border :data="project" size="small" stripe>
+            <!-- 企业资质详情展示 -->
+            <el-table-column prop="qualificationName" label="项目名称" />
+            <el-table-column prop="qualificationType" label="地点" />
+            <el-table-column prop="termOfValidity" label="检查时间">
+              <template slot-scope="scope">
+                <span>{{ scope.row.termOfValidity[0] }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="qualificationLevel" label="检查人员" />
+            <el-table-column prop="termOfValidity" label="项目开始时间">
+              <template slot-scope="scope">
+                <span>{{ scope.row.termOfValidity[0] }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="termOfValidity" label="预计结束时间">
+              <template slot-scope="scope">
+                <span>{{ scope.row.termOfValidity[1] }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="qualificationContent" label="隐患排查情况" />
+            <el-table-column label="操作" width="120">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button type="text" size="mini" icon="el-icon-edit" @click="editItem(scope)" />
+                  <el-button type="text" size="mini" icon="el-icon-delete" @click="delItem(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="历史修改" width="80">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-view"
+                    @click="history(scope)"
+                  />
+                </el-button-group>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-row>
+      <!-- 分页栏 -->
+
+      <el-row ref="page">
+        <!-- 分页栏 -->
+        <el-pagination
+          :current-page.sync="cpage"
+          :page-sizes="[5, 10, 15, 20]"
+          :page-size.sync="pageSize"
+          layout="sizes, prev, pager, next"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!-- 弹出添加窗口 -->
+
+      <!-- 日常检查登记表 -->
+      <el-dialog
+        :title="handle "
+        :visible.sync="formDialog"
+        width="60%"
+        :close-on-click-modal="false"
+        @closed="handleDialogClosed('form')"
+      >
+
+        <el-form
+          id="addData"
+          ref="form"
+          size="small"
+          :model="form"
+          :rules="formRules"
+          label-width="130px"
+        >
+          <!-- <el-form-item label="企业名称" prop="enterpriseId">
+            <el-select v-model="form.enterpriseId" placeholder="请选择" class="enterpriseId">
+              <el-option
+                v-for="item in enterprise_options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </el-form-item> -->
+
+          <el-form-item label="项目名称" prop="qualificationName">
+            <el-input v-model="form.qualificationName" />
+          </el-form-item>
+
+          <el-form-item label="地点" prop="qualificationType">
+            <el-input v-model="form.qualificationType" />
+          </el-form-item>
+
+          <el-form-item label="检查人员" prop="qualificationLevel">
+            <el-input v-model="form.qualificationLevel" />
+          </el-form-item>
+
+          <el-form-item label="时间" prop="termOfValidity">
+            <el-date-picker
+              v-model="form.termOfValidity"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              format="yyyy-MM-dd"
+              value-format="yyyy-MM-dd"
+            />
+          </el-form-item>
+          <el-form-item label="隐患排查情况" prop="qualificationContent">
+            <el-input
+              v-model="form.qualificationContent"
+              type="textarea"
+              :autosize="{ minRows: 2, maxRows: 4}"
+              placeholder="请输入内容"
+            />
+          </el-form-item>
+
+          <!-- <el-form-item label="资质扫描上传" prop="qualificationScanFiles">
+            <el-upload
+              ref="upload"
+              name="file"
+              :data="GLOBAL.FILE_TYPE.QUALIFICATION"
+              drag
+              action="/api/ajax/upload"
+              :on-progress="handleProgress"
+              :on-error="handleError"
+              :on-success="handleSuccess"
+              :on-preview="handlePreview"
+              :on-remove="handleRemove"
+              :file-list="form.qualificationScanFiles"
+              multiple
+            >
+              <i class="el-icon-upload" />
+              <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+            </el-upload>
+          </el-form-item> -->
+
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="handleDialogClosed('form')">取 消</el-button>
+          <el-button type="primary" :loading="dailyLoading" @click="formSubmit">{{ handle }}</el-button>
+        </div>
+      </el-dialog>
+    </div>
+    <!-- 用于预览上传多张图片的dialog -->
+    <el-dialog append-to-body :visible.sync="dialogViewPics" class="ViewPics">
+      <el-row :gutter="20" type="flex" justify="center">
+        <el-col
+          v-for="(item,index) in fileList"
+          :key="index"
+          :span="8"
+        >
+          <el-image
+            style="width:100%"
+            :src="item.url"
+          />
+        </el-col>
+      </el-row>
+    </el-dialog>
+    <!-- 用于查看历史记录的dialog -->
+    <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+      <el-table ref="table" border :data="historyTable" size="small" stripe>
+        <!-- 历史记录详情展示 -->
+        <el-table-column prop="qualificationName" label="项目名称" />
+        <el-table-column prop="qualificationType" label="资质类型" />
+        <el-table-column prop="qualificationLevel" label="资质等级" />
+        <el-table-column prop="termOfValidity" label="资质有效期">
+          <template slot-scope="scope">
+            <span>{{ scope.row.termOfValidity[0] }}</span>
+            <i class="el-icon-minus" />
+            <span>{{ scope.row.termOfValidity[1] }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="qualificationContent" label="资质内容" />
+        <el-table-column label="资质照片">
+          <template slot-scope="scope">
+            <el-button-group>
+              <el-button type="primary" size="mini" icon="el-icon-search" @click="viewPics(scope.row.qualificationScanFiles)">查看资质照片</el-button>
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column prop="operatorName" label="操作人" />
+        <el-table-column prop="updateTime" label="操作时间" />
+      </el-table>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { mapGetters } from 'vuex'
+import { depClone, fuzzySearch } from '@/utils/auth'
+import { parseTime } from '@/utils'
+import { getQualificationList, addQualification, updateQualification, deleteQualification, historyQualification } from '@/api/basedata/qualification'
+export default {
+  data() {
+    return {
+      handle: '', // 处理方式
+      search: '',
+      searchTemp: '',
+      form: {
+        enterpriseId: '', // 企业id
+        qualificationName: '',
+        qualificationType: '',
+        qualificationLevel: '',
+        termOfValidity: '', // 有效期
+        qualificationContent: null,
+        qualificationScanFiles: []
+      },
+      dailyLoading: false,
+      // 验证规则
+      formRules: {
+        enterpriseId: [
+          { required: true, message: '请选择企业名称', trigger: 'change' }
+        ],
+        qualificationName: [
+          { required: true, message: '请输入项目名称', trigger: 'blur' }
+        ],
+        qualificationType: [
+          { required: true, message: '请输入资质类型', trigger: 'blur' }
+        ],
+        qualificationLevel: [
+          { required: true, message: '请输入资质等级', trigger: 'blur' }
+        ],
+        termOfValidity: [
+          { required: true, message: '请选择有效期', trigger: 'blur' }
+        ],
+        qualificationContent: [
+          { required: true, message: '请输入资质内容', trigger: 'blur' }
+        ],
+        qualificationScanFiles: [
+          { required: true, message: '请上传文件', trigger: 'change' }
+        ]
+      },
+      formDialog: false, // 弹出框标志
+      options: [{
+        value: '正常',
+        label: '正常'
+      }, {
+        value: '待整改',
+        label: '待整改'
+      }, {
+        value: '整改中',
+        label: '整改中'
+      }, {
+        value: '待验收',
+        label: '待验收'
+      }, {
+        value: '关闭',
+        label: '关闭'
+      }],
+      table: [],
+      cpage: 1,
+      pageSize: 5,
+      total: 0,
+      fileList: [],
+      dialogViewPic: false,
+      dialogViewPics: false,
+      btnLoading: false,
+      historyDialog: false,
+      historyTable: [], // 历史记录
+      project: [
+        {
+          qualificationContent: '这是一段内容',
+          qualificationLevel: '张三',
+          qualificationName: '项目一',
+          qualificationScanFile: '132',
+          qualificationScanFiles: [{ fileId: 132,
+            name: 'timg.jpg',
+            url: '/statics/upload/12/25/6c0f093f-2aa0-40f1-8000-a4462697153d.jpg'
+          }],
+          qualificationType: '南昌',
+          termOfValidity: ['2019-01-01', '2019-12-12']
+        },
+        {
+          qualificationContent: '这是二段内容',
+          qualificationLevel: '李四',
+          qualificationName: '项目二',
+          qualificationScanFile: '132',
+          qualificationScanFiles: [{ fileId: 132,
+            name: 'timg.jpg',
+            url: '/statics/upload/12/25/6c0f093f-2aa0-40f1-8000-a4462697153d.jpg'
+          }],
+          qualificationType: '九江',
+          termOfValidity: ['2019-01-18', '2019-07-12']
+        },
+        {
+          qualificationContent: '这是一段内容',
+          qualificationLevel: '王五',
+          qualificationName: '项目三',
+          qualificationScanFile: '132',
+          qualificationScanFiles: [{ fileId: 132,
+            name: 'timg.jpg',
+            url: '/statics/upload/12/25/6c0f093f-2aa0-40f1-8000-a4462697153d.jpg'
+          }],
+          qualificationType: '河北',
+          termOfValidity: ['2019-08-01', '2019-11-12']
+        }
+      ]
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'enterprise_options' // 企业名称
+    ]
+    ),
+    tableData() {
+      const search = this.search
+      return fuzzySearch(this.table, search, 'qualificationName')
+    },
+    queryList() {
+      return this.table.map(data => {
+        return { value: data.qualificationName }
+      })
+    }
+  },
+  watch: {
+    searchTemp(val) {
+      if (!val) {
+        this.search = ''
+      }
+    }
+  },
+  created() {
+    this.$store.dispatch('config/getEnterpriseOptions')
+    this.fetchList()
+  },
+  methods: {
+    // 动态分页查询企业资质信息
+    fetchList(cpage, pageSize) {
+      const params = {}
+      params.page = cpage || this.cpage
+      params.size = pageSize || this.pageSize
+      getQualificationList(params)
+        .then(res => {
+          const pageObj = res.data.obj
+          this.total = pageObj.total
+          // 改造时间戳
+          const list = pageObj.list.map((item) => {
+            let startTime = item.qualificationValidityStartTime
+            let endTime = item.qualificationValidityEndTime
+            item.qualificationValidityStartTime = parseTime(startTime, '{y}-{m}-{d}')
+            item.qualificationValidityEndTime = parseTime(endTime, '{y}-{m}-{d}')
+            startTime = parseTime(startTime, '{y}-{m}-{d}')
+            endTime = parseTime(endTime, '{y}-{m}-{d}')
+            item.termOfValidity = [startTime, endTime]
+            return item
+          })
+          console.log(list)
+          this.table = list
+        }).catch(() => {})
+    },
+    // 过滤表格
+    onSearch() {
+      this.search = this.searchTemp
+    },
+    querySearch(queryString, cb) {
+      var results = fuzzySearch(this.queryList, queryString, 'value')
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    handleSelect() {
+      this.onSearch()
+    },
+    // 查看照片
+    viewPics(fileList) {
+      fileList = fileList.map(item => {
+        item.url = process.env.VUE_APP_BASE_API + item.url
+        return item
+      })
+      console.log(fileList)
+      this.dialogViewPics = true
+      this.fileList = fileList
+    },
+    // 添加按钮
+    addform() {
+      this.formDialog = true
+      this.handle = '添加'
+    },
+    // 提交日常登记表
+    formSubmit() {
+      this.$refs.form.validate((valid) => {
+        if (valid) {
+          const params = depClone(this.form)
+          // 改造起始时间
+          params.qualificationValidityStartTime = params.termOfValidity[0]
+          params.qualificationValidityEndTime = params.termOfValidity[1]
+          params.fileIds = params.qualificationScanFiles.map(item => {
+            if (item.response) {
+              return item.response.obj.fileId
+            } else {
+              return item.fileId
+            }
+          })
+          if (this.handle === '添加') {
+            addQualification(params).then(res => {
+              this.formDialog = false
+              this.fetchList()
+            })
+          } else if (this.handle === '修改') {
+            updateQualification(params.id, params).then((res) => {
+              this.formDialog = false
+              this.fetchList()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 编辑单行表格
+    editItem(scope) {
+      this.formDialog = true
+      this.handle = '修改'
+      this.$nextTick(() => {
+        this.form = { ...scope.row }
+      })
+    },
+    // 删除
+    delItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning')
+        .then(() => {
+          deleteQualification(scope.row.id).then((res) => {
+            this.tableData.splice(scope.$index, 1)
+          })
+
+          console.log(scope)
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyQualification(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造起止时间
+          let startTime = item.qualificationValidityStartTime
+          let endTime = item.qualificationValidityEndTime
+          startTime = parseTime(startTime, '{y}-{m}-{d}')
+          endTime = parseTime(endTime, '{y}-{m}-{d}')
+          item.termOfValidity = [startTime, endTime]
+          // 改造修改时间
+          item.updateTime = parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historyDialog = true
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed(formName) {
+      const temp = formName + 'Dialog'
+      this[temp] = false
+      this.$refs[formName].resetFields()
+      this.$refs.upload.abort()
+      this.loading = false
+    },
+    handleSizeChange(val) {
+      this.fetchList()
+    },
+    handleCurrentChange(val) {
+      this.fetchList()
+    },
+    // 上传处理
+    handleProgress(event, file, fileList) {
+      this.loading = true
+    },
+    handleSuccess(response, file, fileList) {
+      this.form.qualificationScanFiles = fileList
+      this.loading = false
+    },
+    handleError(err, file, fileList) {
+      this.loading = false
+      if (err.status === 401) {
+        this.$confirm(
+          '您的登录信息已过期，您可以取消以停留在此页，或重新登录',
+          '系统提示', {
+            confirmButtonText: '重新登录',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        ).then(() => {
+          this.$router.replace('/login')
+        })
+      }
+      console.log({ ...err })
+    },
+    handleRemove(file, fileList) {
+      this.form.qualificationScanFiles = fileList
+    },
+    handlePreview(file) {
+      const url = process.env.VUE_APP_BASE_API + file.response.obj.url
+      window.open('http://47.99.113.105:8012/onlinePreview?url=' + encodeURIComponent(url))
+      console.log('http://47.99.113.105:8012/onlinePreview?url=' + encodeURIComponent(url))
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.ViewPics{
+  /deep/ .el-dialog__body{
+    text-align: center
+  }
+}
+.enterpriseId{
+width: 100%;
+}
+</style>

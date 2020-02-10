@@ -1,0 +1,261 @@
+<template>
+  <!-- 事故查看 -->
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <router-link style="margin-right:20px;" to="/accidentReport/upload">
+        <el-button type="primary" size="small">
+          <i class="el-icon-plus" /> 新增
+        </el-button>
+      </router-link>
+      <el-table
+        ref="table"
+        v-loading="accidentReportListLoading"
+        :data="page.list"
+        border
+        style="width: 100%"
+        :row-key="getRowKeys"
+        :expand-row-keys="expands"
+        @expand-change="expandChange"
+      >
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <el-form class="demo-table-expand">
+              <el-row class="zhou-one">
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="轻伤人数：">
+                    <span>{{ props.row.minorInjuries }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="重伤人数：">
+                    <span>{{ props.row.seriousInjuries }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="死亡人数：">
+                    <span>{{ props.row.deathToll }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="间接经济损失：">
+                    <span>{{ props.row.indirectLosses }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="title"
+          label="事故名称"
+        />
+        <el-table-column
+          prop="year"
+          label="统计年份"
+        />
+        <el-table-column
+          prop="time"
+          label="发生时间"
+        />
+        <el-table-column
+          prop="reason"
+          label="事故原因"
+        />
+        <el-table-column
+          prop="directLosses"
+          label="直接经济损失"
+        />
+        <!--  <el-table-column
+          prop="handlingOfRelevantResponsiblePerson"
+          label="相关责任人处理情况"
+        /> -->
+        <el-table-column label="是否工伤">
+          <template slot-scope="scope">
+            {{ scope.row.industrialInjury == true ? '是' : '否' }}
+          </template>
+        </el-table-column>
+        <!-- {{ props.row.isDrill == true ? '是' : '否' }} -->
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editAccidentReportForm(scope)" />
+              <sun-button :type="'delete'" @click="delAccidentsList(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'history'" @click="history(scope)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-row>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :current-page="page.page"
+          :total="page.total"
+          :page-sizes="[10, 20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table
+          ref="table"
+          border
+          :data="historyTable"
+          size="small"
+          :row-key="getRowKeys"
+          :expand-row-keys="expands"
+          stripe
+          @expand-change="expandChange"
+        >
+          <el-table-column type="expand">
+            <template slot-scope="props">
+              <el-form class="demo-table-expand">
+                <el-row class="zhou-one">
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="轻伤人数：">
+                      <span>{{ props.row.minorInjuries }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="重伤人数：">
+                      <span>{{ props.row.seriousInjuries }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="死亡人数：">
+                      <span>{{ props.row.deathToll }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="间接经济损失：">
+                      <span>{{ props.row.indirectLosses }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="title"
+            label="事故名称"
+          />
+          <el-table-column
+            prop="year"
+            label="统计年份"
+          />
+          <el-table-column
+            prop="time"
+            label="发生时间"
+          />
+          <el-table-column
+            prop="reason"
+            label="事故原因"
+          />
+          <el-table-column
+            prop="directLosses"
+            label="直接经济损失"
+          />
+          <el-table-column label="是否工伤">
+            <template slot-scope="scope">
+              {{ scope.row.industrialInjury == true ? '是' : '否' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { accidentsDelete, accidentsList, historyAccidents } from '@/api/accidentReport/accidentReport'
+export default {
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 12
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      accidentReportListLoading: true,
+      historyTable: false,
+      historyDialog: false
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    editAccidentReportForm(scope) {
+      this.handle = '修改'
+      this.$router.push({
+        name: 'upload',
+        params: { // 参数携带方式
+          row: scope.row,
+          handle: '修改'
+        }
+      })
+    },
+    // 删除人员持证表单
+    delAccidentsList(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          accidentsDelete(row.id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyAccidents(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historyDialog = true
+      })
+    },
+    // 获取信息
+    fetchData() {
+      accidentsList(this.params).then(res => {
+        this.accidentReportListLoading = false
+        this.page = res.data.obj
+      })
+    },
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.el-row {
+  margin-bottom: 0;
+}
+.demo-table-expand .el-form-item {
+  margin-bottom: 0px;
+}
+</style>

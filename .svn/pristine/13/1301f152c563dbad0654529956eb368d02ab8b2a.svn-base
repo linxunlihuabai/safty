@@ -1,0 +1,190 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <div class="panel-main">
+        <el-row :gutter="30">
+          <el-col :span="10">
+            <el-input placeholder="请输入角色英文名称" v-model="roleForm.enRole">
+              <template slot="prepend">ROLE_</template>
+            </el-input>
+          </el-col>
+          <el-col :span="10">
+            <el-input v-model="roleForm.zhRole" placeholder="请输入角色中文名称"></el-input>
+          </el-col>
+          <el-col :span="4">
+            <el-button type="primary" @click="addRole()">添加角色</el-button>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-collapse @change="handleChange">
+            <el-collapse-item
+              v-for="item in roleList"
+              :key="item.id"
+              :title="item.name"
+              :name="item.id"
+            >
+              <el-card class="box-card">
+                <div slot="header" class="clearfix">
+                  <span>可访问的资源</span>
+                  <el-button
+                    style="float: right; padding: 3px 0; color:red"
+                    type="text"
+                    @click="delRole(item.id)"
+                  >
+                    <i class="el-icon-delete"></i>
+                  </el-button>
+                </div>
+                <el-tree
+                  class="accessibleResources"
+                  :data="treeList"
+                  :ref="'treeList'+item.id"
+                  show-checkbox
+                  node-key="id"
+                  :props="defaultProps"
+                ></el-tree>
+                <div class="footbtn">
+                  <el-button>取消修改</el-button>
+                  <el-button type="primary">确认修改</el-button>
+                </div>
+              </el-card>
+            </el-collapse-item>
+          </el-collapse>
+        </el-row>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapGetters } from "vuex";
+
+export default {
+  data() {
+    return {
+      roleForm: {
+        enRole: "",
+        zhRole: ""
+      },
+      roleList: [
+        {
+          id: 1,
+          name: "系统管理员"
+        },
+        {
+          id: 2,
+          name: "局账户"
+        },
+        {
+          id: 3,
+          name: "队账户"
+        },
+        {
+          id: 4,
+          name: "单位账户"
+        },
+        {
+          id: 5,
+          name: "未分配账户账户"
+        }
+      ],
+      treeName: [],
+      defaultProps: {
+        children: "children",
+        label: function(data) {
+          return data.meta.title;
+        }
+      }
+    };
+  },
+  computed: {
+    ...mapGetters(["permission_routes"]),
+    treeList() {
+      return this.permission_routes.filter(item => {
+        return item.meta;
+      });
+    }
+  },
+  methods: {
+    //递归关闭菜单的方法
+    closeTree(childNodes) {
+      childNodes.forEach(item => {
+        item.expanded = false;
+        if (item.childNodes && item.childNodes.length > 0) {
+          this.closeTree(item.childNodes);
+        }
+      });
+    },
+    //收起时自动关闭所有菜单
+    handleChange(val) {
+
+
+      let tree;
+      if (val.length > this.treeName.length) {
+        tree = val.filter(item => {
+          return !this.treeName.includes(item);
+        });
+
+      } else if (this.treeName.length > val.length) {
+
+        tree = this.treeName.filter(item => {
+          return !val.includes(item);
+        });
+
+      }
+
+      this.treeName = val;
+      
+      tree[0] && (tree = "treeList" + tree[0]);
+
+      // val[0] && ( this.treeName = 'treeList'+val[0] );
+      // console.log(val[0],this.$refs)
+      let childNodes = this.$refs[tree][0].store.root.childNodes
+      if(childNodes && childNodes.length>0){
+        this.closeTree(childNodes);
+      }
+    },
+    //添加角色
+    addRole() {
+      let newRole = {
+        id: this.roleList.length + 1,
+        name: this.roleForm.zhRole
+      };
+      this.roleList.push(newRole);
+    },
+    //删除角色
+    delRole(id) {
+      this.$confirm("此操作将永久删除该角色, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      })
+        .then(() => {
+          this.roleList=this.roleList.filter(item=>item.id!=id);
+          this.$message({
+            type: "success",
+            message: "删除成功！"
+          });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消删除"
+          });
+        });
+    }
+  }
+};
+</script>
+
+<style lang="scss">
+.accessibleResources {
+  margin-bottom: 20px;
+}
+.footbtn {
+  display: flex;
+  justify-content: flex-end;
+}
+</style>

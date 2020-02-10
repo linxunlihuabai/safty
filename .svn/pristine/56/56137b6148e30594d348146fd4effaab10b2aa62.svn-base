@@ -1,0 +1,260 @@
+import Vue from 'vue'
+import store from '@/store'
+
+/**
+ * Parse the time to string
+ * @param {(Object|string|number)} time
+ * @param {string} cFormat
+ * @returns {string | null}
+ */
+export function parseTime(time, cFormat) {
+  if (arguments.length === 0) {
+    return null
+  }
+  const format = cFormat || '{y}-{m}-{d} {h}:{i}:{s}'
+  let date
+  if (typeof time === 'object') {
+    date = time
+  } else {
+    if ((typeof time === 'string') && (/^[0-9]+$/.test(time))) {
+      time = parseInt(time)
+    }
+    if ((typeof time === 'number') && (time.toString().length === 10)) {
+      time = time * 1000
+    }
+    date = new Date(time)
+  }
+  const formatObj = {
+    y: date.getFullYear(),
+    m: date.getMonth() + 1,
+    d: date.getDate(),
+    h: date.getHours(),
+    i: date.getMinutes(),
+    s: date.getSeconds(),
+    a: date.getDay()
+  }
+  const time_str = format.replace(/{([ymdhisa])+}/g, (result, key) => {
+    const value = formatObj[key]
+    // Note: getDay() returns 0 on Sunday
+    if (key === 'a') { return ['日', '一', '二', '三', '四', '五', '六'][value ] }
+    return value.toString().padStart(2, '0')
+  })
+  return time_str
+}
+
+/**
+ * @param {number} time
+ * @param {string} option
+ * @returns {string}
+ */
+export function formatTime(time, option) {
+  if (('' + time).length === 10) {
+    time = parseInt(time) * 1000
+  } else {
+    time = +time
+  }
+  const d = new Date(time)
+  const now = Date.now()
+
+  const diff = (now - d) / 1000
+
+  if (diff < 30) {
+    return '刚刚'
+  } else if (diff < 3600) {
+    // less 1 hour
+    return Math.ceil(diff / 60) + '分钟前'
+  } else if (diff < 3600 * 24) {
+    return Math.ceil(diff / 3600) + '小时前'
+  } else if (diff < 3600 * 24 * 2) {
+    return '1天前'
+  }
+  if (option) {
+    return parseTime(time, option)
+  } else {
+    return (
+      d.getMonth() +
+      1 +
+      '月' +
+      d.getDate() +
+      '日' +
+      d.getHours() +
+      '时' +
+      d.getMinutes() +
+      '分'
+    )
+  }
+}
+
+/**
+ * @param {string} url
+ * @returns {Object}
+ */
+export function param2Obj(url) {
+  const search = url.split('?')[1]
+  if (!search) {
+    return {}
+  }
+  return JSON.parse(
+    '{"' +
+      decodeURIComponent(search)
+        .replace(/"/g, '\\"')
+        .replace(/&/g, '","')
+        .replace(/=/g, '":"')
+        .replace(/\+/g, ' ') +
+      '"}'
+  )
+}
+
+/**
+ * @param {Function} func
+ * @param {number} wait
+ * @param {boolean} immediate
+ * @return {*}
+ */
+// 防抖
+export function debounce(func, wait, immediate) {
+  let timeout, args, context, timestamp, result
+
+  const later = function() {
+    // 据上一次触发时间间隔
+    const last = +new Date() - timestamp
+
+    // 上次被包装函数被调用时间间隔 last 小于设定时间间隔 wait
+    if (last < wait && last > 0) {
+      timeout = setTimeout(later, wait - last)
+    } else {
+      timeout = null
+      // 如果设定为immediate===true，因为开始边界已经调用过了此处无需调用
+      if (!immediate) {
+        result = func.apply(context, args)
+        if (!timeout) context = args = null
+      }
+    }
+  }
+
+  return function(...args) {
+    context = this
+    timestamp = +new Date()
+    const callNow = immediate && !timeout
+    // 如果延时不存在，重新设定延时
+    if (!timeout) timeout = setTimeout(later, wait)
+    if (callNow) {
+      result = func.apply(context, args)
+      context = args = null
+    }
+
+    return result
+  }
+}
+
+/**
+ * @param {Array} arr
+ * @returns {Array}
+ */
+// 数组去重
+export function uniqueArr(arr) {
+  return Array.from(new Set(arr))
+}
+
+/**
+ * @param {Object} obj
+ * @returns {Object}
+ */
+
+// 深拷贝方法
+export function depClone(obj) {
+  return JSON.parse(JSON.stringify(obj))
+}
+
+// 模糊搜索（表格） dataArray搜索数据 search搜索的关键字 flag搜索的字段
+export function fuzzySearch(dataArray, search, flag) {
+  if (search) {
+    return dataArray.filter(data => {
+      return String(data[flag]).toLowerCase().includes(search.toLowerCase())
+    })
+  }
+  return dataArray
+}
+
+// 文件预览方法
+export function filePreview(file) {
+  const url = process.env.VUE_APP_BASE_API + file.url
+  window.open('http://47.99.113.105:8012/onlinePreview?url=' + encodeURIComponent(url))
+}
+
+// 照片预览方法
+/**
+ * @param {that} vue组件实例this
+ * @param {Array} picList[图片数组]
+ * @param {Object} option[配置] dialog是弹窗显示状态 list是图片列表
+ */
+export function picsPreview(that, picList, options) {
+  console.log(Vue)
+  const option = Object.assign({}, { dailog: 'sunViewPics', list: 'sunPicList' }, options)
+  picList = picList.map(item => {
+    return {
+      ...item,
+      url: process.env.VUE_APP_BASE_API + item.url
+    }
+  })
+  that[option.dailog] = true
+  that[option.list] = picList
+}
+
+// 通过 module和id 返回分类中文
+export function transformClassify(module, id) {
+  try {
+    return store.getters.classify_options[module][id]['label']
+  } catch (e) {
+    return '未知'
+  }
+}
+
+// 通过 数组、module、id 返回改造数组
+// 0是分类模块名 1是id的键名 2自定义的名字
+// 会改变原数组
+/**
+ * @param {string} arr
+ * @param {Array} transformArray[二维数组]  0是分类模块名 1是id的键名 2自定义的名字
+ * @returns {Array}
+ */
+export function zhClassify(arr, transformArray) {
+  return arr.map((item) => {
+    transformArray.forEach((transform) => {
+      if (transform[2]) {
+        item[transform[2]] = transformClassify(transform[0], item[transform[1]])
+      } else {
+        item['zh-' + transform[1]] = transformClassify(transform[0], item[transform[1]])
+      }
+    })
+    return item
+  })
+}
+
+// 处理弹框关闭清空表单
+/**
+ * @param {that} vue组件实例this
+ * @param {String} formName[表单名称]
+ * @param {Object} option[配置] upload是上传框的ref值 btnLoading是表单提交按钮的loading
+ */
+export function dialogClosed(that, formName, options) {
+  const option = Object.assign({}, { upload: 'UPLOAD', btnLoading: 'btnLoading' }, options)
+  const temp = formName + 'Dialog'
+  that[temp] = false
+  that.$refs[formName].resetFields()
+  that.$refs[option.upload] && that.$refs[option.upload].$refs.upload.abort()
+  if (that[option.btnLoading]) { that[option.btnLoading] = false }
+}
+
+// 处理重置清空表单
+/**
+ * @param {that} vue组件实例this
+ * @param {String} formName[表单名称]
+ * @param {Object} option[配置] upload是上传框的ref值 btnLoading是表单提交按钮的loading
+ */
+export function resetForm(that, formName, options) {
+  const option = Object.assign({}, { upload: 'UPLOAD', btnLoading: 'btnLoading' }, options)
+  that.$refs[formName].resetFields()
+  that.$refs[option.upload] && that.$refs[option.upload].$refs.upload.abort()
+  if (that[option.btnLoading]) { that[option.btnLoading] = false }
+}

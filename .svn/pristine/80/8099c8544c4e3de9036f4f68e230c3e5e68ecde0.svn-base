@@ -1,0 +1,21 @@
+import { postRequest, deleteRequest, putRequest } from '@/utils/request'
+
+// 企业基本信息 -> 添加
+export function personnelCertificateAdd(data) {
+  return postRequest('/basicData/personnelInfo/add', data)
+}
+
+// 企业基本信息 -> 删除
+export function personnelCertificateDelete(id) {
+  return deleteRequest(`/basicData/personnelInfo/delete/${id}`)
+}
+
+// 企业基本信息 -> 修改
+export function personnelCertificateUpdate(data) {
+  return putRequest(`/basicData/personnelInfo/update/${data.id}`, data)
+}
+
+// 企业基本信息 -> 查看
+export function personnelCertificateList(data) {
+  return postRequest('/basicData/personnelInfo/list', data)
+}

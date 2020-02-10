@@ -1,0 +1,262 @@
+/**
+ * Table表格
+ */
+<template>
+  <div class="table_list_fix">
+    <!-- 扩展性内容 -->
+    <slot name="content_context" />
+
+    <!-- table中间button eg:导出 -->
+    <div
+      v-if="exportBut && exportBut.length > 0"
+      class="btn-operates"
+    >
+      <a
+        v-for="(item, index) in exportBut"
+        :key="index"
+        :href="item.href || null"
+        @click="item.method()"
+      >
+        <el-button type="primary">{{ item.title }}</el-button>
+      </a>
+    </div>
+
+    <!-- table表格 -->
+    <el-table
+      ref="multipleTable"
+      v-loading="loading"
+      v-bind="options"
+      :border="border"
+      :data="dataSource"
+      :show-header="showHeader"
+      style="width: 100%;"
+      v-on="tableEvents"
+      @row-click="handleRowClick"
+      @selection-change="handleSelectionChange"
+    >
+      <!-- 复选框 -->
+      <el-table-column
+        v-if="options && options.selection && (!options.isShow || options.isShow()) "
+        type="selection"
+        style="width: 55px;"
+      />
+
+      <el-table-column
+        v-if="options && options.index"
+        width="60"
+        align="center"
+        type="index"
+        :label="options && options.labelIndex"
+      />
+
+      <!-- 表格数据 -->
+      <template v-for="(column, index) in columns">
+        <el-table-column
+          v-if="!column.isShow || (column.isShow && column.isShow())"
+          :key="index"
+          v-bind="column.props"
+          :prop="column.prop"
+          :label="column.label"
+          :align="column.align"
+          :width="column.width"
+        >
+          <template slot-scope="scope">
+            <slot
+              v-if="column.slot"
+              :row="scope.row"
+              :name="column.prop"
+            />
+
+            <template v-else-if="!column.render">
+              <template v-if="column.formatter">
+                <span
+                  @click="column.click && column.click(scope.row, scope.$index)"
+                  v-html="column.formatter(scope.row, column, scope.$index)"
+                />
+              </template>
+              <template v-else-if="column.newjump">
+                <router-link
+                  class="newjump"
+                  v-bind="{ target : '_blank', ...column.target }"
+                  :to="column.newjump(scope.row, column, scope.$index)"
+                >{{ scope.row[column.prop] || column.content }}</router-link>
+              </template>
+              <template v-else>
+                <span
+                  :style="column.click ? 'color: #409EFF; cursor: pointer;' : null"
+                  @click="column.click && column.click(scope.row, scope.$index)"
+                >
+                  {{ scope.row[column.prop] }}
+                  {{ `${scope.row[column.prop] && column.unit ? column.unit : ''}` }}
+                </span>
+              </template>
+            </template>
+            <template v-else>
+              <render
+                :column="column"
+                :row="scope.row"
+                :render="column.render"
+                :index="index"
+              />
+            </template>
+          </template>
+        </el-table-column>
+      </template>
+
+      <!-- slot插槽按钮 -->
+      <!-- <el-table-column v-if="slotcontent" label="slotcontent" align="center">
+        <template slot-scope="scope">
+          <slot :data="scope.row" />
+        </template>
+      </el-table-column> -->
+
+      <!-- 操作按钮 -->
+      <el-table-column
+        v-if="operates && operates.length > 0"
+        label="操作"
+        align="center"
+        v-bind="options && options.props"
+      >
+        <template slot-scope="scope">
+          <div class="operate-group">
+            <template v-for="(btn, key) in operates">
+              <span
+                v-if="!btn.isShow || (btn.isShow && btn.isShow(scope.row, scope.$index))"
+                :key="key"
+              >
+                <el-button
+                  :size="btn.size || 'small'"
+                  :type="btn.type || `text`"
+                  :icon="btn.icon"
+                  :plain="btn.plain"
+                  :disabled="btn.disabled && btn.disabled(scope.row, scope.$index)"
+                  @click.native.prevent="btn.method(scope.row, scope.$index)"
+                >{{ btn.label }}{{ operates.length >= 2 ? '&nbsp;&nbsp;' : '' }}</el-button>
+              </span>
+            </template>
+          </div>
+        </template>
+      </el-table-column>
+    </el-table>
+    <br>
+    <!-- 分页部分 -->
+    <el-pagination
+      v-if="pagination"
+      :page-sizes="pagination.pageSizes || [5, 10, 15, 20]"
+      :total="pagination.total"
+      :current-page.sync="pagination.cpage"
+      :page-size.sync="pagination.pageSize"
+      :layout="pagination.layout || 'sizes,total, prev, pager, next'"
+      @current-change="handleCpageChange"
+      @size-change="handleSizeChange"
+    />
+  </div>
+</template>
+
+<script>
+const methods = {
+  // 复选框选中项
+  handleSelectionChange(val) {
+    this.multipleSelection = val
+    this.$emit('handleSelectionChange', Array.from(val))
+  },
+
+  // 改变分页触发事件
+  handleCpageChange(val) {
+    this.$emit('current-change', val)
+  },
+
+  // 改变分页触发事件
+  handleSizeChange(val) {
+    this.$emit('size-change', val)
+  },
+
+  // 单行被点击事件
+  handleRowClick(row, column, event) {
+    this.$emit('row-click', row, column, event)
+  }
+}
+
+export default {
+  name: 'TableList',
+
+  components: {
+    render: {
+      functional: true,
+      props: {
+        row: Object,
+        render: Function,
+        index: Number,
+        column: {
+          type: Object,
+          default: null
+        }
+      },
+      render: (h, opt) => {
+        const params = {
+          row: opt.props.row,
+          index: opt.props.index
+        }
+        if (opt.props.column) params.column = opt.props.column
+        return opt.props.render(h, params)
+      }
+    }
+  },
+  props: {
+    dataSource: {
+      type: Array,
+      default: () => []
+    },
+    columns: {
+      type: Array,
+      default: () => []
+    },
+    border: {
+      type: Boolean,
+      default: false
+    },
+    showHeader: {
+      type: Boolean,
+      default: true
+    },
+    loading: {
+      type: Boolean,
+      default: false
+    },
+    slotcontent: {
+      type: Boolean,
+      default: false
+    },
+    operates: {
+      type: Array
+    },
+    pagination: {
+      type: Object,
+      default: null
+    },
+    dataTotal: {
+      type: Number,
+      default: 0
+    },
+    exportBut: {
+      type: Array
+    },
+    options: Object,
+    tableEvents: Object
+  },
+
+  data() {
+    return {
+      multipleSelection: []
+    }
+  },
+
+  mounted() {
+    this.$nextTick(() => {
+      this.$emit('toggleRowSelection', this.$refs.multipleTable)
+    })
+  },
+
+  methods
+}
+</script>

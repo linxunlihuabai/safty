@@ -1,0 +1,322 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-button type="primary" size="small" @click="addEmergencyRescueForm">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <el-table
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <el-form class="demo-table-expand">
+              <el-row class="zhou-one">
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="发布时间：">
+                    <span>{{ props.row.releaseTime }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="修订时间：">
+                    <span>{{ props.row.revisionTime }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="是否演练：">
+                    <span>{{ props.row.isItADrill }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="演练时间：">
+                    <span>{{ props.row.drillingTime }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="演练方式：">
+                    <span>{{ props.row.drillMode }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="publishingUnit"
+          label="发布单位"
+          width="180"
+        />
+        <el-table-column
+          prop="preplanName"
+          label="预案名称"
+          width="180"
+        />
+        <el-table-column
+          prop="preplanCategory"
+          label="预案类别"
+        />
+        <el-table-column
+          prop="planLevel"
+          label="预案级别"
+        />
+        <el-table-column
+          prop="applicationField"
+          label="适用领域"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button type="text" size="mini" icon="el-icon-edit" @click="editEmergencyRescueForm(scope)" />
+              <el-button type="text" size="mini" icon="el-icon-delete" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button
+                type="text"
+                size="mini"
+                icon="el-icon-view"
+                @click="history(scope)"
+              />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <el-dialog title="应急预案" :visible.sync="emergencyRescueFromDialog" width="800px">
+        <el-form
+          ref="emergencyRescueFrom"
+          :rules="emergencyRescueFromRules"
+          size="small"
+          :model="emergencyRescueFrom"
+          @closed="handleDialogClosed"
+        >
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="发布单位" prop="publishingUnit" label-width="78px">
+                <el-input v-model="emergencyRescueFrom.publishingUnit" style="width:199px" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="预案名称" prop="preplanName" label-width="78px">
+                <el-input v-model="emergencyRescueFrom.preplanName" style="width:199px" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="预案类别" prop="preplanCategory" label-width="78px">
+                <el-select v-model="emergencyRescueFrom.preplanCategory" placeholder="请选择预案类别">
+                  <el-option label="综合" value="综合" />
+                  <el-option label="现场" value="现场" />
+                  <el-option label="专项" value="专项" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="预案级别" prop="planLevel" label-width="78px">
+                <el-select v-model="emergencyRescueFrom.planLevel" placeholder="请选择预案级别">
+                  <el-option label="大队" value="大队" />
+                  <el-option label="项目" value="项目" />
+                  <el-option label="院" value="院" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="适用领域" prop="applicationField" label-width="78px">
+                <el-input v-model="emergencyRescueFrom.applicationField" style="width:199px" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="发布时间" prop="releaseTime" label-width="78px">
+                <el-date-picker
+                  v-model="emergencyRescueFrom.releaseTime"
+                  type="date"
+                  style="width:199px"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="修订时间" prop="revisionTime" label-width="78px">
+                <el-date-picker
+                  v-model="emergencyRescueFrom.revisionTime"
+                  type="date"
+                  style="width:199px"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="是否演练" prop="isItADrill" label-width="78px">
+                <el-radio-group v-model="emergencyRescueFrom.isItADrill">
+                  <el-radio :checked="emergencyRescueFrom.isItADrill=='是'" label="是">是</el-radio>
+                  <el-radio :checked="emergencyRescueFrom.isItADrill=='否'" label="否">否</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="演练时间" prop="drillingTime" label-width="78px">
+                <el-input-number v-model="emergencyRescueFrom.drillingTime" size="small" style="width:199px" />
+                <!-- <el-input v-model="emergencyRescueFrom.drillingTime" style="width:199px" /> -->
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="演练方式" prop="drillMode" label-width="78px">
+                <el-select v-model="emergencyRescueFrom.drillMode" placeholder="请选择预案级别">
+                  <el-option label="桌面" value="桌面" />
+                  <el-option label="功能" value="功能" />
+                  <el-option label="全面" value="全面" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="specialEquipmentFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      tableData: [
+        {
+          publishingUnit: '发布单位1',
+          preplanName: '预案名称1',
+          preplanCategory: '综合',
+          planLevel: '大队',
+          applicationField: '适用领域1',
+          releaseTime: '2012-12-01',
+          revisionTime: '2018-12-01',
+          isItADrill: '是',
+          drillingTime: '90',
+          drillMode: '桌面'
+        }, {
+          publishingUnit: '发布单位2',
+          preplanName: '预案名称2',
+          preplanCategory: '现场',
+          planLevel: '项目',
+          applicationField: '适用领域2',
+          releaseTime: '2012-12-01',
+          revisionTime: '2018-12-01',
+          isItADrill: '是',
+          drillingTime: '80',
+          drillMode: '功能'
+        }, {
+          publishingUnit: '发布单位3',
+          preplanName: '预案名称3',
+          preplanCategory: '专项',
+          planLevel: '院',
+          applicationField: '适用领域3',
+          releaseTime: '2012-12-01',
+          revisionTime: '2018-12-01',
+          isItADrill: '否',
+          drillingTime: '10',
+          drillMode: '全面'
+        }
+      ],
+      emergencyRescueFrom: {
+        publishingUnit: '',
+        preplanName: '',
+        preplanCategory: '',
+        planLevel: '',
+        applicationField: '',
+        releaseTime: '',
+        revisionTime: '',
+        isItADrill: '否',
+        drillingTime: '',
+        drillMode: ''
+      },
+      emergencyRescueFromRules: {
+        publishingUnit: [{ required: true, message: '发布单位不能为空', trigger: 'blur' }],
+        preplanName: [{ required: true, message: '预案名称不能为空', trigger: 'blur' }],
+        preplanCategory: [{ required: true, message: '预案类别不能为空', trigger: 'blur' }],
+        planLevel: [{ required: true, message: '预案级别不能为空', trigger: 'blur' }],
+        applicationField: [{ required: true, message: '适用领域不能为空', trigger: 'blur' }],
+        releaseTime: [{ required: true, message: '发布时间不能为空', trigger: 'blur' }],
+        revisionTime: [{ required: true, message: '修订时间不能为空', trigger: 'blur' }],
+        isItADrill: [{ required: true, message: '是否演练不能为空', trigger: 'blur' }],
+        drillingTime: [{ required: true, message: '演练时间不能为空', trigger: 'blur' }],
+        drillMode: [{ required: true, message: '演练方式不能为空', trigger: 'blur' }]
+      },
+      historyTable: false,
+      emergencyRescueFromDialog: false,
+      btnLoading: false,
+      historyDialog: false
+    }
+  },
+  methods: {
+    // 查看历史修改
+    history(scope) {
+    },
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.emergencyRescueFrom.resetFields()
+      this.emergencyRescueFromDialog = false
+    },
+    addEmergencyRescueForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.emergencyRescueFrom.publishingUnit = null
+        this.emergencyRescueFrom.preplanName = null
+        this.emergencyRescueFrom.preplanCategory = null
+        this.emergencyRescueFrom.planLevel = null
+        this.emergencyRescueFrom.applicationField = null
+        this.emergencyRescueFrom.releaseTime = null
+        this.emergencyRescueFrom.revisionTime = null
+        this.emergencyRescueFrom.drillingTime = null
+        this.emergencyRescueFrom.drillMode = null
+      })
+      this.emergencyRescueFromDialog = true
+    },
+    specialEquipmentFormSubmit() {},
+    editEmergencyRescueForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.emergencyRescueFrom = { ...scope.row }
+      })
+      this.emergencyRescueFromDialog = true
+    }
+  }
+}
+</script>
+
+<style>
+.el-row {
+  margin-bottom: 0;
+}
+.demo-table-expand .el-form-item {
+  margin-bottom: 0px;
+}
+</style>

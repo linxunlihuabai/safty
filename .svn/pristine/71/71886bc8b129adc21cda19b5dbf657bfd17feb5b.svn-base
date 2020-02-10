@@ -1,0 +1,178 @@
+<template>
+  <el-tabs
+    v-height="height"
+    type="border-card"
+    class="table-container"
+  >
+    <el-tab-pane
+      v-for="item in list"
+      :key="item"
+    >
+      <template slot="label">
+        <el-tag
+          class="tags"
+          :type="item.tagType || tagType"
+        >{{ item.title || item }}</el-tag>
+      </template>
+
+      <sun-table
+        :loading="tableDataLoading"
+        :columns="columns"
+        :data-source="tableData"
+      >
+        <template v-slot:state="scope">
+          <el-button-group class="operate">
+            <el-tag
+              v-if="scope.row.dangerQuantity==0"
+              type="info"
+            >
+              无隐患
+            </el-tag>
+            <el-tag
+              v-else-if="scope.row.state==1"
+              type="danger"
+            >待整改</el-tag>
+            <el-tag
+              v-else-if="scope.row.state==2"
+              type="warning"
+            >整改中</el-tag>
+            <el-tag v-else-if="scope.row.state==3">
+              待验收
+            </el-tag>
+            <el-tag
+              v-else-if="scope.row.state==4"
+              type="success"
+            >
+              整改完成
+            </el-tag>
+          </el-button-group>
+        </template>
+      </sun-table>
+
+    </el-tab-pane>
+  </el-tabs>
+</template>
+
+<script>
+import SunTable from '@/components/table'
+
+import {
+  getSafetyCheckList
+} from '@/api/safetyInspection/dailySafetyInspection' // 日常安全检查API
+
+export default {
+  directives: {
+    height: {
+      bind(el, { value }) {
+        if (value) {
+          el.style.height = value
+        }
+      }
+    }
+  },
+  components: {
+    SunTable
+  },
+  props: {
+    height: {
+      type: String,
+      default: ''
+    },
+    tagType: {
+      type: String,
+      default: ''
+    }
+  },
+  data() {
+    return {
+      list: ['隐患情况'],
+      showHeader: false,
+      tableData: [],
+      columns: [
+        {
+          prop: 'projectName', // <String>  对应属性名
+          label: '项目名称'
+        },
+        {
+          prop: 'checkTime', // <String>  对应属性名
+          label: '检查时间'
+        },
+        {
+          prop: 'dangerQuantity', // <String>  对应属性名
+          label: '隐患数量'
+        },
+
+        {
+          prop: 'state', // <String>  对应属性名
+          label: '状态',
+          align: 'center', // <String> 内容对齐方式
+          slot: true,
+          width: 120 // <String,Number> 列宽
+        }
+      ],
+      pagination: {
+        cpage: 1,
+        pageSize: 8,
+        total: 0,
+        layout: 'total, prev, pager, next'
+      }
+    }
+  },
+  created() {
+    this.fetchSafetyCheckList()
+  },
+  methods: {
+    // 动态分页查询 [日常安全检查] 列表
+    fetchSafetyCheckList(cpage, pageSize) {
+      const params = {}
+      params.page = cpage || this.pagination.cpage
+      params.size = pageSize || this.pagination.pageSize
+
+      params.stress = true
+
+      getSafetyCheckList(params)
+        .then(res => {
+          const pageObj = res.data.obj
+
+          this.total = pageObj.total
+
+          const list = pageObj.list
+
+          this.tableData = list
+
+          this.tableDataLoading = false
+        }).catch(() => { })
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.tags {
+  width: 200px;
+  height: 35px;
+  line-height: 35px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.table-container {
+  background-color: #fff;
+  overflow: hidden;
+
+  /deep/ .el-tabs__item {
+    padding: 10px 30px;
+    height: auto;
+  }
+
+  /deep/ .el-tabs__content {
+    padding: 20px 30px 16px;
+  }
+}
+
+.pointer-table {
+  /deep/ .el-table__row {
+    cursor: pointer;
+  }
+}
+</style>

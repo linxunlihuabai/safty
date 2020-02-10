@@ -1,0 +1,51 @@
+
+import { postRequest } from '@/utils/request'
+
+
+// export function login(data) {
+//   return request({
+//     url: '/login',
+//     method: 'post',
+//     data,
+//     transformRequest: [function (data) {
+//       let ret = ''
+//       for (let it in data) {
+//         ret += encodeURIComponent(it) + '=' + encodeURIComponent(data[it]) + '&'
+//       }
+//       return ret
+//     }],
+//     headers: {
+//       'Content-Type': 'application/x-www-form-urlencoded'
+//     }
+//   })
+// }
+
+export function getRegisterCaptcha(data) {
+  return postRequest(
+    '/register/captcha', 
+    data
+    )
+}
+
+export function login(data) {
+  return postRequest(
+    '/login',
+    data
+  )
+}
+
+
+export function getInfo(token) {
+  return request({
+    url: '/user/info',
+    method: 'get',
+    params: { token }
+  })
+}
+
+export function logout() {
+  return request({
+    url: '/user/logout',
+    method: 'post'
+  })
+}

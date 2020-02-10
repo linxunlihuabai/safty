@@ -1,0 +1,259 @@
+
+<template>
+  <div>
+    <el-dialog title="安全生产信息-新增" :visible.sync="addSafeDialog" width="990px">
+      <el-form
+        ref="addSafeData"
+        size="small"
+        :model="addSafeData"
+        :rules="rulesSafe"
+        label-width="150px"
+      >
+        <el-row>
+          <el-col :span="6" class="colBorder">
+            <el-form-item label="企业名称" label-width="78px" prop="enterpriseId">
+              <el-cascader
+                v-model="addSafeData.enterpriseIds"
+                style="width: 100%"
+                size="small"
+                placeholder="请选择企业"
+                :options="enterpriseOptions"
+                :props="{ checkStrictly: true }"
+                clearable
+                @change="handleAddSafeChange"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="生产状态" prop="productionState" label-width="78px">
+              <el-input v-model="addSafeData.productionState" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6" class="colBorder">
+            <el-form-item label="邮箱" prop="email" label-width="50px">
+              <el-input v-model="addSafeData.email" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="6" class="colBorder">
+            <el-form-item label="单位值班电话" prop="unitOnDutyPhone" label-width="106px">
+              <el-input v-model="addSafeData.unitOnDutyPhone" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6" class="colBorder">
+            <el-form-item label="特种作业人数" prop="specialWorkNumber" label-width="106px">
+              <el-input-number v-model="addSafeData.specialWorkNumber" :min="1" :max="1000" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6" class="colBorder">
+            <el-form-item label="注册安全工程师人数" prop="registerSafeEngineerNumber" label-width="148px">
+              <el-input-number
+                v-model="addSafeData.registerSafeEngineerNumber"
+                size="small"
+                :min="1"
+                :max="1000"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6" class="colBorder">
+            <el-form-item label="从业人数" prop="employeeNumber" required label-width="78px">
+              <el-input-number v-model="addSafeData.employeeNumber" :min="1" :max="2000" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="9" class="colBorder">
+            <el-form-item label="专职安全管理人员人数" prop="safeManageEmployeeNumber" label-width="160px">
+              <el-input-number
+                v-model="addSafeData.safeManageEmployeeNumber"
+                size="small"
+                :min="1"
+                :max="1000"
+              />
+            </el-form-item>
+          </el-col>
+
+        </el-row>
+        <el-row>
+          <el-col :span="6" class="colBorder">
+            <el-form-item label="分管安全负责人" prop="inChargeOfSafety" label-width="120px">
+              <el-input v-model="addSafeData.inChargeOfSafety" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8" class="colBorder">
+            <el-form-item
+              label="分管安全负责人电话"
+              prop="inChargeOfSecurityResponsiblePersonTelephone"
+              label-width="148px"
+            >
+              <el-input v-model="addSafeData.inChargeOfSecurityResponsiblePersonTelephone" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="8" class="colBorder">
+            <el-form-item label="专职安全管理人员" prop="safetyManagementPersonnel" label-width="136px">
+              <el-input v-model="addSafeData.safetyManagementPersonnel" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="9" class="colBorder">
+            <el-form-item
+              label="专职安全管理人员电话"
+              prop="safetyManagementPersonnelTelephone"
+              label-width="168px"
+            >
+              <el-input v-model="addSafeData.safetyManagementPersonnelTelephone" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8" class="colBorder">
+            <el-form-item
+              label="安全生产主要负责人"
+              prop="safetyProductionMainResponsiblePerson"
+              label-width="148px"
+            >
+              <el-input v-model="addSafeData.safetyProductionMainResponsiblePerson" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="10" class="colBorder">
+            <el-form-item
+              label="安全生产主要负责人联系电话"
+              prop="safetyProductionMainResponsiblePersonContactNumber"
+              required
+              label-width="210px"
+            >
+              <el-input
+                v-model="
+                  addSafeData.safetyProductionMainResponsiblePersonContactNumber
+                "
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="13" class="colBorder">
+            <el-form-item label="工商登记有效期" prop="productionLicenseValidity" label-width="162px">
+              <el-date-picker
+                v-model="addSafeData.productionLicenseValidity"
+                type="daterange"
+                align="right"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd"
+                @change="addSafeChangeData"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="13" class="colBorder">
+            <el-form-item label="安全生产有效期" prop="registerValidity" label-width="162px">
+              <el-date-picker
+                v-model="addSafeData.registerValidity"
+                type="daterange"
+                align="right"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                @change="addSafeChangeData"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="14">
+            <el-form-item label="许可证扫描件" prop="licenseScanFiles" label-width="106px">
+              <el-upload
+                v-model="addSafeData.licenseScanFiles"
+                action="/ajax/upload"
+                list-type="picture-card"
+                :on-success="handleAddSafeSuccessLicenseScanFiles"
+                :on-remove="handleAddSafeRemoveLicenseScanFiles"
+                :before-upload="beforeAvatarUpload"
+                :file-list="addSafeData.licenseScanFiles"
+                :data="GLOBAL.FILE_TYPE.RULES"
+                @error="handleLoadError"
+              >
+                <i class="el-icon-plus" />
+              </el-upload>
+            </el-form-item>
+          </el-col>
+          <el-col :span="14">
+            <el-form-item label="安全机构设置" prop="safeOrganizationSettingFiles" label-width="106px">
+              <el-upload
+                ref="upload"
+                v-model="addSafeData.safeOrganizationSettingFiles"
+                :data="GLOBAL.FILE_TYPE.QUALIFICATION"
+                name="file"
+                drag
+                action="/ajax/upload"
+                :on-success="handleAddSafeSuccessSafeOrganizationSettingFiles"
+                :on-remove="handleAddSafeRemoveSafeOrganizationSettingFiles"
+                :on-error="handleAddSafeError"
+                :limit="1"
+                :file-list="addSafeData.safeOrganizationSettingFiles"
+              >
+                <i class="el-icon-upload" />
+                <div class="el-upload__text">
+                  将文件拖到此处，或
+                  <em>点击上传</em>
+                </div>
+                <div slot="tip" class="el-upload__tip">只能上传一个以pdf,doc,txt结尾文件！</div>
+              </el-upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="8" class="colBorder">
+            <el-form-item
+              label="安全生产主要负责人联系电话"
+              prop="safetyProductionMainResponsiblePersonContactNumber"
+              label-width="160px"
+            >
+              <el-input
+                v-model="
+                  addSafeData.safetyProductionMainResponsiblePersonContactNumber
+                "
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8" class="colBorder">
+            <el-form-item
+              label="专职安全管理人员电话"
+              prop="safetyManagementPersonnelTelephone"
+              label-width="168px"
+            >
+              <el-input v-model="addSafeData.safetyManagementPersonnelTelephone" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8" class="colBorder">
+            <el-form-item
+              label="安全生产主要负责人"
+              prop="safetyProductionMainResponsiblePerson"
+              label-width="148px"
+            >
+              <el-input v-model="addSafeData.safetyProductionMainResponsiblePerson" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item>
+          <el-button
+            :loading="btnLoading"
+            type="primary"
+            @click="submitSafeAddForm('addSafeData')"
+          >确定</el-button>
+          <el-button @click="addSafeDialog = false">取消</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+export default {
+
+}
+</script>
+
+	<style>
+
+	</style>
+

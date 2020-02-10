@@ -1,0 +1,162 @@
+<template>
+  <el-tabs v-if="type=='tabs'" v-height="height" type="border-card" class="table-container">
+    <el-tab-pane v-for="item in data" :key="item.id">
+
+      <template slot="label">
+        <el-tag class="tags" :type="item.tagType || tagType">{{ item.title }}</el-tag>
+      </template>
+
+      <sun-table
+        :loading="loading"
+        :border="item.border || false"
+        :columns="item.columns"
+        :data-source="item.length ? item.data.slice(0,item.length) : item.data"
+        :show-header="true && item.showHeader"
+        @row-click="handleRowClick"
+      >
+
+        <template v-for="col in item.columns" v-slot:[col.prop]="scope">
+          <slot v-if="col.slot" :row="scope.row" :name="col.prop" />
+        </template>
+
+      </sun-table>
+
+    </el-tab-pane>
+  </el-tabs>
+
+  <div v-else class="single-table">
+    <sun-table
+      v-for="item in data"
+      :key="item.id"
+      :loading="loading"
+      :border="item.border || false"
+      :columns="item.columns"
+      :data-source="item.length ? item.data.slice(0,item.length) : item.data"
+      :show-header="true && item.showHeader"
+      @row-click="handleRowClick"
+    >
+
+      <template v-for="col in item.columns" v-slot:[col.prop]="scope">
+        <slot v-if="col.slot" :row="scope.row" :name="col.prop" />
+      </template>
+
+    </sun-table>
+  </div>
+
+</template>
+
+<script>
+import SunTable from '@/components/table'
+
+export default {
+  directives: {
+    height: {
+      bind(el, { value }) {
+        if (value) {
+          el.style.height = value
+        }
+      }
+    }
+  },
+  components: {
+    SunTable
+  },
+  props: {
+    type: {
+      type: String
+    },
+    height: {
+      type: String,
+      default: ''
+    },
+    tagType: {
+      type: String,
+      default: ''
+    },
+    data: {
+      type: Array,
+      default: () => []
+    },
+    length: {
+      type: Number,
+      default: null
+    },
+    showHeader: {
+      type: Boolean,
+      default: true
+    },
+    loading: {
+      type: Boolean,
+      default: false
+    },
+    border: {
+      type: Boolean,
+      default: false
+    },
+    columns: {
+      type: Array,
+      default: () => []
+    }
+  },
+  data() {
+    return {
+
+    }
+  },
+  computed: {
+    dataSource() {
+      if (this.length === null) {
+        return this.data
+      } else {
+        return this.data.slice(0, this.length)
+      }
+    }
+  },
+  created() {
+    console.log(this.data)
+  },
+  methods: {
+    // 单行被点击事件
+    handleRowClick(row, column, event) {
+      this.$emit('row-click', row, column, event)
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+ .tags{
+   width: 200px;
+   height: 35px;
+   line-height: 35px;
+   font-size: 18px;
+   text-align: center;
+ }
+ .table-container{
+   background-color: #fff;
+  //  height: 480px;
+   overflow: hidden;
+   /deep/ .el-tabs__item{
+     padding: 10px 30px;
+     height: auto;
+   }
+   /deep/ .el-tabs__content{
+     padding: 20px 30px 16px;
+   }
+  //  /deep/ .el-tabs__content{
+  //    padding: 0px 30px;
+  //  }
+  //  .el-tabs__item.is-active{
+
+  //  }
+ }
+ .single-table{
+   margin: 20px;
+   /deep/ .el-table td, .el-table th{
+     padding: 8px 0;
+     .operate{
+       justify-content: flex-start;
+     }
+   }
+ }
+</style>

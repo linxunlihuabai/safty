@@ -1,0 +1,59 @@
+import { getRequest, postRequest, deleteRequest, putRequest } from '@/utils/request'
+
+/*
+**安全费用计划
+*/
+
+// 动态分页查询安全费用计划列表
+export function getSafetyCostPlanList(data) {
+  return postRequest('/basicData/expenses/plan/list', data)
+}
+
+// 添加安全费用计划信息
+export function addSafetyCostPlan(data) {
+  return postRequest('/basicData/expenses/plan/add', data)
+}
+
+// 通过 id 修改安全费用计划信息
+export function updateSafetyCostPlan(id, data) {
+  return putRequest(`/basicData/expenses/plan/update/${id}`, data)
+}
+
+// 通过 id 删除安全费用计划信息
+export function deleteSafetyCostPlan(id) {
+  return deleteRequest(`/basicData/expenses/plan/delete/${id}`)
+}
+
+// 通过 id 查询安全费用计划的修改历史记录
+export function historySafetyCostPlan(id) {
+  return postRequest(`/basicData/expenses/plan/historys/${id}`)
+}
+
+/*
+**安全费用支出
+*/
+
+// 动态分页查询安全费用支出列表
+export function getSafetyCostList(data) {
+  return postRequest('/basicData/expenses/list', data)
+}
+
+// 添加安全费用支出信息
+export function addSafetyCost(data) {
+  return postRequest('/basicData/expenses/add', data)
+}
+
+// 通过 id 修改安全费用计划信息
+export function updateSafetyCost(id, data) {
+  return putRequest(`/basicData/expenses/update/${id}`, data)
+}
+
+// 通过 id 删除安全费用计划信息
+export function deleteSafetyCost(id) {
+  return deleteRequest(`/basicData/expenses/delete/${id}`)
+}
+
+// 通过 id 查询安全费用计划的修改历史记录
+export function historySafetyCost(id) {
+  return postRequest(`/basicData/expenses/historys/${id}`)
+}

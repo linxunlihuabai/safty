@@ -1,0 +1,697 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row type="flex" justify="space-between" align="top">
+
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-plus"
+          @click="addform"
+        >
+          新增
+        </el-button>
+
+        <div>
+          <el-autocomplete
+            v-model="searchTemp"
+            size="small"
+            :fetch-suggestions="querySearch"
+            placeholder="请输入内容"
+            style="width:180px;margin-right:10px"
+            :trigger-on-focus="false"
+            @select="handleSelect"
+          />
+
+          <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+        </div>
+      </el-row>
+      <el-row>
+        <el-col>
+          <!-- 安全费用使用情况 -->
+          <el-table
+            v-loading="tableDataLoading"
+            class="open-table"
+            border
+            :data="tableData"
+            size="small"
+            stripe
+            :row-key="getRowKeys"
+            :expand-row-keys="expands"
+            @expand-change="expandChange"
+          >
+            <!-- 安全费用详情展示 -->
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <!-- 使用情况 -->
+                <el-table
+                  v-loading="costLoading"
+                  :data="costTable"
+                  border
+                  style="width: 100%"
+                  class="inner-table usage"
+                >
+                  <el-table-column
+                    prop="date"
+                    label="使用情况"
+                    align="center"
+                  >
+                    <template slot="header" slot-scope="scope">
+                      <el-row class="slot-header">
+                        <el-col>
+                          使用情况
+                        </el-col>
+                        <el-col class="operation-group">
+                          <el-button-group class="operate">
+                            <el-button
+                              size="mini"
+                              type="text"
+                              title="新增"
+                              icon="el-icon-circle-plus-outline"
+                              @click="addCostItem(props)"
+                            />
+                          </el-button-group>
+                        </el-col>
+                      </el-row>
+                    </template>
+                    <el-table-column
+                      prop="time"
+                      label="时间"
+                    />
+                    <el-table-column
+                      prop="content"
+                      label="内容"
+                    />
+                    <el-table-column
+                      prop="cost"
+                      label="金额"
+                    />
+                    <el-table-column
+                      prop="zh-type"
+                      label="用途分类"
+                    />
+                    <el-table-column label="发票" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL">
+                      <template slot-scope="scope">
+                        <el-button-group class="operate">
+                          <el-button
+                            type="text"
+                            size="mini"
+                            title="查看发票"
+                            icon="el-icon-search"
+                            @click="filePreview(scope.row.files[0])"
+                          />
+                        </el-button-group>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" :width="GLOBAL.TABLE_CELL_WIDTH.MEDIUM">
+                      <template slot-scope="scope">
+                        <el-button-group class="operate">
+                          <el-button type="text" size="mini" title="编辑" icon="el-icon-edit" @click="editCostItem(scope)" />
+                          <el-button type="text" size="mini" title="删除" icon="el-icon-delete" @click="delCostItem(scope)" />
+                        </el-button-group>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="历史修改" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL">
+                      <template slot-scope="scope">
+                        <el-button-group class="operate">
+                          <el-button
+                            type="text"
+                            size="mini"
+                            title="查看历史"
+                            icon="el-icon-view"
+                            @click="historyCost(scope)"
+                          />
+                        </el-button-group>
+                      </template>
+                    </el-table-column>
+
+                  </el-table-column>
+                </el-table>
+                <!-- 支出分页栏 -->
+                <el-row ref="costPage">
+                  <el-pagination
+                    :current-page.sync="costCpage"
+                    :page-sizes="[5, 10, 15, 20]"
+                    :page-size.sync="costPageSize"
+                    layout="sizes, prev, pager, next"
+                    :total="costTotal"
+                    @size-change="costSizeChange(props)"
+                    @current-change="costCurrentChange(props)"
+                  />
+                </el-row>
+              </template>
+            </el-table-column>
+            <el-table-column sortable prop="year" label="年份" />
+            <el-table-column sortable prop="enterpriseName" label="企业名称" />
+            <el-table-column sortable prop="expensePlan" label="提取计划" />
+            <el-table-column sortable prop="basis" label="提取依据" />
+            <el-table-column sortable prop="summary" label="年终总额" />
+            <el-table-column label="操作">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button type="text" size="mini" title="编辑" icon="el-icon-edit" @click="editPlanItem(scope)" />
+                  <el-button type="text" size="mini" title="打印" icon="el-icon-printer" @click="editPlanItem(scope)" />
+                  <el-button type="text" size="mini" title="导出" icon="el-icon-download" @click="editPlanItem(scope)" />
+                  <el-button type="text" size="mini" title="删除" icon="el-icon-delete" @click="delPlanItem(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="历史修改" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-view"
+                    title="查看历史"
+                    @click="historyPlan(scope)"
+                  />
+                </el-button-group>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-row>
+
+      <!-- 计划分页栏 -->
+      <el-row ref="planPage">
+        <el-pagination
+          :current-page.sync="planCpage"
+          :page-sizes="[5, 10, 15, 20]"
+          :page-size.sync="planPageSize"
+          layout="sizes, prev, pager, next"
+          :total="planTotal"
+          @size-change="planSizeChange"
+          @current-change="planCurrentChange"
+        />
+      </el-row>
+    </div>
+
+    <!-- 计划登记表 -->
+    <el-dialog
+      :title="handle"
+      :visible.sync="formDialog"
+      :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+      :close-on-click-modal="false"
+      @closed="handleDialogClosed('form')"
+    >
+
+      <el-form
+        id="addData"
+        ref="form"
+        size="small"
+        :model="form"
+        :rules="formRules"
+        :label-width="GLOBAL.FORM_LABEL_WIDTH.MEDIUM"
+      >
+        <el-form-item label="年份" prop="year">
+          <el-date-picker
+            v-model="form.year"
+            type="year"
+            format="yyyy"
+            value-format="yyyy"
+            placeholder="选择年"
+          />
+        </el-form-item>
+
+        <el-form-item label="提取计划" prop="expensePlan">
+          <el-input v-model="form.expensePlan" />
+        </el-form-item>
+
+        <el-form-item label="提取依据" prop="basis">
+          <el-input v-model="form.basis" />
+        </el-form-item>
+
+        <el-form-item label="年终总额" prop="summary">
+          <el-input
+            v-model="form.summary"
+            placeholder="请输入年终总额"
+          />
+        </el-form-item>
+
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="handleDialogClosed('form')">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="formSubmit">{{ handle }}</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 支出登记表 -->
+    <el-dialog
+      :title="handle"
+      :visible.sync="costFormDialog"
+      :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+      :close-on-click-modal="false"
+      @closed="handleDialogClosed('costForm')"
+    >
+
+      <el-form
+        id="addData"
+        ref="costForm"
+        size="small"
+        :model="costForm"
+        :rules="costFormRules"
+        :label-width="GLOBAL.FORM_LABEL_WIDTH.MEDIUM"
+      >
+        <el-form-item label="时间" prop="time">
+          <el-date-picker
+            v-model="costForm.time"
+            format="yyyy-MM-dd"
+            value-format="yyyy-MM-dd"
+            placeholder="选择日期"
+          />
+        </el-form-item>
+
+        <el-form-item label="用途分类" prop="type">
+          <sun-select v-model="costForm.type" :module="'安全费用用途'" />
+        </el-form-item>
+
+        <el-form-item label="金额" prop="cost">
+          <el-input v-model="costForm.cost" />
+        </el-form-item>
+
+        <el-form-item label="内容" prop="content">
+          <el-input
+            v-model="costForm.content"
+            placeholder="请输入内容"
+          />
+        </el-form-item>
+        <el-form-item label="发票上传" prop="files">
+          <sun-upload
+            ref="UPLOAD"
+            :data="GLOBAL.FILE_TYPE.INVOICE"
+            :accept="accept"
+            :limit="limit"
+            :file-list.sync="costForm.files"
+            :btn-loading.sync="btnLoading"
+          />
+        </el-form-item>
+
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="handleDialogClosed('costForm')">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="costFormSubmit">{{ handle }}</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 用于查看历史记录的dialog -->
+    <el-dialog
+      title="历史记录"
+      :visible.sync="historyDialog"
+      :close-on-click-modal="false"
+      :width="GLOBAL.DIALOG_WIDTH.BIG"
+    >
+      <el-table ref="table" border :data="historyTable" size="small" stripe>
+        <!-- 计划历史记录详情展示 -->
+        <template v-if="history=='计划'">
+          <el-table-column key="year" prop="year" label="年份" />
+          <el-table-column key="enterpriseName" prop="enterpriseName" label="企业名称" />
+          <el-table-column key="expensePlan" prop="expensePlan" label="提取计划" />
+          <el-table-column key="basis" prop="basis" label="提取依据" />
+          <el-table-column key="summary" prop="summary" label="年终总额" />
+        </template>
+        <!-- 支出历史记录详情展示 -->
+        <template v-if="history=='支出'">
+          <el-table-column prop="time" label="时间" />
+          <el-table-column prop="content" label="内容" />
+          <el-table-column prop="cost" label="金额" />
+          <el-table-column prop="invoice" label="发票" />
+          <el-table-column prop="zh-type" label="用途分类" />
+          <el-table-column label="发票" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <el-button
+                  type="text"
+                  size="mini"
+                  title="查看发票"
+                  icon="el-icon-search"
+                  @click="filePreview(scope.row.files[0])"
+                />
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </template>
+        <el-table-column prop="operatorName" label="操作人" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+        <el-table-column prop="updateTime" label="操作时间" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+      </el-table>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+import {
+  getSafetyCostPlanList,
+  addSafetyCostPlan,
+  deleteSafetyCostPlan,
+  updateSafetyCostPlan,
+  historySafetyCostPlan
+} from '@/api/basedata/safetyCost' // 安全费用计划
+import {
+  getSafetyCostList,
+  addSafetyCost,
+  deleteSafetyCost,
+  updateSafetyCost,
+  historySafetyCost
+} from '@/api/basedata/safetyCost' // 安全费用支出
+export default {
+  data() {
+    return {
+      handle: '', // 处理方式
+      search: '',
+      searchTemp: '',
+      table: [],
+      costTable: [],
+      tableDataLoading: true,
+      costLoading: true,
+      expands: [], // 展开行数组
+      planCpage: 1,
+      planPageSize: 5,
+      planTotal: 0,
+      costCpage: 1,
+      costPageSize: 5,
+      costTotal: 0,
+      formDialog: false, // 弹出框标志
+      form: {
+        year: '',
+        expensePlan: '',
+        basis: '',
+        summary: ''
+      },
+      // 计划验证规则
+      formRules: {
+        year: [
+          { required: true, message: '请选择年份', trigger: 'blur' }
+        ],
+        enterpriseId: [
+          { required: true, message: '请选择企业名称', trigger: 'change' }
+        ],
+        expensePlan: [
+          { required: true, message: '请输入提取计划', trigger: 'blur' }
+        ],
+        basis: [
+          { required: true, message: '请输入提取依据', trigger: 'blur' }
+        ],
+        summary: [
+          { required: true, message: '请输入年终总额', trigger: 'blur' }
+        ]
+      },
+      costFormDialog: false,
+      costForm: {
+        time: '',
+        content: '',
+        cost: '',
+        fileIds: [], // 发票数组
+        files: [], // 发票文件数组
+        type: '' // 用途分类
+      },
+      // 支出验证规则
+      costFormRules: {
+        time: [
+          { required: true, message: '请选择时间', trigger: 'change' }
+        ],
+        content: [
+          { required: true, message: '请输入内容', trigger: 'blur' }
+        ],
+        cost: [
+          { required: true, message: '请输入金额', trigger: 'blur' }
+        ],
+        type: [
+          { required: true, message: '请选择用途分类', trigger: 'change' }
+        ],
+        files: [
+          { required: true, message: '请选择文件', trigger: 'change' }
+        ]
+      },
+      accept: '.pdf,.PDF', // 限制文件类型
+      limit: 1, // 限制文件数量
+      history: '',
+      historyDialog: false,
+      historyTable: [],
+      btnLoading: false
+    }
+  },
+  computed: {
+    tableData() {
+      const search = this.search
+      return this.fuzzySearch(this.table, search, 'enterpriseName')
+    },
+    queryList() {
+      return this.table.map(data => {
+        return { value: data.enterpriseName }
+      })
+    }
+  },
+  watch: {
+    searchTemp(val) {
+      if (!val) {
+        this.search = ''
+      }
+    }
+  },
+  created() {
+    this.$store.dispatch('config/getEnterpriseOptions')
+    this.fetchPlanList()
+  },
+  methods: {
+    // 计划页码改变
+    planSizeChange(val) {
+      this.fetchPlanList()
+    },
+    planCurrentChange(val) {
+      this.fetchPlanList()
+    },
+    // 支出页码改变
+    costSizeChange(props) {
+      this.fetchCostList(props.row.id)
+    },
+    costCurrentChange(props) {
+      console.log(props)
+      this.fetchCostList(props.row.id)
+    },
+    // 动态分页查询安全费用计划
+    fetchPlanList(planCpage, planPageSize) {
+      const params = {}
+      params.page = planCpage || this.planCpage
+      params.size = planPageSize || this.planPageSize
+      getSafetyCostPlanList(params)
+        .then(res => {
+          const pageObj = res.data.obj
+
+          this.planTotal = pageObj.total
+
+          this.table = pageObj.list
+          this.tableDataLoading = false
+        }).catch(() => {})
+    },
+    // 动态分页查询安全费用支出
+    fetchCostList(id, costCpage, costPageSize) {
+      const params = {}
+      params.page = costCpage || this.costCpage
+      params.size = costPageSize || this.costPageSize
+      params.expensePlanId = id
+      getSafetyCostList(params)
+        .then(res => {
+          const pageObj = res.data.obj
+
+          this.costTotal = pageObj.total
+          zhClassify(pageObj.list, [['安全费用用途', 'type']])
+          this.costTable = pageObj.list
+          this.costLoading = false
+        }).catch(() => {})
+    },
+    // 过滤表格
+    onSearch() {
+      this.search = this.searchTemp
+    },
+    querySearch(queryString, cb) {
+      var results = this.fuzzySearch(this.queryList, queryString, 'value')
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    handleSelect() {
+      this.onSearch()
+    },
+    /* 默认只要打开另一个就关闭之前的 */
+    getRowKeys(row) {
+      return row.id
+    },
+    // 折叠面板每次只能展开一行
+    expandChange(row, expandedRows) {
+      console.log(row, expandedRows)
+      if (expandedRows.length) {
+        this.expands = []
+        if (row) {
+          // 打开当前点击的 详情
+          this.expands.push(row.id) // 每次push进去的是每行的ID
+          this.costLoading = true
+          this.fetchCostList(row.id)
+        }
+      } else {
+        this.expands = [] // 默认不展开
+      }
+    },
+    // 添加计划按钮
+    addform() {
+      this.formDialog = true
+      this.handle = '添加'
+    },
+    // 提交计划登记表
+    formSubmit() {
+      this.$refs.form.validate((valid) => {
+        if (valid) {
+          const params = this.depClone(this.form)
+          if (this.handle === '添加') {
+            addSafetyCostPlan(params).then(res => {
+              this.formDialog = false
+              this.fetchPlanList()
+            })
+          } else if (this.handle === '修改') {
+            updateSafetyCostPlan(params.id, params).then((res) => {
+              this.formDialog = false
+              this.fetchPlanList()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 编辑单行表格
+    editPlanItem(scope) {
+      this.formDialog = true
+      this.handle = '修改'
+      this.$nextTick(() => {
+        this.form = { ...scope.row }
+      })
+    },
+    // 删除
+    delPlanItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning')
+        .then(() => {
+          deleteSafetyCostPlan(scope.row.id).then((res) => {
+            this.fetchPlanList()
+          })
+
+          console.log(scope)
+        })
+    },
+    // 查看计划历史修改
+    historyPlan(scope) {
+      historySafetyCostPlan(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          return {
+            ...item,
+            updateTime: this.parseTime(item.updateTime, '{y}-{m}-{d}')// 改造修改时间
+          }
+        })
+        this.history = '计划'
+        this.historyDialog = true
+      })
+    },
+    // 添加支出按钮
+    addCostItem(scope) {
+      this.costFormDialog = true
+      this.handle = '添加'
+      console.log(scope)
+      this.$nextTick(() => {
+        this.costForm.expensePlanId = scope.row.id
+      })
+    },
+    // 修改支出按钮
+    editCostItem(scope) {
+      this.costFormDialog = true
+      this.handle = '修改'
+      this.$nextTick(() => {
+        this.costForm = { ...scope.row }
+      })
+    },
+    costFormSubmit() {
+      console.log(this.costForm)
+      this.$refs.costForm.validate((valid) => {
+        if (valid) {
+          const params = this.depClone(this.costForm)
+          // 改造文件
+          params.fileIds = params.files.map(item => {
+            return item.fileId
+          })
+          if (this.handle === '添加') {
+            addSafetyCost(params).then(res => {
+              this.costFormDialog = false
+              this.fetchCostList(params.expensePlanId)
+            })
+          } else if (this.handle === '修改') {
+            updateSafetyCost(params.id, params).then((res) => {
+              this.costFormDialog = false
+              this.fetchCostList(params.expensePlanId)
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 删除
+    delCostItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning')
+        .then(() => {
+          deleteSafetyCost(scope.row.id).then((res) => {
+            this.fetchCostList(scope.row.expensePlanId)
+          })
+
+          console.log(scope)
+        })
+    },
+    // 查看支出历史修改
+    historyCost(scope) {
+      historySafetyCost(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          return {
+            ...item,
+            updateTime: this.parseTime(item.updateTime, '{y}-{m}-{d}')// 改造修改时间
+          }
+        })
+        zhClassify(this.historyTable, [['安全费用用途', 'type']])
+        this.history = '支出'
+        this.historyDialog = true
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed(formName) {
+      this.dialogClosed(this, formName)
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.open-table{
+  /deep/ .inner-table{
+    margin-bottom: 20px;
+    thead th{
+      font-size: 16px
+    }
+  }
+}
+.slot-header{
+  position: relative;
+  .operation-group{
+    position: absolute;
+    right: 0;
+    width: auto
+  }
+}
+.btn-text-group{
+  /deep/ .el-button{
+    padding: 5px;
+    border: none
+  }
+}
+</style>

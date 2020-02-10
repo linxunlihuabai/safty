@@ -1,0 +1,344 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <!-- 工伤 -->
+      <el-button type="primary" size="small" @click="addInjuryJobForm">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <el-table
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <!-- 工伤情况表workRelatedInjuries -->
+        <el-table-column type="expand">
+          <template>
+            <el-table
+              :data="workRelatedInjuriesList"
+              border
+              style="width: 100%"
+            >
+              <el-table-column
+                label="工伤情况表"
+                align="center"
+              >
+                <el-table-column
+                  prop="remarks"
+                  label="备注"
+                />
+                <el-table-column
+                  prop="yyyymm"
+                  label="年月份"
+                />
+                <el-table-column
+                  prop="injurieNumber"
+                  label="工伤人数"
+                />
+                <el-table-column
+                  prop="injurieReason"
+                  label="受伤原因"
+                />
+                <el-table-column
+                  prop="injurieLevel"
+                  label="工伤等级"
+                />
+                <el-table-column label="操作" width="120">
+                  <template slot-scope="scope">
+                    <el-button-group class="operate">
+                      <el-button type="text" size="mini" icon="el-icon-edit" @click="editWorkRelatedInjuriesForm(scope.$index, scope.row)" />
+                      <el-button type="text" size="mini" icon="el-icon-delete" />
+                    </el-button-group>
+                  </template>
+                </el-table-column>
+                <el-table-column label="历史记录" width="80">
+                  <template slot-scope="scope">
+                    <el-button-group class="operate">
+                      <el-button
+                        type="text"
+                        size="mini"
+                        icon="el-icon-view"
+                        @click="historyWorkRelatedInjuries(scope)"
+                      />
+                    </el-button-group>
+                  </template>
+                </el-table-column>
+              </el-table-column>
+            </el-table>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="enterpriseId"
+          label="企业名称"
+        />
+        <el-table-column
+          prop="title"
+          label="标题"
+        />
+        <el-table-column
+          prop="newInjuries"
+          label="新增工伤人数"
+        />
+        <el-table-column
+          prop="year"
+          label="年份"
+        />
+        <el-table-column
+          prop="injuriesNumber"
+          label="历史工伤人数"
+        />
+        <el-table-column
+          prop="remarks"
+          label="备注"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button type="text" size="mini" icon="el-icon-edit" @click="editInjuryJobForm(scope)" />
+              <el-button type="text" size="mini" icon="el-icon-delete" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button
+                type="text"
+                size="mini"
+                icon="el-icon-view"
+                @click="history(scope)"
+              />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-dialog title="工伤概要" :visible.sync="injuryJobFormDialog" width="500px">
+        <el-form
+          ref="injuryJobForm"
+          :rules="injuryJobFormRules"
+          size="small"
+          label-width="106px"
+          :model="injuryJobForm"
+          @closed="handleDialogClosed"
+        >
+          <el-form-item label="标题" prop="title">
+            <el-input v-model="injuryJobForm.title" />
+          </el-form-item>
+          <el-form-item label="年份" prop="year">
+            <el-date-picker
+              v-model="injuryJobForm.year"
+              type="year"
+              placeholder="选择年"
+            />
+          </el-form-item>
+          <el-form-item label="历史工伤人数" prop="injuriesNumber">
+            <el-input-number
+              v-model="injuryJobForm.injuriesNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:220px"
+            />
+          </el-form-item>
+          <el-form-item label="新增工伤人数" prop="newInjuries">
+            <el-input-number
+              v-model="injuryJobForm.newInjuries"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:220px"
+            />
+          </el-form-item>
+          <el-form-item label="备注" prop="remarks">
+            <el-input v-model="injuryJobForm.remarks" type="textarea" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="injuryJobFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="工伤情况" :visible.sync="workRelatedInjuriesFormDialog" width="500px">
+        <el-form
+          ref="workRelatedInjuriesForm"
+          :rules="workRelatedInjuriesFormRules"
+          size="small"
+          label-width="78px"
+          :model="workRelatedInjuriesForm"
+          @closed="handleDialogClosed2"
+        >
+          <el-form-item label="年月" prop="yyyymm">
+            <el-date-picker
+              v-model="workRelatedInjuriesForm.yyyymm"
+              type="month"
+              placeholder="选择年月"
+            />
+          </el-form-item>
+          <el-form-item label="受伤原因" prop="injurieReason">
+            <el-input v-model="workRelatedInjuriesForm.injurieReason" type="textarea" />
+          </el-form-item>
+          <el-form-item label="受伤等级" prop="injurieLevel">
+            <el-input v-model="workRelatedInjuriesForm.injurieLevel" />
+          </el-form-item>
+          <el-form-item label="工伤人数" prop="injurieNumber">
+            <el-input-number
+              v-model="workRelatedInjuriesForm.injurieNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:220px"
+            />
+          </el-form-item>
+          <el-form-item label="备注" prop="remarks">
+            <el-input v-model="workRelatedInjuriesForm.remarks" type="textarea" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="workRelatedInjuriesFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed2">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      tableData: [
+        {
+          enterpriseId: '发布单位1',
+          title: '标题1',
+          year: '2001',
+          injuriesNumber: 100,
+          newInjuries: 100,
+          remarks: '备注1'
+        },
+        {
+          enterpriseId: '发布单位2',
+          title: '标题2',
+          year: '2002',
+          injuriesNumber: 200,
+          newInjuries: 200,
+          remarks: '备注2'
+        },
+        {
+          enterpriseId: '发布单位3',
+          title: '标题2',
+          year: '2003',
+          injuriesNumber: 300,
+          newInjuries: 300,
+          remarks: '备注3'
+        }
+      ],
+      workRelatedInjuriesList: [
+        {
+          yyyymm: '2001-05',
+          injurieNumber: 100,
+          injurieReason: '受伤原因1',
+          injurieLevel: '受伤等级1',
+          remarks: '备注1'
+        }
+      ],
+      injuryJobForm: {
+        enterpriseId: '',
+        title: '',
+        year: '',
+        injuriesNumber: 0,
+        newInjuries: 0,
+        remarks: ''
+      },
+      workRelatedInjuriesForm: {
+        yyyymm: '',
+        injurieNumber: 0,
+        injurieReason: '',
+        injurieLevel: '',
+        remarks: ''
+      },
+      workRelatedInjuriesFormRules: {
+        yyyymm: [{ required: true, message: '年月不能为空', trigger: 'blur' }],
+        injurieNumber: [{ required: true, message: '工伤人数不能为空', trigger: 'blur' }],
+        injurieReason: [{ required: true, message: '工伤原因不能为空', trigger: 'blur' }],
+        injurieLevel: [{ required: true, message: '工伤等级不能为空', trigger: 'blur' }],
+        remarks: [{ required: true, message: '备注不能为空', trigger: 'blur' }]
+      },
+      injuryJobFormRules: {
+        title: [{ required: true, message: '标题不能为空', trigger: 'blur' }],
+        newInjuries: [{ required: true, message: '新增工伤人数不能为空', trigger: 'blur' }],
+        year: [{ required: true, message: '日期不能为空', trigger: 'blur' }],
+        injuriesNumber: [{ required: true, message: '历史工伤人数不能为空', trigger: 'blur' }],
+        remarks: [{ required: true, message: '备注不能为空', trigger: 'blur' }]
+      },
+      btnLoading: false,
+      historyTable: false,
+      injuryJobFormDialog: false,
+      workRelatedInjuriesFormDialog: false,
+      historyDialog: false
+    }
+  },
+  methods: {
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.injuryJobForm.resetFields()
+      this.injuryJobFormDialog = false
+    },
+    handleDialogClosed2() {
+      this.$refs.workRelatedInjuriesForm.resetFields()
+      this.workRelatedInjuriesFormDialog = false
+    },
+    // 工伤提交的按钮
+    injuryJobFormSubmit() {},
+    workRelatedInjuriesFormSubmit() {},
+    // 打开修改工伤情况的窗口
+    editWorkRelatedInjuriesForm(index, row) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.workRelatedInjuriesForm = Object.assign({}, row)
+      this.workRelatedInjuriesFormDialog = true
+    },
+    // 打开修改的窗口
+    editInjuryJobForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.injuryJobForm = { ...scope.row }
+      })
+      this.injuryJobFormDialog = true
+    },
+    // 打开添加的窗口
+    addInjuryJobForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.injuryJobForm.year = null
+        this.injuryJobForm.newInjuries = null
+        this.injuryJobForm.title = null
+        this.injuryJobForm.injuriesNumber = null
+        this.injuryJobForm.remarks = null
+      })
+      this.injuryJobFormDialog = true
+    },
+    // 查看历史修改
+    history(scope) {
+    }
+  }
+}
+</script>
+
+<style>
+
+</style>

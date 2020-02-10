@@ -1,0 +1,79 @@
+<template>
+  <el-card class="box-card">
+
+    <div slot="header" class="card-title">
+      <span>{{ title }}</span>
+    </div>
+
+    <div class="card-body">
+      <div class="card-body-title">
+        <span class="operatorName">操作人: {{ name }}</span>
+        <span>提交时间: {{ time | dateFormat('YYYY-MM-DD') }}</span>
+      </div>
+      <div class="card-body-content" v-html="content" />
+
+    </div>
+    <slot name="footer" />
+
+  </el-card>
+</template>
+
+<script>
+export default {
+  props: {
+    title: {
+      type: String,
+      default: null
+    },
+    content: {
+      type: String,
+      default: null
+    },
+    name: {
+      type: String,
+      default: null
+    },
+    time: {
+      type: [Number, String],
+      default: null
+    }
+  }
+
+}
+</script>
+
+<style lang="scss" scoped>
+.box-card{
+  width: 1000px;
+  margin: 0 auto;
+
+  .card-title{
+    text-align: center;
+    font-size: 36px;
+    font-weight: bold;
+  }
+
+  .card-body{
+    width: 70%;
+    line-height: 1.8em;
+    margin: 0 auto;
+
+    .card-body-title{
+      text-align: center;
+      padding-bottom: 10px;
+      color: #919395;
+      .operatorName{
+        margin-right: 10px;
+      }
+    }
+
+    .card-body-content{
+      text-indent:2em;
+      text-align: justify;
+      line-height: 1.8em;
+      font-size: 16px;
+    }
+
+  }
+}
+</style>

@@ -1,0 +1,252 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row>
+        <el-col :span="6">
+          <el-button type="primary" size="small" @click="addPhysicalExaminationForm">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+        </el-col>
+      </el-row>
+      <!-- 日常文化建设 -->
+      <el-table
+        v-loading="physicalExaminationListLoading"
+        :data="page.list"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="examinationNumber"
+          label="体检人数"
+        />
+        <el-table-column
+          key="zh-examinationType"
+          prop="zh-examinationType"
+          label="体检类别"
+        />
+        <el-table-column
+          prop="remarks"
+          label="备注"
+        />
+        <el-table-column
+          prop="date"
+          label="时间"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editPhysicalExaminationForm(scope)" />
+              <sun-button :type="'delete'" @click="delPhysicalExaminationForm(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'history'" @click="history(scope)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-row>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :current-page="page.page"
+          :total="page.total"
+          :page-sizes="[10, 20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column
+            prop="examinationNumber"
+            label="体检人数"
+          />
+          <el-table-column
+            key="zh-examinationType"
+            prop="zh-examinationType"
+            label="体检类别"
+          />
+          <el-table-column
+            prop="remarks"
+            label="备注"
+          />
+          <el-table-column
+            prop="date"
+            label="时间"
+          />
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <el-dialog
+        title="职工体检"
+        :visible.sync="physicalExaminationFormDialog"
+        width="600px"
+        @closed="handleDialogClosed('physicalExaminationForm')"
+      >
+        <el-form
+          ref="physicalExaminationForm"
+          :rules="physicalExaminationFormRules"
+          size="small"
+          :model="physicalExaminationForm"
+          label-width="78px"
+        >
+          <el-form-item label="体检人数" prop="examinationNumber">
+            <el-input-number v-model="physicalExaminationForm.examinationNumber" :min="0" :max="1000" label="体检人数" />
+          </el-form-item>
+          <el-form-item label="备注" prop="remarks">
+            <el-input v-model="physicalExaminationForm.remarks" type="textarea" />
+          </el-form-item>
+          <el-form-item label="体检时间" prop="date">
+            <el-date-picker
+              v-model="physicalExaminationForm.date"
+              value-format="yyyy-MM-dd"
+              size="small"
+              type="date"
+              placeholder="选择日期"
+            />
+          </el-form-item>
+          <el-form-item label="体检类别" prop="examinationType">
+            <sun-select v-model="physicalExaminationForm.examinationType" :module="'体检类别'" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="physicalExaminationFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed('physicalExaminationForm')">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+import { healthExaminationAdd, healthExaminationDelete, healthExaminationUpdate, healthExaminationList, historyHealthExamination } from '@/api/occupationalHealth/physicalExamination'
+export default {
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 12
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      physicalExaminationForm: {
+        examinationNumber: '',
+        remarks: '',
+        date: '',
+        examinationType: ''
+      },
+      physicalExaminationFormRules: {
+        examinationNumber: [{ required: true, message: '体检人数不能为空', trigger: 'blur' }],
+        remarks: [{ required: true, message: '备注不能为空', trigger: 'blur' }],
+        date: [{ required: true, message: '日期不能为空', trigger: 'blur' }],
+        examinationType: [{ required: true, message: '体检类别不能为空', trigger: 'blur' }]
+      },
+      physicalExaminationListLoading: true,
+      physicalExaminationFormDialog: false,
+      btnLoading: false,
+      accidentReportListLoading: true,
+      historyTable: false,
+      historyDialog: false
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 获取信息
+    fetchData() {
+      healthExaminationList(this.params).then(res => {
+        this.physicalExaminationListLoading = false
+        this.page = res.data.obj
+        const list = zhClassify(this.page.list, [['体检类别', 'examinationType']])
+        this.table = list
+      })
+    },
+    // 提交安全生产会
+    physicalExaminationFormSubmit() {
+      this.$refs.physicalExaminationForm.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            healthExaminationAdd(this.physicalExaminationForm).then(res => {
+              this.btnLoading = false
+              this.physicalExaminationFormDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            healthExaminationUpdate(this.physicalExaminationForm).then((res) => {
+              this.btnLoading = false
+              this.physicalExaminationFormDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    addPhysicalExaminationForm() {
+      this.handle = '添加'
+      this.physicalExaminationFormDialog = true
+    },
+    editPhysicalExaminationForm(scope) {
+      this.handle = '修改'
+      // 编辑信息模态框显示
+      this.physicalExaminationFormDialog = true
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.physicalExaminationForm = { ...scope.row }
+      })
+    },
+    // 删除人员持证表单
+    delPhysicalExaminationForm(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          healthExaminationDelete(row.id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyHealthExamination(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        zhClassify(this.historyTable, [['体检类别', 'examinationType']])
+        this.historyDialog = true
+      })
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+
+</style>

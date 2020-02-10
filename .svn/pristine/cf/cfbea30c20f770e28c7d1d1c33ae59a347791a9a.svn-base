@@ -1,0 +1,670 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row>
+        <el-col :span="6">
+          <el-button type="primary" size="small" @click="addCertificateForm">
+            <i class="el-icon-plus" /> 新增证书
+          </el-button>
+        </el-col>
+      </el-row>
+      <!-- 展示页面 -->
+      <el-row>
+        <el-table ref="table" v-loading="pagePersonnelCertificateListLoading" :data="page.list" stripe border>
+          <el-table-column type="expand">
+            <template slot-scope="props">
+              <el-form class="demo-table-expand">
+                <el-row class="zhou-one">
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="企业名称：">
+                      <span>{{ props.row.enterpriseName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="证书状态：">
+                      <span>{{ props.row['zh-certificateStatus'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="出生年月：">
+                      <span>{{ props.row.birthday | dateFormat('YYYY年MM月DD日') }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="性别：">
+                      <span>{{ props.row.sex }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="操作项目：">
+                      <span>{{ props.row.operationItem }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="作业类别：">
+                      <span>{{ props.row['zh-category'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="电话：">
+                      <span>{{ props.row.phone }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="zhou-colBorder">
+                    <el-form-item label="聘用类型：">
+                      <span>{{ props.row['zh-employType'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="certificateName" label="证书名称" />
+          <el-table-column prop="certificateNo" label="证书编号" />
+          <el-table-column label="是否特种作业">
+            <template slot-scope="scope">
+              {{ scope.row.isSpecial == true ? '是' : '否' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="isFullTime" label="是否兼职专职" />
+          <el-table-column align="center" label="创建时间">
+            <template slot-scope="scope">{{ scope.row.certificationTime | dateFormat('YYYY年MM月DD日') }}</template>
+          </el-table-column>
+          <el-table-column align="center" prop="dueTime" label="到期时间">
+            <template slot-scope="scope">{{ scope.row.dueTime | dateFormat('YYYY年MM月DD日') }}</template>
+          </el-table-column>
+          <el-table-column label="证书" width="80">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <sun-button :type="'view'" @click="viewPics(scope.row.files)" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <sun-button :type="'edit'" @click="editCertificateForm(scope)" />
+                <sun-button :type="'delete'" @click="delCertificateForm(scope.$index, scope.row)" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+          <el-table-column label="历史记录" width="110">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <sun-button :type="'history'" @click="history(scope)" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-row>
+      <!-- 展示图片的 -->
+      <el-dialog append-to-body :visible.sync="dialogViewPics" class="ViewPics">
+        <el-row :gutter="20" type="flex" justify="center">
+          <el-col v-for="(item,index) in files" :key="index" :span="8">
+            <el-image style="width:100%" :src="item.url" />
+          </el-col>
+        </el-row>
+      </el-dialog>
+
+      <!-- 分页栏 -->
+      <el-row>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :current-page="page.page"
+          :total="page.total"
+          :page-sizes="[10, 20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+
+      <el-dialog title="人员持证" :visible.sync="certificateFormDialog" width="840px">
+        <el-form
+          ref="certificateForm"
+          :rules="certificateFormRules"
+          size="small"
+          :model="certificateForm"
+          @closed="handleDialogClosed"
+        >
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="姓名" prop="name" label-width="60px">
+                <el-input v-model="certificateForm.name" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="操作项目" prop="operationItem" label-width="78px">
+                <el-input v-model="certificateForm.operationItem" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="聘用类型" prop="employType" label-width="78px">
+                <sun-select v-model="certificateForm.employType" :module="'聘用类型'" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="性别" prop="sex" label-width="60px">
+                <el-radio-group v-model="certificateForm.sex">
+                  <el-radio :checked="certificateForm.sex=='男'" label="男">男</el-radio>
+                  <el-radio :checked="certificateForm.sex=='女'" label="女">女</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="证书名称" prop="certificateName" label-width="78px">
+                <el-input v-model="certificateForm.certificateName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="证书编号" prop="certificateNo" label-width="78px">
+                <el-input v-model="certificateForm.certificateNo" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="证书状态" prop="certificateStatus" label-width="78px">
+                <sun-select v-model="certificateForm.certificateStatus" :module="'证书状态'" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="联系电话" prop="phone" required label-width="78px">
+                <el-input v-model="certificateForm.phone" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="是否兼职专职" prop="isFullTime" label-width="100px">
+                <el-radio-group v-model="certificateForm.isFullTime">
+                  <el-radio :checked="certificateForm.isFullTime=='专职'" label="专职">专职</el-radio>
+                  <el-radio :checked="certificateForm.isFullTime=='兼职'" label="兼职">兼职</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+            <el-col :span="7">
+              <el-form-item label="是否特种作业" prop="isSpecial" label-width="100px">
+                <el-radio-group v-model="certificateForm.isSpecial">
+                  <el-radio :checked="certificateForm.isSpecial==true" :label="true">是</el-radio>
+                  <el-radio :checked="certificateForm.isSpecial==false" :label="false">否</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+            <el-col :span="9">
+              <el-form-item label="证书类别" prop="category" label-width="78px">
+                <sun-select v-model="certificateForm.category" :module="'证书类别'" style="width:220px" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="15">
+              <el-form-item label="有效期" prop="certificateTimeData" label-width="78px">
+                <el-date-picker
+                  v-model="certificateForm.certificateTimeData"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  value-format="yyyy-MM-dd"
+                  @change="certificationTimeData"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="出生年月" prop="birthday" label-width="78px">
+                <el-date-picker
+                  v-model="certificateForm.birthday"
+                  type="date"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="证书图片" prop="files">
+                <el-upload
+                  ref="upload"
+                  action="/ajax/upload"
+                  drag
+                  :on-progress="handleProgress"
+                  :on-error="handleError"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  :on-success="handleSuccess"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemove"
+                  :before-upload="beforeAvatarUpload"
+                  :file-list="certificateForm.files"
+                  multiple
+                  @error="handleLoadError"
+                >
+                  <i class="el-icon-upload" />
+                  <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                </el-upload>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="certificateFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column type="expand">
+            <template slot-scope="props">
+              <el-form class="demo-table-expand">
+                <el-row>
+                  <el-col :span="6" class="colBorder1">
+                    <el-form-item label="企业名称：">
+                      <span>{{ props.row.enterpriseName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="colBorder1">
+                    <el-form-item label="证书状态：">
+                      <span>{{ props.row['zh-certificateStatus'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="colBorder1">
+                    <el-form-item label="出生年月：">
+                      <span>{{ props.row.birthday | dateFormat('YYYY年MM月DD日') }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="colBorder1">
+                    <el-form-item label="性别：">
+                      <span>{{ props.row.sex }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6" class="colBorder1">
+                    <el-form-item label="操作项目：">
+                      <span>{{ props.row.operationItem }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="colBorder1">
+                    <el-form-item label="作业类别：">
+                      <span>{{ props.row['zh-category'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="colBorder1">
+                    <el-form-item label="联系电话：">
+                      <span>{{ props.row.phone }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6" class="colBorder1">
+                    <el-form-item label="聘用类型：">
+                      <span>{{ props.row['zh-employType'] }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="certificateName" label="证书名称" />
+          <el-table-column label="是否特种作业">
+            <template slot-scope="scope">
+              {{ scope.row.isSpecial == true ? '是' : '否' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="isFullTime" label="是否兼职专职" />
+          <el-table-column prop="certificateNo" label="证书编号" />
+          <el-table-column align="center" prop="certificationTime" label="创建时间">
+            <template slot-scope="scope">{{ scope.row.certificationTime | dateFormat('YYYY年MM月DD日') }}</template>
+          </el-table-column>
+          <el-table-column align="center" prop="dueTime" label="到期时间">
+            <template slot-scope="scope">{{ scope.row.dueTime | dateFormat('YYYY年MM月DD日') }}</template>
+          </el-table-column>
+          <el-table-column label="证书" width="80">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <el-button type="text" size="mini" icon="el-icon-search" @click="viewPics(scope.row.files)" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+import { validateIsPhone, checkSpecialKey } from '@/utils/regList'
+import { getEnterpriseOptions } from '@/api/config/index'
+import { personnelCertificateAdd, personnelCertificateDelete, personnelCertificateUpdate, personnelCertificateList, historyPersonnelCertificate } from '@/api/basedata/personnelCertificate'
+import { parseTime } from '@/utils'
+export default {
+  data() {
+    var validateInput = (rule, value, callback) => {
+      if (!checkSpecialKey(value)) {
+        callback(new Error('不能含有特殊字符！！'))
+      } else {
+        callback()
+      }
+    }
+    const validatePhone = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('手机号码不能为空'))
+      }
+      if (!validateIsPhone(value)) {
+        callback(new Error('请输入正确的手机号码'))
+      }
+      callback()
+    }
+    return {
+      params: {
+        page: 1,
+        size: 10
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      certificateForm: {
+        id: '',
+        name: '',
+        enterpriseName: '',
+        certificateName: '',
+        certificateNo: '',
+        birthday: '',
+        category: '',
+        certificationTime: '',
+        dueTime: '',
+        isFullTime: '兼职',
+        isSpecial: false,
+        certificateTimeData: [new Date(), new Date()],
+        employType: '',
+        enterpriseId: '',
+        fileIds: [],
+        operationItem: '',
+        certificateStatus: '',
+        sex: '男',
+        phone: '',
+        files: []
+      },
+      certificateFormRules: {
+        inputText: [{ validator: validateInput, trigger: 'blur' }],
+        birthday: [{ required: true, message: '出生年月不能为空', trigger: 'blur' }],
+        employType: [{ required: true, message: '聘用类型不能为空', trigger: 'change' }],
+        category: [{ required: true, message: '证书类别不能为空', trigger: 'blur' }],
+        operationItem: [{ required: true, message: '操作项目不能为空', trigger: 'blur' }],
+        phone: [
+          { validator: validatePhone, trigger: 'blur' },
+          { validator: validatePhone, trigger: 'change' }
+        ],
+        name: [{ required: true, message: '姓名不能为空', trigger: 'blur' }],
+        sex: [{ required: true, message: '性别不能为空', trigger: 'blur' }],
+        certificateName: [
+          { required: true, message: '证书名称不能为空', trigger: 'blur' }
+        ],
+        enterpriseId: [
+          { required: true, message: '企业名称不能为空', trigger: 'blur' },
+          { message: '企业名称不能为空', required: true, trigger: 'change' }
+        ],
+        certificateNo: [
+          { required: true, message: '证书编号不能为空', trigger: 'blur' }
+        ],
+        dueTime: [
+          { required: true, message: '到期时间不能为空', trigger: 'blur' }
+        ],
+        files: [
+          { required: true, message: '证书图片不能为空', trigger: 'blur' }
+        ],
+        certificateStatus: [
+          { required: true, message: '证书状态不能为空', trigger: 'change' }
+        ]
+      },
+      inputText: '',
+      files: [],
+      certificationTime: null,
+      pagePersonnelCertificateListLoading: true,
+      certificateFormDialog: false,
+      enterpriseOptions: [],
+      dialogViewPics: false,
+      historyTable: false,
+      historyDialog: false,
+      btnLoading: false
+    }
+  },
+  created() {
+    this.fetchData()
+    getEnterpriseOptions().then(res => {
+      this.enterpriseOptions = res.data.obj
+    })
+  },
+  methods: {
+    certificationTimeData() {
+      if (this.certificateForm.certificateTimeData === null || this.certificateForm.certificateTimeData.length === 0) {
+        return
+      }
+      this.certificateForm.certificationTime = this.certificateForm.certificateTimeData[0]
+      this.certificateForm.dueTime = this.certificateForm.certificateTimeData[1]
+    },
+    // 证书企业名称变化，父级元素就跟着变化
+    handleCertificateChange(value) {
+      if (value !== null || value !== []) {
+        this.certificateForm.enterpriseId = value[value.length - 1]
+        this.certificateForm.parentName = this.getParentName(value)
+      }
+    },
+    // 查看历史修改
+    history(scope) {
+      historyPersonnelCertificate(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        zhClassify(this.historyTable, [['证书类别', 'category'], ['证书状态', 'certificateStatus'], ['聘用类型', 'employType']])
+        this.historyDialog = true
+      })
+    },
+    // 提交人员持证信息
+    certificateFormSubmit() {
+      this.$refs.certificateForm.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          this.certificateTimeData = [
+            this.certificateForm.certificationTime,
+            this.certificateForm.dueTime
+          ]
+          if (this.handle === '添加') {
+            personnelCertificateAdd(this.certificateForm).then(res => {
+              this.btnLoading = false
+              this.certificateFormDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            personnelCertificateUpdate(this.certificateForm).then((res) => {
+              this.btnLoading = false
+              this.certificateFormDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 删除人员持证表单
+    delCertificateForm(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          personnelCertificateDelete(Object.assign({}, row).id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 查看照片
+    viewPics(files) {
+      this.dialogViewPics = true
+      this.files = files
+    },
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 获取信息
+    fetchData() {
+      personnelCertificateList(this.params).then(res => {
+        this.pagePersonnelCertificateListLoading = false
+        this.page = res.data.obj
+        let list = zhClassify(res.data.obj.list, [['证书类别', 'category']])
+        list = zhClassify(res.data.obj.list, [['证书状态', 'certificateStatus']])
+        list = zhClassify(res.data.obj.list, [['聘用类型', 'employType']])
+        this.table = list
+      })
+      this.page.list.forEach((item, index) => {
+        item.category = 'XXXX'
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.certificateForm.resetFields()
+      this.$refs.upload.abort()
+      this.certificateFormDialog = false
+    },
+    // 打开添加窗口进行获取数据
+    addCertificateForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.certificateForm.birthday = null
+        this.certificateForm.fileIds = []
+        // this.$refs.certificateForm.resetFields()
+        // this.$refs['certificateForm'].resetFields()
+      })
+      this.certificateFormDialog = true
+    },
+    editCertificateForm(scope) {
+      this.handle = '修改'
+      this.certificateForm.files = []
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.certificateForm = { ...scope.row }
+        this.certificateForm.fileIds = []
+        this.certificateForm.certificateTimeData = [
+          this.certificateForm.certificationTime,
+          this.certificateForm.dueTime
+        ]
+        const urlPre = process.env.VUE_APP_BASE_API
+        this.certificateForm.files.forEach((e, index) => {
+          this.certificateForm.fileIds.push(e.fileId)
+          e.url = urlPre + e.url
+        })
+      })
+      // 编辑信息模态框显示
+      this.certificateFormDialog = true
+    },
+    // 图片上传处理
+    handleProgress(event, file, files) {
+      this.btnLoading = true
+    },
+    handleSuccess(response, file, files) {
+      this.certificateForm.fileIds.push(response.obj.fileId)
+      this.certificateForm.files = files
+      this.btnLoading = false
+    },
+    handleError(err, file, files) {
+      this.btnLoading = false
+      console.log('上传失败' + err)
+    },
+    handleRemove(file, files) {
+      var delFileId = null
+      for (const i in this.certificateForm.files) {
+        if (this.certificateForm.files[i].uid === file.uid) {
+          if (
+            this.certificateForm.files[i].response !==
+            undefined
+          ) {
+            // 新上传的文件
+            delFileId = this.certificateForm.files[i].response
+              .obj.fileId
+            break
+          } else {
+            // 原有的文件
+            delFileId = this.certificateForm.files[i].fileId
+            break
+          }
+        }
+      }
+      this.certificateForm.files = files
+      this.certificateForm.fileIds.forEach((e, index) => {
+        if (e === delFileId) {
+          this.certificateForm.fileIds.splice(index, 1)
+          return
+        }
+      })
+    },
+    handlePictureCardPreview(file) {
+      this.viewPics([file])
+    },
+    // 图片格式
+    beforeAvatarUpload(file) {
+      const isJPG = file.type === 'image/jpeg'
+      const isPng = file.type === 'image/png'
+      const isLt2M = file.size / 1024 / 1024 < 2
+      if (!isJPG && !isPng) {
+        this.$message.error('上传图片只能是 JPG或png 格式!')
+      }
+      if (!isLt2M) {
+        this.$message.error('上传图片大小不能超过 2MB!')
+      }
+      return (isJPG || isPng) && isLt2M
+    },
+    /* 显示图片出错时 */
+    handleLoadError(e) {
+      const img = e.srcElement
+      this.imageUrl = this.errorLoadImg //  用加载失败的图片替代之
+      img.onerror = null //  清除错误:如果错误时加载时显示的图片出错，将会一直循环，所以我们必须清除掉错误，限制运行一次
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+.el-row {
+  margin-bottom: 0;
+}
+.demo-table-expand .el-form-item {
+  margin-bottom: 0px;
+}
+
+.el-input--small,.el-select--small,.el-input-number--small{
+  width:100%;
+}
+</style>

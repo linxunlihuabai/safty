@@ -1,0 +1,335 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-button type="primary" size="small" @click="addInstitutionalSetupForm">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <div class="prompt">如果您的姓名未出现在此表中，请前去人员持证录入信息！</div>
+      <el-row>
+        <el-table
+          :data="tableData"
+          border
+          style="width: 100%"
+        >
+          <el-table-column
+            prop="ss"
+            label="单位"
+            width="180"
+          />
+          <el-table-column
+            prop="position"
+            label="安全管理人员"
+            width="180"
+          />
+          <el-table-column
+            prop="name"
+            label="姓名"
+            width="180"
+          />
+          <el-table-column
+            prop="safetyManagementPersonnel"
+            label="职务"
+            width="180"
+          />
+          <el-table-column
+            prop="phone"
+            label="电话"
+          />
+          <el-table-column label="操作" width="120">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <el-button type="text" size="mini" icon="el-icon-edit" @click="editInstitutionalSetupForm(scope)" />
+                <el-button type="text" size="mini" icon="el-icon-delete" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+          <el-table-column label="历史记录" width="110">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <el-button
+                  type="text"
+                  size="mini"
+                  icon="el-icon-view"
+                  @click="history(scope)"
+                />
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-row>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <el-dialog title="安全机构设置" :visible.sync="institutionalSetupDialog" width="700px">
+        <el-form
+          ref="institutionalSetupForm"
+          :rules="institutionalSetupFormRules"
+          size="small"
+          :model="institutionalSetupForm"
+          :before-close="handleDialogClosed"
+        >
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="姓名" prop="name" label-width="60px">
+                <el-select v-model="institutionalSetupForm.name" placeholder="请选择" clearable filterable>
+                  <el-option
+                    v-for="item in cities"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                    <span style="float: left">{{ item.label }}</span>
+                    <span style="float: right; color: #8492a6; font-size: 13px">{{ item.value }}</span>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="职务" prop="position" label-width="60px">
+                <el-select v-model="institutionalSetupForm.position" placeholder="请选择职务">
+                  <el-option label="安全主要负责人" value="安全主要负责人" />
+                  <el-option label="分管领导" value="分管领导" />
+                  <el-option label="安全管理人员" value="安全管理人员" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <!--   <el-row>
+            <el-col>
+              <el-select v-model="value" placeholder="请选择">
+                <el-option-group
+                  v-for="group in optionsssss"
+                  :key="group.label"
+                  :label="group.label"
+                >
+                  <el-option
+                    v-for="item in group.options"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-option-group>
+              </el-select>
+            </el-col>
+          </el-row> -->
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="安全管理人员" prop="safetyManagementPersonnel" label-width="100px">
+                <el-radio-group v-model="institutionalSetupForm.safetyManagementPersonnel">
+                  <el-radio :checked="institutionalSetupForm.safetyManagementPersonnel=='专职'" label="专职">专职</el-radio>
+                  <el-radio :checked="institutionalSetupForm.safetyManagementPersonnel=='兼职'" label="兼职">兼职</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="电话" prop="phone" label-width="60px">
+                <el-input v-model="institutionalSetupForm.phone" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item>
+                <el-button :loading="btnLoading" type="primary" @click="institutionalSetupFormSubmit">确定</el-button>
+                <el-button @click="handleDialogClosed">取消</el-button>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </el-dialog>
+
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      optionsssss: [
+        {
+          label: '热门城市',
+          options: [{
+            value: 'Shanghai',
+            label: '上海'
+          },
+          {
+            value: 'Beijing',
+            label: '北京'
+          }
+          ]
+        },
+        {
+          label: '城市名',
+          options: [
+            {
+              value: 'Chengdu',
+              label: '成都'
+            },
+            {
+              value: 'Shenzhen',
+              label: '深圳'
+            },
+            {
+              value: 'Guangzhou',
+              label: '广州'
+            },
+            {
+              value: 'Dalian',
+              label: '大连'
+            }
+          ]
+        }
+      ],
+      tableData: [
+        {
+          ss: '单位1',
+          name: '王2虎',
+          phone: '1234566666',
+          position: '安全主要负责任人',
+          safetyManagementPersonnel: '专职'
+        },
+        {
+          ss: '单位2',
+          name: '王1虎',
+          phone: '1234566666',
+          position: '安全主要负责任人',
+          safetyManagementPersonnel: '兼职'
+        },
+        {
+          ss: '单位3',
+          name: '王小虎',
+          position: '分管领导',
+          phone: '1234566666',
+          safetyManagementPersonnel: '兼职'
+        }
+      ],
+      institutionalSetupForm: {
+        position: '',
+        phone: '',
+        safetyManagementPersonnel: '',
+        name: ''
+      },
+      cities: [
+        {
+          value: '2013-12-10',
+          label: '大乔'
+        },
+        {
+          value: '2013-10-10',
+          label: '上海'
+        },
+        {
+          value: '2019-02-10',
+          label: '南京'
+        }
+      ],
+      institutionalSetupFormRules: {
+        position: [{ required: true, message: '职务不能为空', trigger: 'blur' }],
+        phone: [{ required: true, message: '电话不能为空', trigger: 'blur' }],
+        name: [{ required: true, message: '姓名不能为空', trigger: 'blur' }]
+      },
+      options: [
+        {
+          value: '选项1',
+          label: '黄金糕'
+        },
+        {
+          value: '选项2',
+          label: '双皮奶'
+        },
+        {
+          value: '选项3',
+          label: '蚵仔煎'
+        },
+        {
+          value: '选项4',
+          label: '龙须面'
+        },
+        {
+          value: '选项5',
+          label: '北京烤鸭'
+        }
+      ],
+      institutionalSetupDialog: false,
+      value: '',
+      historyTable: false,
+      historyDialog: false,
+      btnLoading: false
+    }
+  },
+  methods: {
+    // 查看历史修改
+    history(scope) {
+    },
+    // 提交管理信息
+    institutionalSetupFormSubmit() {
+      this.$refs.institutionalSetupForm.validate((valid) => {
+        if (valid) {
+          if (this.handle === '添加') {
+            alert('添加成功')
+          } else if (this.handle === '修改') {
+            alert('修改成功')
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.institutionalSetupForm.resetFields()
+      this.institutionalSetupDialog = false
+    },
+    editInstitutionalSetupForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.institutionalSetupForm = { ...scope.row }
+      })
+      // 编辑信息模态框显示
+      this.institutionalSetupDialog = true
+    },
+    addInstitutionalSetupForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        // this.$refs.institutionalSetupForm.resetFields()
+        // this.$refs['institutionalSetupForm'].resetFields()
+        /*  this.institutionalSetupForm.birthday = null
+        this.institutionalSetupForm.fileIds = [] */
+        this.institutionalSetupForm.name = null
+        this.institutionalSetupForm.position = null
+        this.institutionalSetupForm.safetyManagementPersonnel = '兼职'
+        this.institutionalSetupForm.phone = null
+        // this.$refs.institutionalSetupForm.resetFields()
+        // this.$refs['institutionalSetupForm'].resetFields()
+      })
+      this.institutionalSetupDialog = true
+    }
+  }
+}
+</script>
+
+<style  scoped>
+.prompt {
+  width: 400px;
+  height: 36px;
+  line-height: 36px;
+  background-color: #07c181;
+  color: white;
+  font-size: 14px;
+  padding-left: 12px;
+  margin:20px;
+}
+</style>

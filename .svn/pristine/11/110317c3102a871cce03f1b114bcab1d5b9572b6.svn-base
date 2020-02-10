@@ -1,0 +1,260 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row>
+        <el-col :span="6">
+          <el-button type="primary" size="small" @click="addMonthlyForm">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+        </el-col>
+      </el-row>
+      <!-- 特种作业人员复训登记 -->
+      <el-table
+        v-loading="dailyCulturalConstructionListLoading"
+        :data="page.list"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="retrainingNumber"
+          label="复训人数"
+        />
+        <el-table-column
+          prop="retrainingList"
+          label="复训名单"
+        />
+        <el-table-column
+          prop="date"
+          label="时间"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editMonthlyForm(scope)" />
+              <sun-button :type="'delete'" @click="delMonthlyList(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'history'" @click="history(scope)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <el-dialog title="特种作业人员复训" :visible.sync="dailyCulturalConstructionFormDialog" width="410px">
+        <el-form
+          ref="dailyCulturalConstructionForm"
+          :rules="dailyCulturalConstructionFormRules"
+          size="small"
+          :model="dailyCulturalConstructionForm"
+          label-width="86px"
+          @closed="handleDialogClosed"
+        >
+          <!-- <el-form-item label="复训名单" label-width="78px" prop="retrainingList">
+            <el-input v-model="dailyCulturalConstructionForm.retrainingList" disabled />
+          </el-form-item> -->
+          <el-row>
+            <el-form-item
+              v-for="(domain, index) in domains"
+              :key="index+''"
+              :label="'复训名单' + (index+1)"
+              :rules="{
+                required: true, message: '复训名单不能为空', trigger: 'blur'
+              }"
+            >
+              <el-col :span="12">
+                <el-input v-model="domains[index]" />
+              </el-col>
+              <el-button @click.prevent="removeDomain(domain)">删除</el-button>
+              <el-button v-if="domains.length == (index+1)" class="el-icon-edit" @click="addDomain(domain)">新增</el-button>
+              <!-- <i class="el-icon-delete" @click.prevent="removeDomain(domain)" />
+              <i v-if="domains.length == (index+1)" class="el-icon-edit" @click="addDomain(domain)" /> -->
+            </el-form-item>
+          </el-row>
+          <el-form-item label="时间" prop="date">
+            <el-date-picker
+              v-model="dailyCulturalConstructionForm.date"
+              size="small"
+              value-format="yyyy-MM-dd"
+              type="date"
+              placeholder="选择日期"
+            />
+          </el-form-item>
+          <el-form-item label="复训人数" prop="retrainingNumber">
+            <el-input-number v-model="dailyCulturalConstructionForm.retrainingNumber" :min="0" :max="1000" label="复训人数" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="dailyCulturalConstructionFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { retrainingAdd, retrainingDelete, retrainingUpdate, retrainingList, historyRetraining } from '@/api/safetyPublicity/retraining'
+export default {
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 12
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      dailyCulturalConstructionForm: {
+        retrainingList: '',
+        retrainingNumber: '',
+        date: ''
+      },
+      domains: [''],
+      dailyCulturalConstructionFormRules: {
+        retrainingList: [{ required: true, message: '复训名单不能为空', trigger: 'blur' }],
+        retrainingNumber: [{ required: true, message: '复训人数不能为空', trigger: 'blur' }],
+        date: [{ required: true, message: '日期不能为空', trigger: 'blur' }]
+      },
+      dailyCulturalConstructionListLoading: true,
+      dailyCulturalConstructionFormDialog: false,
+      btnLoading: false,
+      accidentReportListLoading: true,
+      historyTable: false,
+      historyDialog: false
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    removeDomain(item) {
+      var index = this.domains.indexOf(item)
+      console.log(index)
+      if (this.domains.length > 1) {
+        this.domains.splice(index, 1)
+      }
+    },
+    addDomain(item) {
+      console.log(item)
+      if (item === '') {
+        console.log('您没有内容哦')
+      } else {
+        this.domains.push('')
+      }
+    },
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 获取信息
+    fetchData() {
+      retrainingList(this.params).then(res => {
+        this.dailyCulturalConstructionListLoading = false
+        this.page = res.data.obj
+      })
+    },
+    // 提交安全生产会
+    dailyCulturalConstructionFormSubmit() {
+      this.$refs.dailyCulturalConstructionForm.validate((valid) => {
+        if (valid) {
+          this.dailyCulturalConstructionForm.retrainingList = this.domains.join(',')
+          console.log(this.dailyCulturalConstructionForm.retrainingList)
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            retrainingAdd(this.dailyCulturalConstructionForm).then(res => {
+              this.btnLoading = false
+              this.dailyCulturalConstructionFormDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            retrainingUpdate(this.dailyCulturalConstructionForm).then((res) => {
+              this.btnLoading = false
+              this.dailyCulturalConstructionFormDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.dailyCulturalConstructionForm.resetFields()
+      this.dailyCulturalConstructionFormDialog = false
+    },
+    addMonthlyForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.dailyCulturalConstructionForm.retrainingList = null
+        this.dailyCulturalConstructionForm.retrainingNumber = null
+        this.dailyCulturalConstructionForm.date = null
+        this.domains = ['']
+        this.$refs.dailyCulturalConstructionForm.resetFields()
+      })
+      this.dailyCulturalConstructionFormDialog = true
+    },
+    editMonthlyForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.dailyCulturalConstructionForm = { ...scope.row }
+        this.domains = scope.row.retrainingList.split(',')
+        console.log(this.domains)
+        console.log(11111)
+      })
+      // 编辑信息模态框显示
+      this.dailyCulturalConstructionFormDialog = true
+    },
+    // 删除人员持证表单
+    delMonthlyList(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          retrainingDelete(row.id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyRetraining(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historyDialog = true
+      })
+    }
+  }
+}
+</script>
+
+<style>
+
+</style>

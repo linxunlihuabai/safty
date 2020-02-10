@@ -1,0 +1,118 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-form
+        ref="uploadForm"
+        :model="uploadForm"
+        :rules="uploadFormRules"
+        label-width="80px"
+      >
+        <el-form-item label="事故名称" prop="accidentName">
+          <el-input v-model="uploadForm.accidentName" class="zhou-input" />
+        </el-form-item>
+        <el-form-item label="发生时间" prop="occurrenceTime">
+          <el-date-picker v-model="uploadForm.occurrenceTime" style="width:300px;" type="date" placeholder="选择日期" />
+        </el-form-item>
+        <el-form-item label="事故原因" prop="causeOfAccident">
+          <el-input
+            v-model="uploadForm.causeOfAccident"
+            class="zhou-input"
+            type="textarea"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="轻伤人数" prop="numberOfMinorInjuries">
+          <el-input-number
+            v-model="uploadForm.numberOfMinorInjuries"
+            :min="0"
+            :max="1000"
+          />
+        </el-form-item>
+        <el-form-item label="重伤人数" prop="numberOfSeverelyInjured">
+          <el-input-number
+            v-model="uploadForm.numberOfSeverelyInjured"
+            :min="0"
+            :max="1000"
+          />
+        </el-form-item>
+        <el-form-item label="死亡人数" prop="deathToll">
+          <el-input-number
+            v-model="uploadForm.deathToll"
+            :min="0"
+            :max="1000"
+          />
+        </el-form-item>
+        <el-form-item label="是否工伤" prop="isIndustrialInjury">
+          <el-radio-group v-model="uploadForm.isIndustrialInjury">
+            <el-radio :checked="uploadForm.isIndustrialInjury==true" :label="true">是</el-radio>
+            <el-radio :checked="uploadForm.isIndustrialInjury==false" :label="false">否</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="直接经济损失" label-width="106px" prop="directEconomicLoss">
+          <el-input v-model="uploadForm.directEconomicLoss" class="zhou-input">
+            <template slot="append">元</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="间接经济损失" label-width="106px" prop="indirectEconomicLoss">
+          <el-input v-model="uploadForm.indirectEconomicLoss" class="zhou-input">
+            <template slot="append">元</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="onSubmit">立即创建</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      uploadForm: {
+        accidentName: '',
+        occurrenceTime: '',
+        causeOfAccident: '',
+        numberOfMinorInjuries: '',
+        numberOfSeverelyInjured: '',
+        deathToll: '',
+        directEconomicLoss: '',
+        indirectEconomicLoss: '',
+        handlingOfRelevantResponsiblePerson: '',
+        isIndustrialInjury: false
+      },
+      uploadFormRules: {
+        accidentName: [{ required: true, message: '事故名称不能为空', trigger: 'blur' }],
+        occurrenceTime: [{ required: true, message: '发生时间不能为空', trigger: 'blur' }],
+        causeOfAccident: [{ required: true, message: '事故原因不能为空', trigger: 'blur' }],
+        numberOfMinorInjuries: [{ required: true, message: '轻伤人数不能为空', trigger: 'blur' }],
+        numberOfSeverelyInjured: [{ required: true, message: '重伤人数不能为空', trigger: 'blur' }],
+        deathToll: [{ required: true, message: '死亡人数不能为空', trigger: 'blur' }],
+        directEconomicLoss: [{ required: true, message: '直接经济损失不能为空', trigger: 'blur' }],
+        indirectEconomicLoss: [{ required: true, message: '间接经济损失不能为空', trigger: 'blur' }],
+        handlingOfRelevantResponsiblePerson: [{ required: true, message: '相关责任人处理情况不能为空', trigger: 'blur' }],
+        isIndustrialInjury: [{ required: true, message: '工伤选择不能为空', trigger: 'blur' }]
+      }
+    }
+  },
+  methods: {
+    onSubmit() {
+      console.log('submit!')
+    }
+  }
+}
+</script>
+
+<style>
+.zhou-input{
+width: 100%;
+}
+.el-input--small,.el-select--small,.el-input-number--small{
+  width:100%;
+}
+</style>

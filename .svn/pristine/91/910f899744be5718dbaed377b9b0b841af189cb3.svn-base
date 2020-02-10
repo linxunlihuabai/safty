@@ -1,0 +1,415 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <!-- 工伤 -->
+      <el-button type="primary" size="small" @click="addInjuryJobForm">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <el-table
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <!-- 新增职业病workRelatedInjuries -->
+        <el-table-column type="expand">
+          <template>
+            <el-table
+              :data="registrationList"
+              border
+              style="width: 100%"
+            >
+              <el-table-column
+                label="职业病登记表"
+                align="center"
+              >
+                <el-table-column
+                  prop="rapporteur"
+                  label="报告人"
+                />
+                <el-table-column
+                  prop="illnessName"
+                  label="职业病名称"
+                />
+                <el-table-column
+                  prop="contactsNumber"
+                  label="接触人数"
+                />
+                <el-table-column
+                  prop="patientsNumber"
+                  label="发病人数"
+                />
+                <el-table-column
+                  prop="treatmentNumber"
+                  label="治疗人数"
+                />
+                <el-table-column
+                  prop="deathNumber"
+                  label="死亡人数"
+                />
+                <el-table-column
+                  prop="byBusinessNumber"
+                  label="因公至残人数"
+                />
+                <el-table-column label="操作" width="120">
+                  <template slot-scope="scope">
+                    <el-button-group class="operate">
+                      <el-button type="text" size="mini" icon="el-icon-edit" @click="editNewIllnessForm(scope.$index, scope.row)" />
+                      <el-button type="text" size="mini" icon="el-icon-delete" />
+                    </el-button-group>
+                  </template>
+                </el-table-column>
+                <el-table-column label="历史记录" width="80">
+                  <template slot-scope="scope">
+                    <el-button-group class="operate">
+                      <el-button
+                        type="text"
+                        size="mini"
+                        icon="el-icon-view"
+                        @click="historyNewIllness(scope)"
+                      />
+                    </el-button-group>
+                  </template>
+                </el-table-column>
+              </el-table-column>
+            </el-table>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="enterpriseId"
+          label="企业名称"
+        />
+        <el-table-column
+          prop="yyyy"
+          label="年份"
+        />
+        <el-table-column
+          prop="title"
+          label="标题"
+        />
+        <el-table-column
+          prop="historyNumber"
+          label="历史人数"
+        />
+        <el-table-column
+          prop="byBusinessNumber"
+          label="因公致残人数"
+        />
+        <el-table-column
+          prop="remarks"
+          label="备注"
+        />
+        <el-table-column
+          prop="newNumber"
+          label="新增人数"
+        />
+        <el-table-column
+          prop="cost"
+          label="经费情况"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button type="text" size="mini" icon="el-icon-edit" @click="editInjuryJobForm(scope)" />
+              <el-button type="text" size="mini" icon="el-icon-delete" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button
+                type="text"
+                size="mini"
+                icon="el-icon-view"
+                @click="history(scope)"
+              />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-dialog title="职业病概要" :visible.sync="occupationalDiseasesFormDialog" width="500px">
+        <el-form
+          ref="occupationalDiseasesForm"
+          :rules="occupationalDiseasesFormRules"
+          size="small"
+          :model="occupationalDiseasesForm"
+          label-width="106px"
+          @closed="handleDialogClosed"
+        >
+          <el-form-item label="年份" prop="yyyy">
+            <el-date-picker
+              v-model="occupationalDiseasesForm.yyyy"
+              type="year"
+              placeholder="选择年"
+            />
+          </el-form-item>
+          <el-form-item label="标题" prop="title">
+            <el-input v-model="occupationalDiseasesForm.title" />
+          </el-form-item>
+          <el-form-item label="备注" prop="remarks">
+            <el-input v-model="occupationalDiseasesForm.remarks" type="textarea" />
+          </el-form-item>
+          <el-form-item label="因公致残人数" prop="byBusinessNumber">
+            <el-input-number
+              v-model="occupationalDiseasesForm.byBusinessNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:199px"
+            />
+          </el-form-item>
+          <el-form-item label="历史人数" prop="historyNumber">
+            <el-input-number
+              v-model="occupationalDiseasesForm.historyNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:199px"
+            />
+          </el-form-item>
+          <el-form-item label="新增工伤" prop="newNumber">
+            <el-input-number
+              v-model="occupationalDiseasesForm.newNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:199px"
+            />
+          </el-form-item>
+          <el-form-item label="经费情况" prop="cost">
+            <el-input v-model="occupationalDiseasesForm.cost" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="occupationalDiseasesFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="工伤情况" :visible.sync="registrationFromDialog" width="500px">
+        <el-form
+          ref="registrationFrom"
+          :rules="registrationFromRules"
+          size="small"
+          :model="registrationFrom"
+          label-width="106px"
+          @closed="handleDialogClosed2"
+        >
+          <el-form-item label="报告人" prop="rapporteur">
+            <el-input v-model="registrationFrom.rapporteur" />
+          </el-form-item>
+          <el-form-item label="职业病名称" prop="illnessName">
+            <el-input v-model="registrationFrom.illnessName" />
+          </el-form-item>
+          <el-form-item label="接触人数" prop="contactsNumber">
+            <el-input-number
+              v-model="registrationFrom.contactsNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:199px"
+            />
+          </el-form-item>
+          <el-form-item label="因公至残人数" prop="byBusinessNumber">
+            <el-input-number
+              v-model="registrationFrom.byBusinessNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:199px"
+            />
+          </el-form-item>
+          <el-form-item label="死亡人数" prop="deathNumber">
+            <el-input-number
+              v-model="registrationFrom.deathNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:199px"
+            />
+          </el-form-item>
+          <el-form-item label="发病人数" prop="patientsNumber">
+            <el-input-number
+              v-model="registrationFrom.patientsNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:199px"
+            />
+          </el-form-item>
+          <el-form-item label="治疗人数" prop="treatmentNumber">
+            <el-input-number
+              v-model="registrationFrom.treatmentNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:199px"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="registrationFromSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed2">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      tableData: [
+        {
+          enterpriseId: '发布单位1',
+          historyNumber: 120,
+          yyyy: '2013',
+          title: '标题1',
+          remarks: '备注1',
+          newNumber: 140,
+          byBusinessNumber: 140,
+          cost: '经费情况1'
+        },
+        {
+          enterpriseId: '发布单位2',
+          historyNumber: 120,
+          yyyy: '2011',
+          title: '标题2',
+          remarks: '备注2',
+          newNumber: 140,
+          byBusinessNumber: 140,
+          cost: '经费情况2'
+        },
+        {
+          enterpriseId: '发布单位3',
+          historyNumber: 120,
+          yyyy: '2016',
+          title: '标题3',
+          remarks: '备注3',
+          newNumber: 150,
+          byBusinessNumber: 140,
+          cost: '经费情况3'
+        }
+      ],
+      registrationList: [
+        {
+          rapporteur: '报告人1',
+          contactsNumber: 100,
+          patientsNumber: 100,
+          treatmentNumber: 100,
+          deathNumber: 100,
+          byBusinessNumber: 100,
+          illnessName: '职业病名称1'
+        }
+      ],
+      occupationalDiseasesForm: {
+        enterpriseId: '',
+        historyNumber: 0,
+        yyyy: '',
+        title: '',
+        remarks: '',
+        newNumber: 0,
+        byBusinessNumber: 0,
+        cost: ''
+      },
+      registrationFrom: {
+        rapporteur: '',
+        contactsNumber: 0,
+        patientsNumber: 0,
+        treatmentNumber: 0,
+        deathNumber: 0,
+        byBusinessNumber: 0,
+        illnessName: ''
+      },
+      registrationFromRules: {
+        rapporteur: [{ required: true, message: '报告人不能为空', trigger: 'blur' }],
+        contactsNumber: [{ required: true, message: '接触人数不能为空', trigger: 'blur' }],
+        patientsNumber: [{ required: true, message: '发病人数不能为空', trigger: 'blur' }],
+        treatmentNumber: [{ required: true, message: '治疗人数不能为空', trigger: 'blur' }],
+        deathNumber: [{ required: true, message: '死亡人数不能为空', trigger: 'blur' }],
+        byBusinessNumber: [{ required: true, message: '因公至残人数不能为空', trigger: 'blur' }],
+        illnessName: [{ required: true, message: '职业病名称不能为空', trigger: 'blur' }]
+      },
+      occupationalDiseasesFormRules: {
+        yyyy: [{ required: true, message: '年份不能为空', trigger: 'blur' }],
+        remarks: [{ required: true, message: '备注不能为空', trigger: 'blur' }],
+        byBusinessNumber: [{ required: true, message: '因公致残人数不能为空', trigger: 'blur' }],
+        historyNumber: [{ required: true, message: '因公致残人数不能为空', trigger: 'blur' }],
+        title: [{ required: true, message: '标题不能为空', trigger: 'blur' }],
+        newNumber: [{ required: true, message: '新增人数不能为空', trigger: 'blur' }],
+        cost: [{ required: true, message: '经费情况不能为空', trigger: 'blur' }]
+      },
+      btnLoading: false,
+      historyTable: false,
+      occupationalDiseasesFormDialog: false,
+      registrationFromDialog: false,
+      historyDialog: false
+    }
+  },
+  methods: {
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.occupationalDiseasesForm.resetFields()
+      this.occupationalDiseasesFormDialog = false
+    },
+    handleDialogClosed2() {
+      this.$refs.registrationFrom.resetFields()
+      this.registrationFromDialog = false
+    },
+    // 工伤提交的按钮
+    occupationalDiseasesFormSubmit() {},
+    registrationFromSubmit() {},
+    // 打开修改工伤情况的窗口
+    editNewIllnessForm(index, row) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.registrationFrom = Object.assign({}, row)
+      this.registrationFromDialog = true
+    },
+    // 打开修改的窗口
+    editInjuryJobForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.occupationalDiseasesForm = { ...scope.row }
+      })
+      this.occupationalDiseasesFormDialog = true
+    },
+    // 打开添加的窗口
+    addInjuryJobForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.occupationalDiseasesForm.yyyy = null
+        this.occupationalDiseasesForm.historyNumber = null
+        this.occupationalDiseasesForm.title = null
+        this.occupationalDiseasesForm.cost = null
+        this.occupationalDiseasesForm.remarks = null
+        this.occupationalDiseasesForm.newNumber = null
+        this.occupationalDiseasesForm.byBusinessNumber = null
+      })
+      this.occupationalDiseasesFormDialog = true
+    },
+    // 查看历史修改
+    history(scope) {
+    },
+    // 查看历史
+    historyNewIllness(scope) {}
+  }
+}
+</script>
+

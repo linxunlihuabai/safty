@@ -1,0 +1,130 @@
+<template>
+  <div>
+    <el-form
+      :model="ruleForm"
+      status-icon
+      :rules="rules"
+      ref="ruleForm"
+      label-width="100px"
+      class="demo-ruleForm"
+    >
+      <el-form-item label="用户名" prop="user">
+        <el-input v-model.number="ruleForm.user"></el-input>
+      </el-form-item>
+
+      <el-form-item label="密码" prop="pass">
+        <el-input type="password" v-model="ruleForm.pass" autocomplete="off"></el-input>
+      </el-form-item>
+
+      <el-form-item label="确认密码" prop="checkPass">
+        <el-input type="password" v-model="ruleForm.checkPass" autocomplete="off"></el-input>
+      </el-form-item>
+
+      <el-form-item>
+        <el-button type="primary" @click="submitForm('ruleForm')">提交</el-button>
+        <el-button @click="resetForm('ruleForm')">重置</el-button>
+      </el-form-item>
+    </el-form>
+  </div>
+</template>
+<script>
+// 引入qs
+import qs from "qs";
+
+export default {
+  data() {
+    var checkAge = (rule, value, callback) => {
+      if (!value) {
+        return callback(new Error("用户名不能为空"));
+      }//它的意思是 当符合要求的条件的时候，就触发回调函数。这个回调的函数是显示成功的标识
+      setTimeout(() => {
+        callback();
+      }, 500);
+    };
+    var validatePass = (rule, value, callback) => {
+      if (value === "") {
+        callback(new Error("请输入密码"));
+      } else {
+        if (this.ruleForm.checkPass !== "") {
+          this.$refs.ruleForm.validateField("checkPass");
+        }
+        callback();
+      }
+    };
+    var validatePass2 = (rule, value, callback) => {
+      if (value === "") {
+        callback(new Error("请再次输入密码"));
+      } else if (value !== this.ruleForm.pass) {
+        callback(new Error("两次输入密码不一致!"));
+      } else {
+        callback();
+      }
+    };
+    return {
+      // 存放用户的数据是 ruleForm 而不是data
+      ruleForm: {
+        pass: "",
+        checkPass: "",
+        user: ""
+      },
+      rules: {
+        pass: [{ validator: validatePass, trigger: "blur" }],
+
+        checkPass: [{ validator: validatePass2, trigger: "blur" }],
+
+        user: [{ validator: checkAge, trigger: "blur" }]
+      }
+    };
+  },
+  methods: {
+    submitForm(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          alert("submit!");
+          //获取用户的数据哦
+          //console.log(this.ruleForm.user, this.ruleForm.pass )
+
+          //用一个对象 username是存放的名字哦 用的是一个爹对象将他们存起来
+          let params = {
+            username: this.ruleForm.user,
+            password: this.ruleForm.pass
+          };
+          console.log(params);
+          // 发送请求 把参数发给后端（把用户名和密码发给后端 验证是否存在这个账号）
+          this.axios
+            .post("http://127.0.0.1:666/login/checklogin", qs.stringify(params))
+            .then(response => {
+              // 接收后端返回的数据
+              let { error_code, reason } = response.data;
+              // 判断
+              if (error_code === 0) {
+                // 弹成功提示
+                this.$message({
+                  type: "success",
+                  message: reason
+                });
+                // 跳转到后端首页
+                this.$router.push("/");
+              } else {
+                // 弹失败提示
+                this.$message.error(reason);
+              }
+            })
+            .catch(err => {
+              console.log(err);
+            });
+        } else {
+          // 否则就是false
+          alert("前端验证失败 不能提交给后端！");
+          return false;
+        }
+      });
+    },
+    resetForm(formName) {
+      this.$refs[formName].resetFields();
+    }
+  }
+};
+</script>
+<style>
+</style>

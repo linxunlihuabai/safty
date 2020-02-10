@@ -1,0 +1,163 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <div class="notice">
+        <div class="header">
+          <h1 class="title">{{ msg.title }}</h1>
+        </div>
+
+        <!-- 消息内容 -->
+        <div class="info">
+          <div class="content" v-html="msg.content" />
+
+          <el-row type="flex" justify="end">
+            <el-col>
+              <p>公告单位: {{ msg.enterpriseName }}</p>
+              <p class="time">发布时间: {{ msg.createdate | dateFormat('YYYY-MM-DD') }}</p>
+              <p class="time">截止时间: {{ msg.endDate | dateFormat('YYYY-MM-DD') }}</p>
+            </el-col>
+          </el-row>
+
+        </div>
+
+        <!-- 附件 -->
+        <div v-if="msg.attachmentsFiles" class="enclosure">
+          <div class="title">
+            <i class="el-icon-paperclip" /><span>附件</span>
+          </div>
+          <div class="fileList">
+            <template v-for="item in msg.attachmentsFiles">
+              <div :key="item.id" class="fileItem">
+                <span class="name">{{ item.name }}</span>
+                <div class="operation">
+                  <el-divider direction="vertical" />
+                  <el-button
+                    type="text"
+                    size="mini"
+                    @click="filePreview(item)"
+                  >预览</el-button>
+                  <el-divider direction="vertical" />
+                  <file-download :file-id="item.fileId" :file-name="item.name" />
+                  <el-divider direction="vertical" />
+                </div>
+
+              </div>
+              <el-divider :key="item.id" />
+            </template>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</template>
+
+<script>
+
+import Release from './components/Release'
+import Tinymce from '@/components/Tinymce'
+import FileDownload from '@/components/fileDownload'
+import {
+  getMessages,
+  replyMessages
+} from '@/api/messageNotify/message'
+import {
+  noticeDetail
+} from '@/api/messageNotify/notice'
+export default {
+  components: {
+    Release,
+    Tinymce,
+    FileDownload
+  },
+  data() {
+    return {
+      form: {
+        content: ''
+      },
+      formRules: {
+        content: [
+          { required: true, message: '请输入正文', trigger: 'blur' }
+        ]
+      },
+      msg: {}
+    }
+  },
+  created() {
+    this.fetchMessages()
+  },
+  methods: {
+    fetchMessages() {
+      const id = this.$route.params.id
+
+      // 获取信息详情
+      noticeDetail(id).then(res => {
+        this.msg = res.data.obj
+        console.log(res.data)
+      })
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.notice{
+  padding-bottom:  20px;
+  >.header{
+    .title{
+      font-size: 36px;
+    }
+    text-align: center;
+    border-bottom: 2px solid #ccc;
+  }
+
+  //附件
+  >.enclosure{
+    background-color: #f2f2f2;
+    border: 1px solid #f2f2f2;
+    margin-bottom: 20px;
+    >.title{
+      padding: 5px 10px;
+      font-size: 14px;
+      color: #000;
+      font-weight: bold;
+      span{
+        margin-left: 5px;
+      }
+    }
+    >.fileList{
+      background-color: #fff;
+      padding: 12px;
+      >.fileItem{
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        >.name{
+          font-weight: bold;
+          color: #000;
+        }
+      }
+      >.el-divider--horizontal{
+        margin: 10px 0;
+      }
+    }
+  }
+
+  >.info{
+    padding: 0 200px;
+    >.content{
+      font-size: 16px;
+      height: auto;
+      padding: 30px 0;
+      line-height: 1.7;
+    }
+  }
+}
+
+</style>

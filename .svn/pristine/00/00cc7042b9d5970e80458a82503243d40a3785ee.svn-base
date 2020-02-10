@@ -1,0 +1,6 @@
+// 百度地图标签的偏移值
+const BMAP_LABEL_OFFSET = { width: 20, height: -10 }
+
+export default {
+  BMAP_LABEL_OFFSET
+}

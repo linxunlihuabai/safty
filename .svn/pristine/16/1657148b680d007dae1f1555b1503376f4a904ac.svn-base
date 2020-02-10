@@ -1,0 +1,185 @@
+import axios from 'axios'
+import { MessageBox, Message } from 'element-ui'
+// eslint-disable-next-line no-unused-vars
+import { clear } from '@/utils/sessionStorage'
+import router from '@/router'
+
+import { SingleMessage } from '@/utils/messageBox'
+
+// 请求接口 API 地址
+// const VUE_APP_BASE_API = 'http://192.168.100.2:8080/swagger-ui.html#/%E8%B4%A6%E6%88%B7%E6%B3%A8%E5%86%8C%E6%8E%A7%E5%88%B6%E5%99%A8/registerUsingPOST'
+// wifi共享
+// const VUE_APP_BASE_API = 'http://192.168.100.2:8080/swagger-ui.html#/%E8%B4%A6%E6%88%B7%E6%B3%A8%E5%86%8C%E6%8E%A7%E5%88%B6%E5%99%A8/registerUsingPOST'
+// 本地
+/* const VUE_APP_BASE_API = 'http://192.168.100.2:8080/swagger-ui.html#/%E8%B4%A6%E6%88%B7%E6%B3%A8%E5%86%8C%E6%8E%A7%E5%88%B6%E5%99%A8/registerUsingPOST'
+
+axios.defaults.headers = {
+  'Content-Type': 'application/json;charset=UTF-8'
+} */
+const CancelToken = axios.CancelToken
+const pending = []
+
+// 创建一个axios实例
+const service = axios.create({
+  // baseURL: '/api', // url = base url + request url
+  withCredentials: true, // 是否携带cookie
+  timeout: 5000 // 请求超时时间
+})
+
+// request interceptor
+service.interceptors.request.use(
+  config => {
+    // 在请求发送前做的操作
+
+    config.cancelToken = new CancelToken(function executor(c) {
+      // executor 函数接收一个 cancel 函数作为参数
+      pending.push(c)
+    })
+    return config
+  },
+  error => {
+    // do something with request error
+    Message({
+      title: '请求错误',
+      message: '登录失败！',
+      type: 'error',
+      duration: 3 * 1000
+    })
+    return Promise.reject(error)
+  }
+)
+
+// response interceptor
+service.interceptors.response.use(
+  /**
+     * 如果您想要获取诸如头或状态之类的http信息
+     * 就 return  response => response
+     */
+
+  /**
+     *通过自定义代码确定请求状态
+     *这里只是一个例子
+     *您还可以通过HTTP状态代码判断状态
+     */
+  response => {
+    var res = response.data
+    if (res.status === 200) {
+      if (res.msg !== '获取成功！') {
+        SingleMessage({
+          message: res.msg || '成功',
+          type: 'success',
+          duration: 3 * 1000
+        })
+      }
+    }
+    return response
+  },
+  error => {
+    if (error.response) {
+      const res = error.response.data
+      if (res.status === 401) {
+        while (pending.length > 0) {
+          pending.pop()('请求中断')
+        }
+        MessageBox.confirm(
+          '您的登录信息已过期，您可以取消以停留在此页，或重新登录',
+          '系统提示', {
+            confirmButtonText: '重新登录',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        ).then(() => {
+          router.replace('/login')
+        }).catch(() => {})
+      } else if (res.status === 400) {
+        SingleMessage({
+          message: res.msg || '客户端错误',
+          type: 'error',
+          duration: 3 * 1000
+        })
+      } else if (res.status === 403) {
+        SingleMessage({
+          message: res.msg || '您的权限不足',
+          type: 'error',
+          duration: 3 * 1000
+        })
+      } else if (res.status === 404) {
+        SingleMessage({
+          message: '网络请求不存在',
+          type: 'error',
+          duration: 3 * 1000
+        })
+      } else if (res.status === 500) {
+        SingleMessage({
+          message: res.msg || '服务器异常',
+          type: 'error',
+          duration: 3 * 1000
+        })
+      } else {
+        SingleMessage({
+          message: '服务器正在开小差。。。。',
+          type: 'error',
+          duration: 3 * 1000
+        })
+      }
+    } else if (error.message.includes('timeout')) {
+      SingleMessage({
+        message: '请求超时，请检查网络连接!',
+        type: 'error',
+        duration: 3 * 1000
+      })
+    }
+
+    // console.log(error)
+    return new Promise(() => {})
+  }
+)
+
+// post封装
+export const postRequest = (url, params) => {
+  return service({
+    method: 'post',
+    url,
+    data: params
+  })
+}
+
+// get封装
+export const getRequest = (url, params) => {
+  return service({
+    method: 'get',
+    url,
+    params: params
+  })
+}
+
+// put封装
+export const putRequest = (url, params) => {
+  return service({
+    method: 'put',
+    url,
+    data: params
+  })
+}
+
+// delete封装
+export const deleteRequest = (url, params) => {
+  return service({
+    method: 'delete',
+    url,
+    params
+  })
+}
+
+// 下载请求封装
+export const downloadRequest = (url, params) => {
+  return service({
+    method: 'get',
+    url,
+    params: params,
+    responseType: 'blob'
+  })
+}
+
+// 基础封装使用对象作为参数
+export default service

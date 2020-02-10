@@ -1,0 +1,244 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <div class="panel-main">
+        <el-form :inline="true" :model="formInline" class="demo-form-inline">
+          <el-form-item label="审批人">
+                        <el-input placeholder="请输入角色英文名称" v-model="input1">
+              <template slot="prepend">ROLE_</template>
+            </el-input>
+          </el-form-item>
+          <el-form-item label="活动区域">
+            <el-input v-model="input" placeholder="请输入角色中文名称"></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="onSubmit">查询</el-button>
+          </el-form-item>
+        </el-form>
+        <el-row :gutter="20">
+          <el-col :span="10">
+            <el-input placeholder="请输入角色英文名称" v-model="input1">
+              <template slot="prepend">ROLE_</template>
+            </el-input>
+          </el-col>
+          <el-col :span="10">
+            <el-input v-model="input" placeholder="请输入角色中文名称"></el-input>
+          </el-col>
+          <el-col :span="4">
+            <el-button type="primary">添加角色</el-button>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-collapse v-model="activeNames" @change="handleChange">
+            <el-collapse-item title="系统管理员" name="1">
+              <el-card class="box-card">
+                <div slot="header" class="clearfix">
+                  <span>可访问的资源</span>
+                  <el-button style="float: right; padding: 3px 0; color:red" type="text">
+                    <i class="el-icon-delete"></i>
+                  </el-button>
+                </div>
+                <el-tree
+                  class="accessibleResources"
+                  :data="data"
+                  show-checkbox
+                  node-key="id"
+                  :props="defaultProps"
+                ></el-tree>
+                <div class="footbtn">
+                  <el-button>取消修改</el-button>
+                  <el-button type="primary">确认修改</el-button>
+                </div>
+              </el-card>
+            </el-collapse-item>
+            <el-collapse-item title="局账户" name="2">
+              <el-card class="box-card">
+                <div slot="header" class="clearfix">
+                  <span>可访问的资源</span>
+                  <el-button style="float: right; padding: 3px 0; color:red" type="text">
+                    <i class="el-icon-delete"></i>
+                  </el-button>
+                </div>
+                <el-tree
+                  class="accessibleResources"
+                  :data="data"
+                  show-checkbox
+                  node-key="id"
+                  :props="defaultProps"
+                ></el-tree>
+                <div class="footbtn">
+                  <el-button>取消修改</el-button>
+                  <el-button type="primary">确认修改</el-button>
+                </div>
+              </el-card>
+            </el-collapse-item>
+            <el-collapse-item title="队账户" name="3">
+              <el-card class="box-card">
+                <div slot="header" class="clearfix">
+                  <span>可访问的资源</span>
+                  <el-button style="float: right; padding: 3px 0; color:red" type="text">
+                    <i class="el-icon-delete"></i>
+                  </el-button>
+                </div>
+                <el-tree
+                  class="accessibleResources"
+                  :data="data"
+                  show-checkbox
+                  node-key="id"
+                  :props="defaultProps"
+                ></el-tree>
+                <div class="footbtn">
+                  <el-button>取消修改</el-button>
+                  <el-button type="primary">确认修改</el-button>
+                </div>
+              </el-card>
+            </el-collapse-item>
+            <el-collapse-item title="单位账户" name="4">
+              <el-card class="box-card">
+                <div slot="header" class="clearfix">
+                  <span>可访问的资源</span>
+                  <el-button style="float: right; padding: 3px 0; color:red" type="text">
+                    <i class="el-icon-delete"></i>
+                  </el-button>
+                </div>
+                <el-tree
+                  class="accessibleResources"
+                  :data="data"
+                  show-checkbox
+                  node-key="id"
+                  :props="defaultProps"
+                ></el-tree>
+                <div class="footbtn">
+                  <el-button>取消修改</el-button>
+                  <el-button type="primary">确认修改</el-button>
+                </div>
+              </el-card>
+            </el-collapse-item>
+            <el-collapse-item title="未分配账户账户" name="5">
+              <el-card class="box-card">
+                <div slot="header" class="clearfix">
+                  <span>可访问的资源</span>
+                  <el-button style="float: right; padding: 3px 0; color:red" type="text">
+                    <i class="el-icon-delete"></i>
+                  </el-button>
+                </div>
+                <el-tree
+                  class="accessibleResources"
+                  :data="data"
+                  show-checkbox
+                  node-key="id"
+                  :props="defaultProps"
+                ></el-tree>
+                <div class="footbtn">
+                  <el-button>取消修改</el-button>
+                  <el-button type="primary">确认修改</el-button>
+                </div>
+              </el-card>
+            </el-collapse-item>
+          </el-collapse>
+        </el-row>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      input: "",
+      input1: "",
+      input2: "",
+      input3: "",
+      select: "",
+      activeNames: ["1"],
+      data: [
+        {
+          id: 0,
+          label: "所有",
+          children: [
+            {
+              id: 1,
+              label: "员工资料",
+              children: [
+                {
+                  id: 10,
+                  label: "三级 1-1-1"
+                },
+                {
+                  id: 11,
+                  label: "三级 1-1-2"
+                }
+              ]
+            },
+            {
+              id: 2,
+              label: "人事管理",
+              children: [
+                {
+                  id: 20,
+                  label: "三级 1-1-1"
+                },
+                {
+                  id: 21,
+                  label: "三级 1-1-2"
+                }
+              ]
+            },
+            {
+              id: 3,
+              label: "薪资管理",
+              children: [
+                {
+                  id: 30,
+                  label: "三级 1-1-1"
+                },
+                {
+                  id: 31,
+                  label: "三级 1-1-2"
+                }
+              ]
+            },
+            {
+              id: 4,
+              label: "统计管理",
+              children: [
+                {
+                  id: 40,
+                  label: "三级 1-1-1"
+                },
+                {
+                  id: 41,
+                  label: "三级 1-1-2"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      defaultProps: {
+        children: "children",
+        label: "label"
+      }
+    };
+  },
+  methods: {
+    handleChange(val) {
+      console.log(val);
+    }
+  }
+};
+</script>
+
+<style lang="scss">
+.accessibleResources {
+  margin-bottom: 20px;
+}
+.footbtn {
+  display: flex;
+  justify-content: flex-end;
+}
+</style>

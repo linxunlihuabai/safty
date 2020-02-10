@@ -1,0 +1,279 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <!-- 温馨提示 -->
+      <div class="prompt" v-show="active == 0">请填写正确的统一社会信用代码，一旦注册，不允许修改！</div>
+      <el-row>
+        <el-col :span="22">
+          <el-steps size="medium" align-center :active="active" finish-status="success">
+            <el-step title="填写注册信息"></el-step>
+            <el-step title="提交成功，等待审核结果"></el-step>
+          </el-steps>
+        </el-col>
+      </el-row>
+      <!-- 注册表单信息 -->
+      <el-card class="box-card">
+        <!-- 步骤一内容 -->
+        <el-form
+          ref="userInfo"
+          size="small"
+          v-show="active == 0"
+          label-width="150px"
+          :rules="rules"
+          :model="userInfo"
+        >
+          <el-form-item label="统一社会信息代码" prop="creditCode">
+            <el-input v-model="userInfo.creditCode" placeholder="请输入统一社会信息代码"></el-input>
+          </el-form-item>
+          <el-form-item label="用户名" prop="username">
+            <el-input v-model="userInfo.username" placeholder="请输入用户名"></el-input>
+          </el-form-item>
+          <el-form-item label="密码" prop="password" required>
+            <el-input type="password" v-model="userInfo.password" placeholder="请输入密码"></el-input>
+          </el-form-item>
+          <el-form-item label="确认密码" prop="confirmPassword" required>
+            <el-input type="password" v-model="userInfo.confirmPassword" placeholder="请再次输入密码"></el-input>
+          </el-form-item>
+          <el-form-item label="企业名称" prop="companyName">
+            <el-input v-model="userInfo.companyName" placeholder="请输入企业名称"></el-input>
+          </el-form-item>
+          <el-form-item label="安全负责人" prop="responsiblePerson">
+            <el-input v-model="userInfo.responsiblePerson" placeholder="请输入安全负责人"></el-input>
+          </el-form-item>
+          <el-form-item label="移动电话号码" required prop="responsiblePersonPhone">
+            <el-input v-model="userInfo.responsiblePersonPhone" placeholder="请输入移动电话号码"></el-input>
+          </el-form-item>
+          <el-form-item label="邮箱" prop="email">
+            <el-input v-model="userInfo.email" placeholder="请输入邮箱"></el-input>
+          </el-form-item>
+          <el-row>
+            <el-form-item label="验证码" class="captcha" prop="captcha">
+              <el-col :span="12">
+                <el-input v-model="userInfo.captcha" placeholder="请输入验证码"></el-input>
+              </el-col>
+              <el-col :span="12" class="sendcode">
+                <el-button
+                  type="button"
+                  @click="sendcode"
+                  :disabled="disabled"
+                  v-if="!disabled"
+                >点击进行邮箱验证</el-button>
+                <el-button
+                  type="button"
+                  @click="sendcode"
+                  :disabled="disabled"
+                  v-if="disabled"
+                >{{btntxt}}</el-button>
+              </el-col>
+            </el-form-item>
+          </el-row>
+          <el-form-item>
+            <el-button type="primary" @click="submitForm('userInfo')">下一步</el-button>
+            <el-button>取消</el-button>
+          </el-form-item>
+        </el-form>
+        <!-- 步骤二内容 -->
+        <div v-show="active >= 1">
+          <p align="center">
+            <i class="el-step__icon-inner el-icon-check submit"></i>
+          </p>
+          <h1 align="center">提交成功！等待审核结果</h1>
+          <p align="center" class="finalDecision">审核结果会以邮件的方式通知您，请注意查收！</p>
+          <router-link style="margin-left:750px;color:red;" to="/login">我要回到登录页面？</router-link>
+        </div>
+      </el-card>
+    </div>
+  </div>
+</template>
+
+<script>
+import { regList } from "@/utils/regList";
+import { getRegisterCaptcha, register } from "@/api/user/index";
+import Breadcrumb from "@/components/Breadcrumb";
+export default {
+  components: {
+    Breadcrumb
+  },
+  data() {
+    var isvalidPhone = (rule, value, callback) => {
+      const reg = /^1[3|4|5|6|7|8|9][0-9]\d{8}$/;
+      if (value === "") {
+        callback(new Error("手机号码不能为空"));
+      }
+      if (!reg.test(value)) {
+        callback(new Error("请输入正确的手机号码"));
+      }
+      callback();
+    };
+
+    // 密码包含 数字,英文,字符中的两种以上，长度8-20
+    var validatePass = (rule, value, callback) => {
+      /* 密码不能全部是数字，或全部是小写字母，或全部是大写字母 */
+      const reg = /^(?![0-9]+$)(?![a-z]+$)(?![A-Z]+$)(?!([^(0-9a-zA-Z)])+$).{8,20}$/;
+      if (value === "") {
+        callback(new Error("密码不能为空"));
+      }
+      if (!reg.test(value)) {
+        callback(new Error("密码包含 数字,英文,字符中的两种以上，长度6-20"));
+      }
+      callback();
+    };
+
+    // 再次输入密码验证
+    var validatePass2 = (rule, value, callback) => {
+      if (value === "") {
+        callback(new Error("请再次输入密码"));
+      } else if (value !== this.userInfo.password) {
+        callback(new Error("两次输入密码不一致!"));
+      } else {
+        callback();
+      }
+    };
+    // 验证验证码
+    const validateIdentifyCode = (rule, value, callback) => {
+      if (!value) {
+        callback(new Error("验证码不能为空"));
+      } else if (value.toLowerCase() != this.identifyCode.toLowerCase()) {
+        callback(new Error("验证码输入错误"));
+      } else {
+        callback();
+      }
+    };
+    return {
+      userInfo: {
+        creditCode: "",
+        username: "",
+        password: "",
+        confirmPassword: "",
+        companyName: "",
+        responsiblePerson: "",
+        responsiblePersonPhone: "",
+        captcha: "",
+        email: "",
+        taskId: ""
+      },
+      rules: {
+        confirmPassword: [{ validator: validatePass2, trigger: "blur" }],
+        password: [{ validator: validatePass, trigger: "blur" }],
+        responsiblePersonPhone: [{ validator: isvalidPhone, trigger: "blur" }],
+        creditCode: [
+          { required: true, message: "请输入统一社会信息代码", trigger: "blur" }
+        ],
+        email: [
+          { required: true, message: "邮箱地址不能为空", trigger: "blur" }
+        ],
+        username: [
+          {
+            required: true,
+            message: "用户名不能为空",
+            trigger: "blur"
+          }
+        ],
+        companyName: [
+          { required: true, message: "请输入企业名称", trigger: "blur" }
+        ],
+        responsiblePerson: [
+          { required: true, message: "请输入安全负责人", trigger: "blur" }
+        ],
+        captcha: [
+          { required: true, message: "验证码不能为空", trigger: "blur" }
+        ]
+      },
+      disabled: false,
+      time: 0,
+      btntxt: "重新发送",
+      active: 0
+    };
+  },
+  methods: {
+    next() {
+      if (this.active++ === 2) {
+        this.active = 0;
+        return;
+      }
+      if (this.active === 1) {
+        // 到达第二步的操作
+        setTimeout(() => {
+          // this.active =2;
+          this.userInfo = {};
+        }, 500);
+      }
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate(valid => {
+        console.log("注册操作" + this.userInfo);
+        if (valid) {
+          register(this.userInfo).then(res => {
+            res = res.data;
+            console.log(res.msg);
+            this.active = 2;
+          });
+        } else {
+          console.log("error submit!!");
+          return false;
+        }
+      });
+    },
+    // 邮箱验证发送验证码
+    sendcode() {
+      const reg = /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/;
+      if (!reg.test(this.userInfo.email)) {
+        this.$message({
+          message: "请输入正确的邮箱地址",
+          center: true
+        });
+        return;
+      } else {
+        console.log(this.userInfo.email);
+        getRegisterCaptcha({
+          mail: this.userInfo.email,
+          taskId: this.userInfo.taskId
+        }).then(res => {
+          res = res.data;
+          this.userInfo.taskId = res.obj;
+        });
+        this.time = 60;
+        this.disabled = true;
+        this.timer();
+      }
+    },
+    //60S倒计时
+    timer() {
+      if (this.time > 0) {
+        this.time--;
+        this.btntxt = this.time + "s后重新获取";
+        setTimeout(this.timer, 1000);
+      } else {
+        this.time = 0;
+        this.btntxt = "获取验证码";
+        this.disabled = false;
+      }
+    }
+  }
+};
+</script>
+
+<style>
+.prompt {
+  width: 900px;
+  height: 34px;
+  line-height: 34px;
+  background-color: #07c181;
+  color: white;
+  padding-left: 8px;
+  margin-bottom: 10px;
+}
+.sendcode {
+  padding-left: 20px;
+}
+.submit {
+  color: red;
+}
+.finalDecision {
+  font-size: 14px;
+  font-weight: bold;
+}
+</style>

@@ -1,0 +1,128 @@
+<template>
+  <div :class="className" :style="{height:height,width:width}" />
+</template>
+
+<script>
+import echarts from 'echarts'
+require('echarts/theme/macarons') // echarts theme
+import resize from './mixins/resize'
+
+const animationDuration = 6000
+
+export default {
+  mixins: [resize],
+  props: {
+    className: {
+      type: String,
+      default: 'chart'
+    },
+    width: {
+      type: String,
+      default: '100%'
+    },
+    height: {
+      type: String,
+      default: '600px'
+    }
+  },
+  data() {
+    return {
+      chart: null
+    }
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this.initChart()
+    })
+  },
+  beforeDestroy() {
+    if (!this.chart) {
+      return
+    }
+    this.chart.dispose()
+    this.chart = null
+  },
+  methods: {
+    initChart() {
+      this.chart = echarts.init(this.$el, 'macarons')
+
+      this.chart.setOption({
+        title: {
+          text: '隐患数量趋势'
+        },
+
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross',
+            crossStyle: {
+              color: '#999'
+            }
+          }
+        },
+        toolbox: {
+          feature: {
+            dataView: { show: true, readOnly: false },
+            magicType: { show: true, type: ['line', 'bar'] },
+            restore: { show: true },
+            saveAsImage: { show: true }
+          }
+        },
+        legend: {
+          data: ['检查次数', '隐患个数', '趋势']
+        },
+        xAxis: [
+          {
+            type: 'category',
+            data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+            axisPointer: {
+              type: 'shadow'
+            }
+          }
+        ],
+        yAxis: [
+          {
+            type: 'value',
+            name: '检查次数',
+            min: 0,
+            max: 250,
+            interval: 50,
+            axisLabel: {
+              formatter: '{value} 次'
+            }
+          },
+          {
+            type: 'value',
+            name: '隐患个数',
+            min: 0,
+            max: 40,
+            interval: 5,
+            axisLabel: {
+              formatter: '{value} 个'
+            }
+          }
+        ],
+        series: [
+          {
+            name: '检查次数',
+            type: 'bar',
+            data: [4, 5, 7, 23, 25, 76, 135, 162, 32, 20, 64, 33]
+          },
+          {
+            name: '隐患个数',
+            type: 'bar',
+            data: [2, 5, 9, 26, 28, 7, 17, 18, 4, 18, 6, 23]
+          },
+          {
+            name: '趋势',
+            type: 'line',
+            yAxisIndex: 1,
+            data: [2, 5, 9, 26, 28, 7, 17, 18, 4, 18, 6, 23]
+          }
+        ]
+
+      })
+    }
+  }
+}
+</script>

@@ -1,0 +1,110 @@
+<template>
+  <section class="todoapp">
+    <!-- header -->
+    <header class="header">
+      <div class="new-todo">工作提醒</div>
+    </header>
+    <!-- main section -->
+    <section class="main">
+      <!-- <label /> -->
+      <ul v-if="todoList && todoList.lenth>0" class="todo-list">
+        <todo
+          v-for="(todo, index) in todoList"
+          :key="index"
+          :todo="todo"
+          @click="handleTodo"
+        />
+      </ul>
+      <span v-else class="noTodo">暂无提醒</span>
+    </section>
+    <!-- footer -->
+    <footer class="footer" />
+
+    <el-dialog
+      title="处理"
+      :visible.sync="formDialog"
+      :width="GLOBAL.DIALOG_WIDTH.MINI"
+      append-to-body
+      :close-on-click-modal="false"
+      @closed="handleDialogClosed('form')"
+    >
+
+      <el-form
+        ref="form"
+        size="mini"
+        :model="form"
+        :label-width="GLOBAL.FORM_LABEL_WIDTH.MINI"
+        :rules="formRules"
+      >
+        <el-form-item label="是否通过" prop="audit">
+          <el-radio-group v-model="form.audit">
+            <el-radio :label="1">通过</el-radio>
+            <el-radio :label="0">未通过</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="formDialog=false">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="formSubmit">确定</el-button>
+      </div>
+    </el-dialog>
+  </section>
+</template>
+
+<script>
+import Todo from './Todo.vue'
+import { getAuditList, auditNopass, auditPass } from '@/api/auditRegis'
+
+export default {
+  components: { Todo },
+  data() {
+    return {
+      todoList: [],
+      btnLoading: false,
+      taskId: null,
+      form: {
+        audit: ''
+      },
+      formRules: {
+        audit: [
+          { required: true, message: '请选择是否通过', trigger: 'change' }
+        ]
+      }
+
+    }
+  },
+  created() {
+    getAuditList({}).then(res => {
+      this.todoList = res.data.obj.list
+    })
+  },
+  methods: {
+    handleTodo(todo) {
+      this.formDialog = true
+      this.taskId = todo.taskId
+    },
+    formSubmit() {
+      this.$refs.form.validate(async(valid) => {
+        if (valid) {
+          this.btnLoading = true
+          const taskId = this.taskId
+          if (this.form.audit == 0) {
+            await auditNopass(taskId)
+          } else if (this.form.audit == 1) {
+            await auditPass(taskId)
+          }
+          this.btnLoading = false
+          this.formDialog = false
+        } else {
+          return false
+        }
+      })
+    }
+  }
+}
+</script>
+
+<style lang="scss">
+  @import './index.scss';
+</style>

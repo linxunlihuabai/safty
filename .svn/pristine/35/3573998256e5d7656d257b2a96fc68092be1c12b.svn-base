@@ -1,0 +1,15 @@
+import request from '@/utils/request'
+import { postRequest } from '@/utils/request'
+
+// export function getRegister(data) {
+//   return postRequest({
+//     url: '/register',
+//     // url: 'http://192.168.43.77:8080/register',
+//     method: 'post',
+//     data
+//   })
+// }
+
+export function getRegisterCaptcha(data) {
+  return postRequest('/register/captcha', data)
+}

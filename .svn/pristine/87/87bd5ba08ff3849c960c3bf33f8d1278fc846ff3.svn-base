@@ -1,0 +1,367 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-button type="primary" size="small" @click="addInstitutionalSetupForm">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <div class="prompt">如果您的姓名未出现在此表中，请前去人员持证录入信息！</div>
+      <el-row>
+        <el-table
+          ref="table"
+          v-loading="institutionalSetupListLoading"
+          :data="page.list"
+          border
+          style="width: 100%"
+        >
+          <el-table-column
+            prop="enterpriseName"
+            label="单位"
+          />
+          <el-table-column
+            prop="type"
+            label="类型"
+          />
+          <!--  <el-table-column
+            prop="projectName"
+            label="项目名称"
+          /> -->
+          <el-table-column
+            prop="name"
+            label="姓名"
+          />
+          <el-table-column
+            key="zh-postId"
+            prop="zh-postId"
+            label="职务"
+          />
+          <el-table-column
+            prop="phone"
+            label="电话"
+          />
+          <el-table-column label="操作" width="120">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <sun-button :type="'edit'" @click="editInstitutionalSetupForm(scope)" />
+                <sun-button :type="'delete'" @click="delManagePositions(scope.$index, scope.row)" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+          <el-table-column label="历史记录" width="110">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <sun-button :type="'history'" @click="history(scope)" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-row>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table
+          ref="table"
+          :data="page.list"
+          border
+          style="width: 100%"
+        >
+          <el-table-column
+            prop="enterpriseName"
+            label="单位"
+          />
+          <el-table-column
+            prop="type"
+            label="类型"
+          />
+          <!--  <el-table-column
+            prop="projectName"
+            label="项目名称"
+          /> -->
+          <el-table-column
+            prop="name"
+            label="姓名"
+          />
+          <el-table-column
+            key="zh-postId"
+            prop="zh-postId"
+            label="职务"
+          />
+          <el-table-column
+            prop="phone"
+            label="电话"
+          />
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <!-- 分页栏 -->
+      <el-row>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :current-page="page.page"
+          :total="page.total"
+          :page-sizes="[10, 20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+
+      <el-dialog title="安全机构设置" :visible.sync="institutionalSetupDialog" width="700px">
+        <el-form
+          ref="institutionalSetupForm"
+          :rules="institutionalSetupFormRules"
+          size="small"
+          :model="institutionalSetupForm"
+          :before-close="handleDialogClosed"
+        >
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="姓名" prop="personId" label-width="60px">
+                <el-select v-model="institutionalSetupForm.personId" filterable placeholder="请选择" @change="nameChange">
+                  <el-option
+                    v-for="item in personalOptions"
+                    :key="item.id +''"
+                    :label="item.name"
+                    :value="item.id"
+                  >
+                    <span style="float: left">{{ item.name }}</span>
+                    <span style="float: right; color: #8492a6; font-size: 13px">{{ item.birthday | dateFormat("YYYY年MM月DD日") }}</span>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="职务" prop="postId" label-width="60px">
+                <sun-select :module="'职务'" :value.sync="institutionalSetupForm.postId" :disabled.sync="disableds" placeholder="请选择职务" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="安全管理人员" prop="type" label-width="100px">
+                <el-radio-group v-model="institutionalSetupForm.type">
+                  <el-radio :checked="institutionalSetupForm.type=='专职'" label="专职">专职</el-radio>
+                  <el-radio :checked="institutionalSetupForm.type=='兼职'" label="兼职">兼职</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="电话" prop="phone" label-width="60px">
+                <el-input
+                  v-model="institutionalSetupForm.phone"
+                  disabled
+                  style="width:199px"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <!--  <el-row>
+            <el-col :span="12">
+              <el-form-item label="项目名称" prop="projectId" label-width="78px">
+                <sun-select :options="projectOptions" :value.sync="institutionalSetupForm.projectId" />
+              </el-form-item>
+            </el-col>
+          </el-row> -->
+          <el-row>
+            <el-col>
+              <el-form-item>
+                <el-button :loading="btnLoading" type="primary" @click="institutionalSetupFormSubmit">确定</el-button>
+                <el-button @click="handleDialogClosed">取消</el-button>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </el-dialog>
+
+    </div>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+// import { getProjectsList } from '@/api/config/getProjects'
+import { managePositionsAdd, managePositionsDelete, managePositionsUpdate, managePositionsList, historyManagePositions, getPersonalInfos } from '@/api/securityManagement/institutionalSetup'
+import { parseTime } from '@/utils'
+export default {
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 10
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      institutionalSetupForm: {
+        postId: '',
+        phone: '暂无',
+        personId: null,
+        // projectId: null,
+        type: '兼职',
+        name: ''
+      },
+      institutionalSetupFormRules: {
+        /* projectId: [
+          { required: true, message: '请选择项目名称', trigger: 'change' }
+        ], */
+        postId: [{ required: true, message: '请选择职务', trigger: 'change' }],
+        personId: [{ required: true, message: '请选择姓名', trigger: 'change' }]
+      },
+      institutionalSetupListLoading: true,
+      projectOptions: [],
+      personalOptions: [],
+      disableds: [],
+      institutionalSetupDialog: false,
+      historyTable: false,
+      historyDialog: false,
+      btnLoading: false
+    }
+  },
+  created() {
+    this.fetchData()
+    /* getProjectsList().then(res => {
+      const data = res.data.obj
+      this.projectOptions = data.map(item => {
+        return {
+          label: item.projectName,
+          value: item.id
+        }
+      })
+    }) */
+    getPersonalInfos().then(res => {
+      this.personalOptions = res.data.obj
+    })
+  },
+  methods: {
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 获取信息
+    fetchData() {
+      managePositionsList(this.params).then(res => {
+        this.institutionalSetupListLoading = false
+        this.page = res.data.obj
+        this.disableds = []
+        this.page.list.forEach(e => {
+          this.disableds.push(e.postId)
+        })
+        const list = zhClassify(this.page.list, [['职务', 'postId']])
+        this.table = list
+      })
+    },
+    // 删除人员持证表单
+    delManagePositions(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          managePositionsDelete(row.id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyManagePositions(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historyDialog = true
+      })
+    },
+    nameChange() {
+      this.personalOptions.forEach(e => {
+        try {
+          if (this.institutionalSetupForm.personId === e.id) {
+            this.institutionalSetupForm.phone = e.phone
+            throw Error('获取成功')
+          }
+        } catch (e) {
+          // console.log(e)
+        }
+      })
+    },
+    // 提交管理信息
+    institutionalSetupFormSubmit() {
+      this.$refs.institutionalSetupForm.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            managePositionsAdd(this.institutionalSetupForm).then(res => {
+              this.btnLoading = false
+              this.institutionalSetupDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            managePositionsUpdate(this.institutionalSetupForm).then((res) => {
+              this.btnLoading = false
+              this.institutionalSetupDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.institutionalSetupForm.resetFields()
+      this.institutionalSetupDialog = false
+    },
+    editInstitutionalSetupForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.institutionalSetupForm = { ...scope.row }
+      })
+      // 编辑信息模态框显示
+      this.institutionalSetupDialog = true
+    },
+    addInstitutionalSetupForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开,重置表单并清除验证
+        this.$refs.institutionalSetupForm.resetFields()
+        // this.institutionalSetupForm.projectId = null
+        this.institutionalSetupForm.personId = null
+        this.institutionalSetupForm.postId = null
+        this.institutionalSetupForm.type = '兼职'
+        this.institutionalSetupForm.phone = '暂无'
+      })
+      this.institutionalSetupDialog = true
+    }
+  }
+}
+</script>
+
+<style  scoped>
+.prompt {
+  width: 400px;
+  height: 36px;
+  line-height: 36px;
+  background-color: #07c181;
+  color: white;
+  font-size: 14px;
+  padding-left: 12px;
+  margin:20px;
+}
+
+.el-input--small,.el-select--small,.el-input-number--small{
+  width:100%;
+}
+</style>

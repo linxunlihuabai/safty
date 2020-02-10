@@ -1,0 +1,445 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <div>
+        <el-table border :data="tableData" size="small" stripe :expand-row-keys="expands" :row-key="getRowKeys" @expand-change="expandSelect">
+          <!-- 详情展示 -->
+          <el-table-column type="expand">
+            <template slot-scope="props">
+              <el-form class="demo-table-expand">
+                <el-row>
+                  <el-col :span="6">
+                    <el-form-item label="基地名称：">
+                      <span>{{ props.row.baseName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="基地现状：">
+                      <span>{{ props.row.baseStatusQuo }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="基地地址：">
+                      <span>{{ props.row.baseAddress }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="分管领导：">
+                      <span>{{ props.row.responsibleLeadership }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6">
+                    <el-form-item label="分管领导联系方式：">
+                      <span>{{ props.row.contactInformationOfLeaderInCharge }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="基地负责人：">
+
+                      <span>{{ props.row.headOfBase }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="基地负责人联系方式：">
+                      <span>{{ props.row.contactInformationOfBasePrincipal }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="留守工作人员(人)：">
+                      <span>{{ props.row.leftBehindStaff }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6">
+                    <el-form-item label="留守居民(人)：">
+                      <span>{{ props.row.leftBehindResidents }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="危险源：">
+                      <span>{{ props.row.hazardSource }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="基地GPS坐标：">
+                      <baidu-map
+                        :center="props.row.GPSCoordinates"
+                        :zoom="zoom"
+                        style="float:left; width: 400px; height: 280px"
+                        :scroll-wheel-zoom="true"
+                        @ready="handler"
+                      />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+            </template>
+          </el-table-column>
+          <el-table-column prop="baseName" label="基地名称" />
+          <el-table-column prop="baseStatusQuo" label="基地现状" />
+          <el-table-column prop="responsibleLeadership" label="分管领导" />
+          <el-table-column prop="contactInformationOfLeaderInCharge" label="分管领导联系方式" />
+          <el-table-column prop="headOfBase" label="基地负责人" />
+          <el-table-column label="操作">
+            <template slot-scope="scope">
+              {{ setCurrentIndex(scope.$index) }}
+              <el-button
+                type="text"
+                size="small"
+                @click="editOpenDialog(scope.$index,scope.row)"
+              >编辑</el-button>
+              <el-button type="text" size="small">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 修改 -->
+      <el-dialog title="修改" :visible.sync="editDialog" width="50%" :before-close="handleClose">
+        <el-form ref="editData" :rules="rules" size="small" :model="editData" label-width="150px">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="基地名称" prop="baseName">
+                <el-input v-model="editData.baseName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="基地现状" prop="baseStatusQuo">
+                <el-input v-model="editData.baseStatusQuo" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="基地地址" prop="baseAddress">
+                <el-input v-model="editData.baseAddress" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="危险源" prop="hazardSource">
+                <el-input v-model="editData.hazardSource" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="分管领导" prop="responsibleLeadership">
+                <el-input v-model="editData.responsibleLeadership" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="分管领导联系方式" prop="contactInformationOfLeaderInCharge">
+                <el-input v-model="editData.contactInformationOfLeaderInCharge" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="基地负责人" prop="headOfBase">
+                <el-input v-model="editData.headOfBase" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="基地负责人联系方式" prop="contactInformationOfBasePrincipal">
+                <el-input v-model="editData.contactInformationOfBasePrincipal" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="留守工作人员(人)" prop="leftBehindStaff">
+                <el-input v-model="editData.leftBehindStaff" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="留守居民(人)" prop="leftBehindResidents">
+                <el-input v-model="editData.leftBehindResidents" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="办公地点坐标经度">
+                <el-input v-model="editData.GPSCoordinates.lng" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" prop="latitude">
+              <el-form-item label="办公地点坐标纬度">
+                <el-input v-model="editData.GPSCoordinates.lat" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item>
+              <el-button :loading="btnLoading" type="primary" @click="submitForm('editData')">确定</el-button>
+              <el-button @click="editDialog = false">取消</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </el-dialog>
+
+      <!-- 分页栏 -->
+      <el-row>
+        <el-pagination
+          :current-page.sync="currentPage"
+          :page-sizes="[100, 200, 300, 400]"
+          :page-size="100"
+          layout="sizes, prev, pager, next"
+          :total="1000"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!-- 地图 -->
+      <el-row>
+        <el-col :span="24">
+          <baidu-map
+            :zoom="zoom"
+            style="width: 100%;height:300px;"
+            :scroll-wheel-zoom="true"
+            @ready="mapReady"
+          />
+        </el-col>
+      </el-row>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      tableData: [
+        {
+          baseName: '基地名称1号',
+          baseStatusQuo: '正在使用',
+          baseAddress: '北京',
+          GPSCoordinates: {
+            lng: 116.007802,
+            lat: 29.658627
+          },
+          responsibleLeadership: '小白',
+          contactInformationOfLeaderInCharge: '13652426531',
+          headOfBase: '但你',
+          contactInformationOfBasePrincipal: '16325426325',
+          leftBehindStaff: '110人',
+          leftBehindResidents: '220人',
+          id: '1',
+          hazardSource: '非常危险'
+        },
+        {
+          baseName: '基地名称2号',
+          baseStatusQuo: '荒废',
+          baseAddress: '哈尔滨',
+          GPSCoordinates: {
+            lng: 126.471615,
+            lat: 45.929346
+          },
+          responsibleLeadership: '可可',
+          contactInformationOfLeaderInCharge: '13663256531',
+          headOfBase: '呼和',
+          contactInformationOfBasePrincipal: '19625426325',
+          leftBehindStaff: '110人',
+          leftBehindResidents: '220人',
+          id: '2',
+          hazardSource: '非常危险'
+        }
+      ],
+      editData: {
+        baseName: '',
+        baseStatusQuo: '',
+        baseAddress: '',
+        GPSCoordinates: {
+          lng: '',
+          lat: ''
+        },
+        responsibleLeadership: '',
+        contactInformationOfLeaderInCharge: '',
+        headOfBase: '',
+        contactInformationOfBasePrincipal: '',
+        leftBehindStaff: '',
+        leftBehindResidents: '',
+        hazardSource: ''
+      },
+      addData: {
+        baseName: '',
+        baseStatusQuo: '',
+        baseAddress: '',
+        GPSCoordinates: {
+          lng: '',
+          lat: ''
+        },
+        responsibleLeadership: '',
+        contactInformationOfLeaderInCharge: '',
+        headOfBase: '',
+        contactInformationOfBasePrincipal: '',
+        leftBehindStaff: '',
+        leftBehindResidents: '',
+        hazardSource: ''
+      },
+      GPSCoordinatesCenter: [
+        [106.653298, 29.732213, '重庆江北国际机场'],
+        [115.807698, 28.662684, '地址：南昌市红谷滩新区学府大道999号'],
+        [116.412222, 39.912345, '地址：北京市东城区正义路甲5号'],
+        [111.716982, 40.890667, '呼和浩特']
+      ],
+      rules: {
+        baseName: [
+          { required: true, message: '基地名称不能为空', trigger: 'blur' }
+        ],
+        baseStatusQuo: [
+          { required: true, message: '基地现状不能为空', trigger: 'blur' }
+        ],
+        baseAddress: [
+          { required: true, message: '基地地址不能为空', trigger: 'blur' }
+        ],
+        GPSCoordinates: [
+          { required: true, message: '基地GPS坐标不能为空', trigger: 'blur' }
+        ],
+        responsibleLeadership: [
+          { required: true, message: '分管领导不能为空', trigger: 'blur' }
+        ],
+        contactInformationOfLeaderInCharge: [
+          { required: true, message: '分管领导联系方式不能为空', trigger: 'blur' }
+        ],
+        headOfBase: [
+          { required: true, message: '基地负责人不能为空', trigger: 'blur' }
+        ],
+        contactInformationOfBasePrincipal: [
+          { required: true, message: '基地负责人联系方式不能为空', trigger: 'blur' }
+        ],
+        leftBehindStaff: [
+          { required: true, message: '留守工作人员(人)不能为空', trigger: 'blur' }
+        ],
+        leftBehindResidents: [
+          { required: true, message: '留守居民(人)不能为空', trigger: 'blur' }
+        ],
+        hazardSource: [
+          { required: true, message: '危险源不能为空', trigger: 'blur' }
+        ] },
+      zoom: 11,
+      btnLoading: false,
+      // 分页
+      currentPage: 5,
+      /* 默认只要打开另一个就关闭之前的 */
+      getRowKeys(row) {
+        // console.log(row)
+        return row.id
+      },
+      GPSCoordinates: {
+        lng: 0,
+        lat: 0
+      },
+      editDialog: false,
+      expands: []
+    }
+  },
+  methods: {
+    submitForm(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          alert('添加成功')
+          this.editDialog = false
+        }
+      })
+    },
+    editOpenDialog(index, row) {
+      this.editDialog = true // 编辑信息模态框显示
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editData = Object.assign({}, row)
+    },
+    handleClose(done) {
+      this.$confirm('确认关闭？')
+        .then(_ => {
+          done()
+        })
+        .catch(_ => {})
+    },
+    // 设置当前对象所在的下标，用于点击详情前获取数组中该对象的经纬度
+    setCurrentIndex(index) {
+      this.tableData[index].index = index
+    },
+    // 折叠面板每次只能展开一行
+    expandSelect(row, expandedRows) {
+      var that = this
+      if (expandedRows.length) {
+        that.expands = []
+        if (row) {
+          this.GPSCoordinates = row.GPSCoordinates
+          // 打开当前点击的 详情
+          that.expands.push(row.id)// 每次push进去的是每行的ID
+        }
+      } else {
+        that.expands = []// 默认不展开
+      }
+    },
+    handleSizeChange(val) {
+      console.log(`每页 ${val} 条`)
+    },
+    handleCurrentChange(val) {
+      console.log(`当前页: ${val}`)
+    },
+    handler({ BMap, map }) {
+      // window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(this.GPSCoordinates.lng, this.GPSCoordinates.lat) // 初始化地图,设置中心点坐标和地图级别
+      map.centerAndZoom(point, this.zoom)
+      var label = new BMap.Label('哈嘎嘿嘿')
+      var marker = new BMap.Marker(point, label) // 创建标注
+      map.addOverlay(marker) // 将标注添加到地图中
+      var circle = new BMap.Circle(point, 6, {
+        strokeColor: 'Red',
+        strokeWeight: 6,
+        strokeOpacity: 1,
+        Color: 'Red',
+        fillColor: '#f03'
+      })
+      // 将标注添加到地图中
+      map.addOverlay(circle)
+    },
+    mapReady({ BMap, map }) {
+      map.centerAndZoom(new BMap.Point(104.769128, 34.972443), 5)
+      var data_info = this.GPSCoordinatesCenter
+      var opts = {
+        width: 250, // 信息窗口宽度
+        height: 60, // 信息窗口高度
+        title: '信息窗口', // 信息窗口标题
+        enableMessage: true // 设置允许信息窗发送短息
+      }
+      for (var i = 0; i < data_info.length; i++) {
+      // eslint-disable-next-line no-undef
+        var marker = new BMap.Marker(
+          new BMap.Point(data_info[i][0], data_info[i][1])
+        )
+        // 创建标注
+        var content = data_info[i][2]
+        map.addOverlay(marker)
+        // 将标注添加到地图中
+        addClickHandler(content, marker)
+      }
+      function addClickHandler(content, marker) {
+        marker.addEventListener('click', function(e) {
+          openInfo(content, e)
+        })
+      }
+      function openInfo(content, e) {
+        var p = e.target
+        var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat)
+        var infoWindow = new BMap.InfoWindow(content, opts) // 创建信息窗口对象
+        map.openInfoWindow(infoWindow, point) // 开启信息窗口
+      }
+    }
+  }
+}
+</script>
+
+<style scoped>
+#bmap {
+  height: 520px;
+}
+</style>

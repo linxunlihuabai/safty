@@ -1,0 +1,238 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-form
+        ref="uploadForm"
+        :model="uploadForm"
+        :rules="uploadFormRules"
+        label-width="110px"
+        size="small"
+      >
+        <el-form-item label="事故名称" prop="title">
+          <el-input v-model="uploadForm.title" class="zhou-input" />
+        </el-form-item>
+        <el-form-item label="发生时间" prop="time">
+          <el-date-picker
+            v-model="uploadForm.time"
+            value-format="yyyy-MM-dd"
+            style="width:300px;"
+            type="date"
+            placeholder="选择日期"
+          />
+        </el-form-item>
+        <el-form-item label="统计年份" prop="year">
+          <el-date-picker
+            v-model="uploadForm.year"
+            type="year"
+            value-format="yyyy"
+            placeholder="选择年"
+          />
+        </el-form-item>
+        <el-form-item label="事故原因" prop="reason">
+          <el-input
+            v-model="uploadForm.reason"
+            class="zhou-input"
+            type="textarea"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="轻伤人数" prop="minorInjuries">
+          <el-input-number
+            v-model="uploadForm.minorInjuries"
+            :min="0"
+            :max="1000"
+          />
+        </el-form-item>
+        <el-form-item label="重伤人数" prop="seriousInjuries">
+          <el-input-number
+            v-model="uploadForm.seriousInjuries"
+            :min="0"
+            :max="1000"
+          />
+        </el-form-item>
+        <el-form-item label="死亡人数" prop="deathToll">
+          <el-input-number
+            v-model="uploadForm.deathToll"
+            :min="0"
+            :max="1000"
+          />
+        </el-form-item>
+        <el-form-item v-if="type" label="是否工伤" prop="industrialInjury">
+          <el-radio-group v-model="uploadForm.industrialInjury" @change="industrialInjuryChange">
+            <el-radio :checked="uploadForm.industrialInjury==true" :label="true">是</el-radio>
+            <el-radio :checked="uploadForm.industrialInjury==false" :label="false">否</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <div v-if="type" v-show="industrialInjuryShow">
+          <el-form-item label="工伤" prop="injurySummaryId">
+            <sun-select v-model="uploadForm.newInjury.injurySummaryId" :options="industrialInjuryOptions" />
+          </el-form-item>
+          <el-form-item label="年月" prop="yyyymm">
+            <el-date-picker
+              v-model="uploadForm.newInjury.yyyymm"
+              type="month"
+              value-format="yyyy-MM-dd"
+              placeholder="选择年月"
+            />
+          </el-form-item>
+          <el-form-item label="受伤原因" prop="injurieReason">
+            <el-input v-model="uploadForm.newInjury.injurieReason" type="textarea" />
+          </el-form-item>
+          <el-form-item label="受伤等级" prop="injurieLevel">
+            <el-input v-model="uploadForm.newInjury.injurieLevel" />
+          </el-form-item>
+          <el-form-item label="工伤人数" prop="injurieNumber">
+            <el-input-number
+              v-model="uploadForm.newInjury.injurieNumber"
+              :min="0"
+              :max="1000"
+              size="small"
+              style="width:220px"
+            />
+          </el-form-item>
+          <el-form-item label="备注" prop="remarks">
+            <el-input v-model="uploadForm.newInjury.remarks" type="textarea" />
+          </el-form-item>
+        </div>
+        <el-form-item label="直接经济损失" prop="directLosses">
+          <el-input v-model="uploadForm.directLosses" class="zhou-input">
+            <template slot="append">万元</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="间接经济损失" prop="indirectLosses">
+          <el-input v-model="uploadForm.indirectLosses" class="zhou-input">
+            <template slot="append">万元</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="btnLoading" @click="accidentReportFormSubmit">立即创建</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+  </div>
+</template>
+
+<script>
+import { getAccidents } from '@/api/accidentReport/accidentReport' // 获取项目列表API
+import { accidentsAdd, accidentsUpdate } from '@/api/accidentReport/accidentReport'
+import { isNumber } from '@/utils/regList'
+export default {
+  data() {
+    const isNumberValidatore = (rule, value, callback) => {
+      isNumber(rule, value, callback)
+    }
+    return {
+      uploadForm: {
+        title: '',
+        time: '',
+        reason: '',
+        minorInjuries: '',
+        seriousInjuries: '',
+        deathToll: '',
+        directLosses: '',
+        indirectLosses: '',
+        year: '',
+        handlingOfRelevantResponsiblePerson: '',
+        industrialInjury: false,
+        newInjury: {
+          injurySummaryId: 0,
+          injurieLevel: 0,
+          injurieNumber: 0,
+          injurieReason: '',
+          remarks: '',
+          yyyymm: ''
+        }
+      },
+      uploadFormRules: {
+        title: [{ required: true, message: '事故名称不能为空', trigger: 'blur' }],
+        year: [{ required: true, message: '统计年份不能为空', trigger: 'blur' }],
+        time: [{ required: true, message: '发生时间不能为空', trigger: 'blur' }],
+        reason: [{ required: true, message: '事故原因不能为空', trigger: 'blur' }],
+        minorInjuries: [{ required: true, message: '轻伤人数不能为空', trigger: 'blur' }],
+        seriousInjuries: [{ required: true, message: '重伤人数不能为空', trigger: 'blur' }],
+        deathToll: [{ required: true, message: '死亡人数不能为空', trigger: 'blur' }],
+        directLosses: [{ validator: isNumberValidatore, trigger: 'blur' }],
+        indirectLosses: [{ validator: isNumberValidatore, trigger: 'blur' }, { validator: isNumberValidatore, trigger: 'change' }],
+        handlingOfRelevantResponsiblePerson: [{ required: true, message: '相关责任人处理情况不能为空', trigger: 'blur' }],
+        industrialInjury: [{ required: true, message: '工伤选择不能为空', trigger: 'blur' }]
+      },
+      industrialInjuryOptions: [],
+      uploadDialog: false,
+      btnLoading: false,
+      industrialInjuryShow: false,
+      type: true
+    }
+  },
+  created() {
+    getAccidents().then(res => {
+      const data = res.data.obj
+      this.industrialInjuryOptions = data.map(item => {
+        return {
+          label: item.label,
+          value: item.value
+        }
+      })
+      console.log(this.industrialInjuryOptions)
+    })
+  },
+  mounted() {
+    const params = this.$route.params
+    this.handle = params.handle
+    if (this.handle === '修改') {
+      this.uploadForm = params.row
+      this.uploadForm.year = this.uploadForm.year + ''
+      this.type = false
+    } else {
+      this.handle = '添加'
+    }
+  },
+  methods: {
+    accidentReportFormSubmit() {
+      this.$refs.uploadForm.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            accidentsAdd(this.uploadForm).then(res => {
+              this.btnLoading = false
+              if (res.data.status === 200) {
+                this.$router.push('/accidentReport/accidentReport')
+              }
+            })
+          } else if (this.handle === '修改') {
+            accidentsUpdate(this.uploadForm).then((res) => {
+              this.btnLoading = false
+              // this.$router.push('/accidentReport/accidentReport')
+              if (res.data.status === 200) {
+                this.$router.push('/accidentReport/accidentReport')
+              }
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    industrialInjuryChange() {
+      if (this.uploadForm.industrialInjury) {
+        this.industrialInjuryShow = true
+      } else {
+        this.industrialInjuryShow = false
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.zhou-input{
+width: 100%;
+}
+.el-input--small,.el-select--small,.el-input-number--small{
+  width:100%;
+}
+</style>

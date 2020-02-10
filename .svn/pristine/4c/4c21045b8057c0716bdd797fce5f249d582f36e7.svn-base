@@ -1,0 +1,566 @@
+<template>
+  <div class="dashboard-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row>
+        <el-col :span="6">
+          <el-button type="primary" size="small" @click="addDialog=true">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+        </el-col>
+        <el-col :span="18">
+          <el-form :inline="true" :model="formInline" class="demo-form-inline">
+            <el-form-item>
+              <el-input
+                v-model="formInline.organization"
+                size="small"
+                placeholder="单位名称"
+                style="width:180px;"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" icon="el-icon-search" size="small" @click="onSubmit">查询</el-button>
+            </el-form-item>
+          </el-form>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col>
+          <!-- v-loading="listLoading" -->
+          <!-- 安全费用使用情况 -->
+          <el-table class="usage-of-safety-expenses" border :data="tableData" size="small" stripe>
+            <!-- 安全费用详情展示 -->
+            <el-table-column prop="companyName" label="检查地点" width="120" />
+            <el-table-column prop="legalRepresentative" label="检查时间" />
+            <el-table-column prop="phone" label="检查人员" />
+            <el-table-column prop="phone" label="隐患数量" />
+            <el-table-column prop="phone" label="领导参与情况" />
+            <el-table-column prop="phone" label="文件" />
+            <el-table-column label="操作">
+              <template slot-scope="scope">
+                <el-button-group>
+                  <el-button type="primary" size="mini" icon="el-icon-edit">编辑</el-button>
+                  <el-button type="primary" size="mini" icon="el-icon-delete">删除</el-button>
+                </el-button-group>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-row>
+      <!-- 分页栏 -->
+
+      <el-row>
+        <!-- 分页栏 -->
+        <el-pagination
+          :current-page.sync="currentPage2"
+          :page-sizes="[100, 200, 300, 400]"
+          :page-size="100"
+          layout="sizes, prev, pager, next"
+          :total="1000"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!--   <el-row>
+        <el-pagination layout="prev, pager, next" :total="50" />
+      </el-row> -->
+      <!-- 修改 -->
+      <el-dialog title="修改" :visible.sync="editDialog" width="50%" :before-close="handleClose">
+        <el-form ref="editData" :rules="rules" size="small" :model="editData" label-width="130px">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="企业名称">
+                <el-input v-model="editData.companyName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="法定代表人">
+                <el-input v-model="editData.legalRepresentative" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话">
+                <el-input v-model="editData.phone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话">
+                <el-input v-model="editData.phone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话">
+                <el-input v-model="editData.phone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话">
+                <el-input v-model="editData.phone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话">
+                <el-input v-model="editData.phone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="企业名称">
+                <el-input v-model="editData.companyName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="法定代表人">
+                <el-input v-model="editData.legalRepresentative" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话">
+                <el-input v-model="editData.phone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话">
+                <el-input v-model="editData.phone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话">
+                <el-input v-model="editData.phone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="联系电话">
+                <el-input v-model="editData.phone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item label="许可证扫描件上传">
+              <el-upload
+                action="https://jsonplaceholder.typicode.com/posts/"
+                :file-list="fileList"
+                list-type="picture-card"
+                :on-preview="handlePictureCardPreview"
+                :on-remove="handleRemove"
+                @error="handleLoadError"
+              >
+                <i class="el-icon-plus" />
+              </el-upload>
+              <el-dialog append-to-body :visible.sync="dialogVisible">
+                <img width="100%" :src="dialogImageUrl">
+              </el-dialog>
+            </el-form-item>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary">确定</el-button>
+            <el-button @click="editDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+      <!-- 弹出添加窗口 -->
+      <el-dialog title="新增" :visible.sync="addDialog" width="50%" :before-close="handleClose" >
+
+        <el-form
+          id="addData"
+          ref="addData"
+          size="small"
+          :model="addData"
+          :rules="rules"
+          label-width="130px"
+        >
+
+          <el-form-item label="检查地点">
+            <el-input v-model="addData.companyName" />
+          </el-form-item>
+
+          <el-form-item label="检查时间">
+            <el-input v-model="addData.legalRepresentative" />
+          </el-form-item>
+
+          <el-form-item label="检查人员">
+            <el-input v-model="addData.phone" />
+          </el-form-item>
+
+          <el-form-item label="领导参与情况">
+            <el-input v-model="addData.phone" />
+          </el-form-item>
+
+          <el-form-item label="许可证扫描件上传">
+            <el-upload
+              action="https://jsonplaceholder.typicode.com/posts/"
+              list-type="picture-card"
+              :on-preview="handlePictureCardPreview"
+              :on-remove="handleRemove"
+            >
+              <i class="el-icon-plus" />
+            </el-upload>
+            <el-dialog append-to-body :visible.sync="dialogVisible">
+              <img width="100%" :src="dialogImageUrl" alt>
+            </el-dialog>
+          </el-form-item>
+
+        </el-form>
+        <el-divider />
+        <el-button type="primary" size="small" @click="innerVisible=true">添加隐患登记</el-button>
+        <el-table
+          :data="tableData"
+          style="width: 100%"
+          empty-text="战无数据"
+        >
+          <el-table-column
+            prop="date"
+            label="日期"
+            width="180"
+          />
+          <el-table-column
+            prop="name"
+            label="姓名"
+            width="180"
+          />
+          <el-table-column
+            prop="address"
+            label="地址"
+          />
+        </el-table>
+        <!-- 内层弹窗 -->
+        <el-dialog
+          title="隐患整改情况"
+          :visible.sync="innerVisible"
+          append-to-body
+        />
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="show=false">取 消</el-button>
+          <el-button type="primary" @click="onSubmit">立即提交</el-button>
+        </div>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+// import { BMap } from 'BMap'
+export default {
+  name: 'Dashboard',
+  data() {
+    return {
+      innerVisible:false,
+      active: 0,
+      fileList: [
+
+        {
+          // name可以为空，但是路径不可以
+          name: 'food.jpeg',
+          url:
+            'https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1575692911476&di=31f0688922bdef0b8930b51dd835d23f&imgtype=0&src=http%3A%2F%2Fb-ssl.duitang.com%2Fuploads%2Fitem%2F201210%2F04%2F20121004231502_NrBQG.jpeg'
+        },
+        {
+          name: 'food1.jpeg',
+          url:
+            'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100'
+        },
+        {
+          name: '',
+          url: ''
+        }
+      ],
+      /* 搜索栏显示 */
+      formInline: {
+        organization: '',
+        companyName: ''
+      },
+      tableData: [
+        {
+          companyName: '2016-05-03',
+          phone: '111',
+          date: '2016-05-03',
+          legalRepresentative: '王小虎',
+          province: '上海',
+          city: '普陀区',
+          address: '上海市普陀区金沙江路 1518 弄',
+          zip: 200333,
+          licence:
+            'https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1575692911476&di=31f0688922bdef0b8930b51dd835d23f&imgtype=0&src=http%3A%2F%2Fb-ssl.duitang.com%2Fuploads%2Fitem%2F201210%2F04%2F20121004231502_NrBQG.jpeg'
+        },
+        {
+          companyName: '地勘院',
+          phone: '111222',
+          date: '2016-05-02',
+          legalRepresentative: '王小虎',
+          province: '上海',
+          city: '普陀区',
+          address: '上海市普陀区金沙江路 1518 弄',
+          zip: 200333,
+          licence:
+            'https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg'
+        },
+        {
+          companyName: '地勘院',
+          phone: '111222',
+          date: '2016-05-04',
+          legalRepresentative: '李四',
+          province: '上海',
+          city: '普陀区',
+          address: '上海市普陀区金沙江路 1518 弄',
+          zip: 200333,
+          licence:
+            'https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg'
+        },
+        {
+          companyName: '地勘院',
+          phone: '111222',
+          date: '2016-05-01',
+          legalRepresentative: '王小虎',
+          province: '上海',
+          city: '普陀区',
+          address: '上海市普陀区金沙江路 1518 弄',
+          zip: 200333,
+          licence:
+            'https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg'
+        },
+        {
+          companyName: '地勘院',
+          phone: '111222',
+          date: '2016-05-08',
+          legalRepresentative: '王小虎',
+          province: '上海',
+          city: '普陀区',
+          address: '上海市普陀区金沙江路 1518 弄',
+          zip: 200333,
+          licence:
+            'https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg'
+        }
+      ],
+      editData: {
+        companyName: '',
+        legalRepresentative: '',
+        phone: '',
+        licence: ''
+      },
+      addData: {
+        companyName: '',
+        legalRepresentative: '',
+        phone: '',
+        licence: ''
+      },
+      rules: {
+        companyName: [
+          { required: true, message: '请输入企业名称', trigger: 'blur' }
+        ],
+        legalRepresentative: [
+          { required: true, message: '请输入法定代表人', trigger: 'blur' }
+        ],
+        phone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }]
+      },
+      editDialog: false,
+      dialogImageUrl: '',
+      /* 页面加载 */
+      // listLoading: true,
+      dialogVisible: false,
+      addDialog: false,
+      currentPage2: 5,
+      btnLoading: false
+    }
+  },
+  mounted() {
+    var map = new BMap.Map('bmap')
+    // 中心位置在甘肃，然后5倍速
+    map.centerAndZoom(new BMap.Point(104.769128, 34.972443), 5)
+    var data_info = [
+      [106.653298, 29.732213, '重庆江北国际机场'],
+      [115.807698, 28.662684, '地址：南昌市红谷滩新区学府大道999号'],
+      [116.412222, 39.912345, '地址：北京市东城区正义路甲5号']
+    ]
+    var opts = {
+      width: 250, // 信息窗口宽度
+      height: 60, // 信息窗口高度
+      title: '信息窗口', // 信息窗口标题
+      enableMessage: true // 设置允许信息窗发送短息
+    }
+    for (var i = 0; i < data_info.length; i++) {
+      // eslint-disable-next-line no-undef
+      var marker = new BMap.Marker(
+        new BMap.Point(data_info[i][0], data_info[i][1])
+      )
+      // 创建标注
+      var content = data_info[i][2]
+      map.addOverlay(marker)
+      // 将标注添加到地图中
+      addClickHandler(content, marker)
+    }
+    function addClickHandler(content, marker) {
+      marker.addEventListener('click', function(e) {
+        openInfo(content, e)
+      })
+    }
+    function openInfo(content, e) {
+      var p = e.target
+      var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat)
+      var infoWindow = new BMap.InfoWindow(content, opts) // 创建信息窗口对象
+      map.openInfoWindow(infoWindow, point) // 开启信息窗口
+    }
+    // 右键放大
+    var txtMenuItem = [
+      {
+        text: '放大',
+        callback: function() {
+          map.zoomIn()
+        }
+      },
+      {
+        text: '缩小',
+        callback: function() {
+          map.zoomOut()
+        }
+      }
+    ]
+    var menu = new BMap.ContextMenu()
+    // eslint-disable-next-line no-redeclare
+    for (var i = 0; i < txtMenuItem.length; i++) {
+      menu.addItem(new BMap.MenuItem(txtMenuItem[i].text, txtMenuItem[i].callback, 100))
+    }
+    // 右键放大
+    map.addContextMenu(menu)
+    map.enableScrollWheelZoom(true) // 开启鼠标滚轮缩放
+  },
+  methods: {
+    handleSizeChange(val) {
+      console.log(`每页 ${val} 条`)
+    },
+    handleCurrentChange(val) {
+      console.log(`当前页: ${val}`)
+    },
+    /* 查询提交按钮 */
+    onSubmit() {
+      this.active++
+    },
+    handleClose(done) {
+      this.$confirm('确认关闭？')
+        .then(_ => {
+          done()
+        })
+        .catch(_ => {})
+    },
+    editOpenDialog(index, row) {
+      this.editDialog = true // 编辑信息模态框显示
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editData = Object.assign({}, row)
+    },
+    /* 照片墙 */
+    handleRemove(file, fileList) {
+      console.log(file, fileList)
+    },
+    handlePictureCardPreview(file) {
+      this.dialogImageUrl = file.url
+      this.dialogVisible = true
+    },
+    /* 显示图片出错时 */
+    handleLoadError(e) {
+      const img = e.srcElement
+      this.imageUrl = this.errorLoadImg //  用加载失败的图片替代之
+      img.onerror = null //  清除错误:如果错误时加载时显示的图片出错，将会一直循环，所以我们必须清除掉错误，限制运行一次
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+.usage-of-safety-expenses{
+  /deep/ .inner-table{
+    margin-bottom: 20px;
+    thead th{
+      font-size: 1.6rem
+    }
+  }
+}
+.slot-header{
+  position: relative;
+  .operation-group{
+    position: absolute;
+    right: 0;
+    width: auto
+  }
+
+}
+.btn-text-group{
+  /deep/ .el-button{
+    padding: 5px;
+    border: none
+  }
+}
+</style>

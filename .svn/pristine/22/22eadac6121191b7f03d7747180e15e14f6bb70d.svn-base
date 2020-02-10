@@ -1,0 +1,26 @@
+import { postRequest, deleteRequest, putRequest } from '@/utils/request'
+
+// 人员持证 -> 添加
+export function projectStatusAdd(data) {
+  return postRequest('/basicData/project/add', data)
+}
+
+// 人员持证 -> 删除
+export function projectStatusDelete(id) {
+  return deleteRequest(`/basicData/project/delete/${id}`)
+}
+
+// 人员持证 -> 修改
+export function projectStatusUpdate(data) {
+  return putRequest(`/basicData/project/update/${data.id}`, data)
+}
+
+// 人员持证 -> 查看
+export function projectStatusList(data) {
+  return postRequest('/basicData/project/list', data)
+}
+
+// 人员持证 历史修改
+export function historyProjectStatus(id) {
+  return postRequest(`/basicData/project/historys/${id}`)
+}

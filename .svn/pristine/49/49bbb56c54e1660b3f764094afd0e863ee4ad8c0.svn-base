@@ -1,0 +1,455 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-button type="primary" size="small" @click="addSafetyEducationFrom">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <el-table
+        v-loading="safetyEducationListLoading"
+        :data="page.list"
+        border
+        style="width: 100%"
+      >
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <el-form class="demo-table-expand">
+              <el-row class="zhou-one">
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="开始时间：">
+                    <span>{{ props.row.startTime | dateFormat('YYYY年MM月DD日') }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="结束时间：">
+                    <span>{{ props.row.endTime | dateFormat('YYYY年MM月DD日') }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="讲师：">
+                    <span>{{ props.row.lecturer }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="参加人数：">
+                    <span>{{ props.row.participants }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="领导参与情况：">
+                    <span>{{ props.row.leaders }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="领导是否参与：">
+                    <span>{{ props.row.leadersParticipate }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="enterpriseName"
+          label="企业名称"
+        />
+        <el-table-column
+          prop="title"
+          label="培训名称"
+        />
+        <el-table-column
+          prop="type"
+          label="培训类别"
+        />
+        <el-table-column
+          prop="mode"
+          label="培训方式"
+        />
+        <el-table-column
+          prop="content"
+          label="培训内容"
+        />
+        <el-table-column label="现场照片">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <!-- 教材,多文件 -->
+              <sun-button :type="'view'" @click="viewPics(scope.row.teachingMaterial)" />
+              <!-- 培训表,一个文件, -->
+              <sun-button :type="'view'" @click="viewPics(scope.row.trainingForm)" />
+              <!-- 现场照片 -->
+              <sun-button :type="'view'" @click="viewPics(scope.row.scene)" />
+              <!-- 签到情况,一个 -->
+              <sun-button :type="'view'" @click="viewPics(scope.row.attendance)" />
+              <!-- 其它材料 -->
+              <sun-button :type="'view'" @click="viewPics(scope.row.other)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editSafetyPublicityForm(scope)" />
+              <sun-button :type="'delete'" @click="delSafetyPublicityList(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'history'" @click="history(scope)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!-- 安全教育培训 -->
+      <el-dialog title="应急预案" :visible.sync="safetyEducationFromDialog" width="800px">
+        <el-form
+          ref="safetyEducationFrom"
+          :rules="safetyEducationFromRules"
+          size="small"
+          :model="safetyEducationFrom"
+          @closed="handleDialogClosed"
+        >
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="培训名称" prop="title" label-width="78px">
+                <el-input
+                  v-model="safetyEducationFrom.title"
+                  class="zhou-lei"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="培训类别" prop="type" label-width="78px">
+                <sun-select :module="'培训类别'" class="zhou-lei" :value.sync="safetyEducationFrom.type" placeholder="请选择预案类别" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="培训方式" prop="mode" label-width="78px">
+                <sun-select :module="'培训方式'" class="zhou-lei" :value.sync="safetyEducationFrom.mode" placeholder="请选择预案类别" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="培训内容" prop="content" label-width="78px">
+                <el-input
+                  v-model="safetyEducationFrom.content"
+                  class="zhou-lei"
+                  maxlength="100"
+                  type="textarea"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="开始时间" prop="startTime" label-width="78px">
+                <el-date-picker
+                  v-model="safetyEducationFrom.startTime"
+                  type="date"
+                  value-format="yyyy-MM-dd"
+                  style="width:200px"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="结束时间" prop="endTime" label-width="78px">
+                <el-date-picker
+                  v-model="safetyEducationFrom.endTime"
+                  type="date"
+                  value-format="yyyy-MM-dd"
+                  style="width:200px"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="讲师" prop="lecturer" label-width="78px">
+                <el-input
+                  v-model="safetyEducationFrom.lecturer"
+                  class="zhou-lei"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="参加人数" prop="participants" label-width="78px">
+                <el-input-number v-model="safetyEducationFrom.participants" :min="1" :max="10" label="描述文字" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="领导参与情况" prop="leaders" label-width="78px">
+                <el-input
+                  v-model="safetyEducationFrom.leaders"
+                  class="zhou-lei"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item label="领导是否参与" prop="leadersParticipate" label-width="100px">
+              <el-radio-group
+                v-model="safetyEducationFrom.leadersParticipate"
+                class="zhou-lei"
+              >
+                <el-radio :checked="safetyEducationFrom.leadersParticipate==true" :label="true">是</el-radio>
+                <el-radio :checked="safetyEducationFrom.leadersParticipate==false" :label="false">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="教材" prop="teachingMaterial" label-width="94px">
+                <sun-upload
+                  ref="UPLOAD"
+                  action="/ajax/upload"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  accept=".pdf,.PDF,.txt,.doc"
+                  :on-success="handleSuccessTeachingMaterial"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemoveTeachingMaterial"
+                  :file-list="safetyEducationFrom.teachingMaterial"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="培训表" prop="trainingForm" label-width="94px">
+                <sun-upload
+                  ref="upload"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  action="/ajax/upload"
+                  accept=".pdf,.PDF,.txt,.doc"
+                  :on-success="handleSuccessTrainingForm"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemoveTrainingForm"
+                  :file-list="safetyEducationFrom.trainingForm"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="现场照片" prop="scene" label-width="94px">
+                <sun-upload
+                  ref="upload"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  action="/ajax/upload"
+                  :on-success="handleSuccessScene"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemoveScene"
+                  :file-list="safetyEducationFrom.scene"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="签到情况" prop="attendance" label-width="94px">
+                <sun-upload
+                  ref="upload"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  action="/ajax/upload"
+                  :on-success="handleSuccessAttendance"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemoveAttendance"
+                  :file-list="safetyEducationFrom.attendance"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="其它材料" prop="other" label-width="94px">
+                <sun-upload
+                  ref="upload"
+                  :data="GLOBAL.FILE_TYPE.OTHER"
+                  action="/ajax/upload"
+                  :on-success="handleSuccessOther"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemoveOther"
+                  :file-list="safetyEducationFrom.other"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="specialEquipmentFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 10
+	  },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      safetyEducationFrom: {
+        title: '',
+        type: '',
+        mode: '',
+        content: '',
+        startTime: '',
+        endTime: '',
+        lecturer: '',
+        participants: '',
+        leaders: '',
+        leadersParticipate: '',
+        //   教材
+        teachingMaterial: '',
+        teachingMaterialFiles: '',
+        //   培训表
+        trainingForm: '',
+        trainingFormFiles: '',
+        //    现场照片
+        scene: '',
+        sceneFiles: '',
+        //   签到情况
+        attendance: '',
+        attendanceFiles: '',
+        //   其它材料
+        other: '',
+        otherFiles: ''
+      },
+      safetyEducationFromRules: {
+        title: [{ required: true, message: '培训名称不能为空', trigger: 'blur' }],
+        type: [{ required: true, message: '培训类别不能为空', trigger: 'blur' }],
+        mode: [{ required: true, message: '培训方式不能为空', trigger: 'blur' }],
+        content: [{ required: true, message: '培训内容不能为空', trigger: 'blur' }],
+        startTime: [{ required: true, message: '开始时间不能为空', trigger: 'blur' }],
+        endTime: [{ required: true, message: '结束时间不能为空', trigger: 'blur' }],
+        lecturer: [{ required: true, message: '讲师不能为空', trigger: 'blur' }],
+        participants: [{ required: true, message: '参加人数不能为空', trigger: 'blur' }],
+        leaders: [{ required: true, message: '领导参与情况不能为空', trigger: 'blur' }],
+        teachingMaterial: [{ required: true, message: '教材不能为空', trigger: 'blur' }],
+        trainingForm: [{ required: true, message: '培训表不能为空', trigger: 'blur' }],
+        scene: [{ required: true, message: '现场照片不能为空', trigger: 'blur' }],
+        attendance: [{ required: true, message: '签到情况不能为空', trigger: 'blur' }],
+        other: [{ required: true, message: '其它材料不能为空', trigger: 'blur' }]
+      },
+      safetyEducationListLoading: true,
+      btnLoading: false,
+      historyTable: false,
+      historyDialog: false,
+      safetyEducationFromDialog: false
+    }
+  },
+  methods: {
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.safetyEducationFrom.resetFields()
+      this.safetyEducationFormDialog = false
+    },
+    specialEquipmentFormSubmit() {},
+
+    addSafetyEducationFrom() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.safetyEducationFrom.title = null
+        this.safetyEducationFrom.type = null
+        this.safetyEducationFrom.mode = null
+        this.safetyEducationFrom.content = null
+        this.safetyEducationFrom.startTime = null
+        this.safetyEducationFrom.endTime = null
+        this.safetyEducationFrom.lecturer = null
+        this.safetyEducationFrom.leaders = false
+        this.safetyEducationFrom.teachingMaterial = null
+        this.safetyEducationFrom.trainingForm = null
+        this.safetyEducationFrom.scene = null
+        this.safetyEducationFrom.other = null
+      })
+      this.safetyEducationFromDialog = true
+    },
+
+    //   培训表
+    handleSuccessTrainingForm(response, file, files) {
+      this.safetyEducationFrom.trainingForm = response.obj.fileId
+      this.safetyEducationFrom.trainingFormFiles = files
+    },
+    handleRemoveTrainingForm(file, files) {
+      this.safetyEducationFrom.trainingForm = null
+      this.safetyEducationFrom.trainingFormFiles = files
+    },
+    //    现场照片
+    handleSuccessScene(response, file, files) {
+      this.safetyEducationFrom.scene = response.obj.fileId
+      this.safetyEducationFrom.sceneFiles = files
+    },
+    handleRemoveScene(file, files) {
+      this.safetyEducationFrom.scene = null
+      this.safetyEducationFrom.sceneFiles = files
+    },
+    // 签到情况
+    handleSuccessAttendance(response, file, files) {
+      this.safetyEducationFrom.attendance = response.obj.fileId
+      this.safetyEducationFrom.attendanceFiles = files
+    },
+    handleRemoveAttendance(file, files) {
+      this.safetyEducationFrom.attendance = null
+      this.safetyEducationFrom.attendanceFiles = files
+    },
+    // 其它材料
+    handleSuccessOther(response, file, files) {
+      this.safetyEducationFrom.other = response.obj.fileId
+      this.safetyEducationFrom.otherFiles = files
+    },
+    handleRemoveOther(file, files) {
+      this.safetyEducationFrom.other = null
+      this.safetyEducationFrom.otherFiles = files
+    },
+    // 教材
+    handleSuccessTeachingMaterial(response, file, files) {
+      this.safetyEducationFrom.teachingMaterial = response.obj.fileId
+      this.safetyEducationFrom.teachingMaterialFiles = files
+    },
+    handleRemoveTeachingMaterial(file, files) {
+      this.safetyEducationFrom.teachingMaterial = null
+      this.safetyEducationFrom.teachingMaterialFiles = files
+    },
+    // 查看
+    handlePictureCardPreview(file) {
+      this.viewPics([file])
+    },
+    // 查看照片
+    viewPics(files) {
+      if (!files) {
+        alert('没图片呀')
+      } else {
+        this.dialogViewPics = true
+        this.files = files
+      }
+    }
+  }
+}
+</script>
+
+<style>
+
+</style>

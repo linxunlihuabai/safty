@@ -1,0 +1,44 @@
+import { getEnterpriseOptions } from '@/api/config/index'
+import { getMenuList } from '@/api/systemSetup/menuManagement'
+import { getLocalStorage, saveLocalStorage } from '@/utils/localStorage'
+
+export default {
+  namespaced: true,
+  state: {
+    EnterpriseOptions: []
+  },
+  mutations: {
+    SET_ENTERPRISEOPTIONS(state, data) {
+      state.EnterpriseOptions = data
+    }
+  },
+  actions: {
+    // 获取路由菜单
+    getRouter() {
+      return new Promise((resolve, reject) => {
+        getMenuList().then(res => {
+          const accessRoutes = res.data.obj[0].children
+          saveLocalStorage('router', accessRoutes) // 存储路由到localStorage
+          resolve()
+        }).catch(error => {
+          reject(error)
+        })
+      })
+    },
+    // 获取企业下拉列表数据
+    getEnterpriseOptions({ commit }) {
+      // 判断本地是否有企业信息
+      if (getLocalStorage('EnterpriseOptions')) {
+        commit('SET_ENTERPRISEOPTIONS', getLocalStorage('EnterpriseOptions'))
+      } else {
+        getEnterpriseOptions()
+          .then((res) => {
+            commit('SET_ENTERPRISEOPTIONS', res.data.obj)
+            // 企业信息存到本地
+            saveLocalStorage('EnterpriseOptions', res.data.obj)
+          })
+      }
+    }
+  }
+}
+

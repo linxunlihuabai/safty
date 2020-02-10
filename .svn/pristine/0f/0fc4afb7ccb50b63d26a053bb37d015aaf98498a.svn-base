@@ -1,0 +1,495 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row type="flex" justify="space-between" align="top">
+
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-plus"
+          @click="addform"
+        >
+          新增
+        </el-button>
+
+        <div>
+          <el-autocomplete
+            v-model="searchTemp"
+            size="small"
+            :fetch-suggestions="querySearch"
+            placeholder="请输入内容"
+            style="width:180px;margin-right:10px"
+            :trigger-on-focus="false"
+            @select="handleSelect"
+          />
+
+          <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+        </div>
+      </el-row>
+      <el-row>
+        <el-col>
+          <!-- v-loading="listLoading" -->
+          <!-- 账户 -->
+          <el-table ref="table" border :data="tableData" size="small" stripe>
+            <!-- 账户详情展示 -->
+            <el-table-column prop="username" label="用户名" />
+            <el-table-column prop="avatar" label="头像">
+              <template slot-scope="scope">
+                <el-avatar size="large" :src="scope.row.avatar" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="email" label="邮箱" />
+            <el-table-column prop="responsiblePerson" label="安全负责人" />
+            <el-table-column prop="responsiblePersonPhone" label="安全负责人电话" />
+            <el-table-column label="操作" width="120">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button type="text" size="mini" icon="el-icon-edit" @click="editItem(scope)" />
+                  <el-button type="text" size="mini" icon="el-icon-delete" @click="delItem(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-row>
+      <!-- 分页栏 -->
+
+      <el-row ref="page">
+        <!-- 分页栏 -->
+        <el-pagination
+          :current-page.sync="cpage"
+          :page-sizes="[5, 10, 15, 20]"
+          :page-size.sync="pageSize"
+          layout="sizes, prev, pager, next"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!-- 弹出添加窗口 -->
+
+      <!-- 登记表 -->
+      <el-dialog
+        title="添加"
+        :visible.sync="formDialog"
+        width="60%"
+        :close-on-click-modal="false"
+        @closed="handleDialogClosed('form')"
+      >
+
+        <el-form
+          id="addData"
+          ref="form"
+          size="small"
+          :model="form"
+          :rules="formRules"
+          label-width="160px"
+        >
+          <el-form-item label="头像" prop="avatar">
+            <el-radio
+              v-for="(item,index) in GLOBAL.DEFAULT_AVATAR"
+              :key="index"
+              v-model="form.avatar"
+              :label="item.url"
+              class="avatar"
+            >
+              <el-avatar :size="60" :src="item.url" />
+            </el-radio>
+          </el-form-item>
+
+          <el-form-item label="用户名" prop="username">
+            <el-input v-model="form.username" />
+          </el-form-item>
+
+          <el-form-item label="密码" prop="password">
+            <el-input v-model="form.password" type="password" />
+          </el-form-item>
+          <el-form-item label="确认密码" prop="confirmPassword">
+            <el-input v-model="form.confirmPassword" type="password" />
+          </el-form-item>
+
+          <el-form-item label="邮箱" prop="email">
+            <el-input v-model="form.email" />
+          </el-form-item>
+
+          <el-form-item label="企业编号" prop="enterpriseCode">
+            <el-select v-model="form.enterpriseCode" placeholder="请选择">
+              <el-option
+                v-for="item in enterprise_options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="统一社会信用编码" prop="creditCode">
+            <el-input v-model="form.creditCode" />
+          </el-form-item>
+
+          <el-form-item label="安全负责人" prop="responsiblePerson">
+            <el-input v-model="form.responsiblePerson" />
+          </el-form-item>
+          <el-form-item label="安全负责人电话" prop="responsiblePersonPhone">
+            <el-input v-model="form.responsiblePersonPhone" />
+          </el-form-item>
+          <el-form-item label="用户状态" prop="state">
+            <el-radio v-model="form.state" label="1">正常</el-radio>
+            <el-radio v-model="form.state" label="2">禁用</el-radio>
+          </el-form-item>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="handleDialogClosed('form')">取 消</el-button>
+          <el-button type="primary" :loading="dailyLoading" @click="formSubmit">{{ handle }}</el-button>
+        </div>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapGetters } from 'vuex'
+import { depClone, fuzzySearch } from '@/utils/auth'
+import { parseTime } from '@/utils'
+import { getQualificationList, addQualification, updateQualification, deleteQualification, historyQualification } from '@/api/basedata/qualification'
+import {
+  validateIsPhone,
+  validatePassword,
+  validateEMail,
+  validateUserName
+}
+  from '@/utils/regList' // 验证规则引入
+import {
+  checkEmail,
+  checkUsername,
+  checkResponsiblePersonPhone
+
+}
+  from '@/api/user/index' // 借用注册的接口
+import {
+  getUserList,
+  addUser,
+  updateUser,
+  updateUserDisable,
+  updateUserEnable,
+  deleteUser
+}
+  from '@/api/systemSetup/userManagement'
+export default {
+  data() {
+    // 手机验证
+    const isvalidPhone = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('手机号码不能为空'))
+      }
+      if (!validateIsPhone(value)) {
+        callback(new Error('请输入正确的手机号码'))
+      } else {
+        checkResponsiblePersonPhone(value)
+          .then(res => {
+            res = res.data
+            if (res.status === 200) {
+              callback()
+            } else {
+              callback(new Error('手机号码已存在'))
+            }
+          })
+          .catch(res => {
+            callback(new Error('手机号码验证异常！请重试'))
+          })
+      }
+    }
+
+    // 密码包含 数字,英文,字符中的两种以上，长度8-20
+    const validatePass = (rule, value, callback) => {
+      /* 密码不能全部是数字，或全部是小写字母，或全部是大写字母 */
+      if (value === '') {
+        callback(new Error('密码不能为空'))
+      }
+      if (!validatePassword(value)) {
+        callback(new Error('密码包含 数字,英文,字符中的两种以上，长度8-20'))
+      }
+      callback()
+    }
+
+    // 再次输入密码验证
+    const validatePass2 = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('请再次输入密码'))
+      } else if (value !== this.form.password) {
+        callback(new Error('两次输入密码不一致!'))
+      } else {
+        callback()
+      }
+    }
+
+    // 验证邮箱是否符合要求
+    const checkEmailValidatore = (rule, value, callback) => {
+      const flag = validateEMail(rule, value, callback)
+      if (flag) {
+        checkEmail(value)
+          .then(res => {
+            if (res.data.status === 200) {
+              callback()
+            } else {
+              callback(new Error('邮箱已存在'))
+            }
+          })
+          .catch(() => {
+            callback(new Error('验证邮箱异常！请重试'))
+          })
+      }
+    }
+
+    // 验证用户名是否存在
+    const checkUsernameValidatore = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('用户名不能为空'))
+      }
+      if (!validateUserName(value)) {
+        callback(new Error('用户名由6位英文字母和数字组成，不能以数字开头'))
+        // eslint-disable-next-line brace-style
+      }
+      // 它的意思是 当符合要求的条件的时候，就触发回调函数。这个回调的函数是显示成功的标识
+      else {
+        checkUsername(value)
+          .then(res => {
+            res = res.data
+            if (res.status === 200) {
+              callback()
+            } else {
+              callback(new Error('用户名已存在'))
+            }
+          })
+          .catch(res => {
+            callback(new Error('用户名验证异常！请重试'))
+          })
+      }
+    }
+
+    return {
+      handle: '', // 处理方式
+      search: '',
+      searchTemp: '',
+      form: {
+        enterpriseCode: '', // 企业编号
+        creditCode: '', // 统一社会信用编码
+        username: '',
+        password: '',
+        confirmPassword: '',
+        avatar: '',
+        email: '',
+        state: '', // 用户状态
+        responsiblePerson: '',
+        responsiblePersonPhone: null
+      },
+      dailyLoading: false,
+      // 验证规则
+      formRules: {
+        username: [
+          { required: true, validator: checkUsernameValidatore, trigger: 'blur' }
+        ],
+        password: [
+          { required: true, validator: validatePass, trigger: 'blur' }
+        ],
+        confirmPassword: [
+          { required: true, validator: validatePass2, trigger: 'blur' }
+        ],
+        avatar: [
+          { required: true, message: '请选择头像', trigger: 'change' }
+        ],
+        email: [
+          { required: true, validator: checkEmailValidatore, trigger: 'blur' }
+        ],
+        responsiblePerson: [
+          { required: true, message: '请输入安全负责人', trigger: 'blur' }
+        ],
+        responsiblePersonPhone: [
+          { required: true, validator: isvalidPhone, trigger: 'blur' }
+        ],
+        enterpriseCode: [
+          { required: true, message: '请输入选择企业编号', trigger: 'change' }
+        ],
+        creditCode: [
+          { required: true, message: '请输入统一社会信用编码', trigger: 'blur' }
+        ],
+        state: [
+          { required: true, message: '请选择账号状态', trigger: 'change' }
+        ]
+      },
+      formDialog: false, // 弹出框标志
+      options: [{
+        value: '正常',
+        label: '正常'
+      }, {
+        value: '待整改',
+        label: '待整改'
+      }, {
+        value: '整改中',
+        label: '整改中'
+      }, {
+        value: '待验收',
+        label: '待验收'
+      }, {
+        value: '关闭',
+        label: '关闭'
+      }],
+      table: [],
+      cpage: 1,
+      pageSize: 5,
+      total: 0,
+      fileList: [],
+      dialogViewPic: false,
+      dialogViewPics: false,
+      btnLoading: false,
+      historyDialog: false,
+      historyTable: [] // 历史记录
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'enterprise_options' // 企业编号
+    ]
+    ),
+    tableData() {
+      const search = this.search
+      return fuzzySearch(this.table, search, 'username')
+    },
+    queryList() {
+      return this.table.map(data => {
+        return { value: data.username }
+      })
+    }
+  },
+  watch: {
+    searchTemp(val) {
+      if (!val) {
+        this.search = ''
+      }
+    }
+  },
+  created() {
+    this.$store.dispatch('config/getEnterpriseOptions')
+    this.fetchList()
+  },
+  methods: {
+    // 动态分页查询信息
+    fetchList(cpage, pageSize) {
+      const params = {}
+      params.page = cpage || this.cpage
+      params.size = pageSize || this.pageSize
+      console.log(params)
+      getUserList(params).then(res => {
+        const pageObj = res.data.obj
+        this.total = pageObj.total
+        this.table = pageObj.list
+        console.log(pageObj.list)
+      })
+    },
+    // 过滤表格
+    onSearch() {
+      this.search = this.searchTemp
+    },
+    querySearch(queryString, cb) {
+      var results = fuzzySearch(this.queryList, queryString, 'value')
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    handleSelect() {
+      this.onSearch()
+    },
+    // 添加按钮
+    addform() {
+      this.formDialog = true
+      this.handle = '添加'
+    },
+    // 提交日常登记表
+    formSubmit() {
+      this.$refs.form.validate((valid) => {
+        if (valid) {
+          const params = depClone(this.form)
+          console.log(this.form)
+          if (this.handle === '添加') {
+            addUser(params).then(res => {
+              this.formDialog = false
+              this.fetchList()
+            })
+          } else if (this.handle === '修改') {
+            updateUser(params.id, params).then((res) => {
+              this.formDialog = false
+              this.fetchList()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 编辑单行表格
+    editItem(scope) {
+      this.formDialog = true
+      this.handle = '修改'
+      this.$nextTick(() => {
+        this.form = { ...scope.row }
+      })
+    },
+    // 删除
+    delItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning')
+        .then(() => {
+          deleteUser(scope.row.id).then((res) => {
+            this.tableData.splice(scope.$index, 1)
+          })
+
+          console.log(scope)
+        })
+    },
+    // 处理dialog关闭
+    handleDialogClosed(formName) {
+      const temp = formName + 'Dialog'
+      this[temp] = false
+      this.$refs[formName].resetFields()
+      this.$refs.upload.abort()
+      this.loading = false
+    },
+    handleSizeChange(val) {
+      this.fetchList()
+    },
+    handleCurrentChange(val) {
+      this.fetchList()
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+
+.ViewPics{
+  /deep/ .el-dialog__body{
+    text-align: center
+  }
+}
+.username{
+width: 100%;
+}
+.avatar{
+  /deep/ .el-radio__input{
+    display: none;
+  }
+  /deep/ .el-avatar{
+    border: 2px solid transparent;
+  }
+  //头像选中效果
+  &.is-checked{
+    /deep/ .el-avatar{
+      border-color: #409EFF
+    }
+  }
+
+}
+</style>

@@ -1,0 +1,120 @@
+<template>
+  <div class="app-container">
+    <div class="home-workbench">
+      <div class="home-common">
+        <panel-group @handleSetLineChartData="handleSetLineChartData" />
+      </div>
+      <div class="news">
+        <el-row
+          :gutter="30"
+          justify="space-between"
+          type="flex"
+        >
+          <el-col :span="18">
+            <transaction-table height="480px" />
+          </el-col>
+          <el-col :span="6">
+            <todo-list />
+          </el-col>
+        </el-row>
+        <el-row
+          :gutter="30"
+          justify="space-between"
+          type="flex"
+        >
+          <el-col :span="18">
+            <hidden-table
+              type="tabs"
+              :tag-type="'success'"
+              height="600px"
+            />
+          </el-col>
+          <el-col :span="6">
+            <div class="chart-wrapper">
+              <referer-website />
+            </div>
+          </el-col>
+        </el-row>
+        <el-row
+          :gutter="30"
+          justify="space-between"
+          type="flex"
+        >
+          <el-col :span="18">
+            <div class="chart-wrapper">
+              <hidden-danger-trend />
+            </div>
+
+          </el-col>
+          <el-col :span="6">
+            <div class="chart-wrapper">
+              <world-total-population />
+            </div>
+          </el-col>
+        </el-row>
+
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import PanelGroup from './components/PanelGroup'
+import hiddenDangerTrend from './components/hiddenDangerTrend'
+import RefererWebsite from './components/RefererWebsite'
+import WorldTotalPopulation from './components/WorldTotalPopulation'
+import TransactionTable from './components/Tables/TransactionTable'
+import HiddenTable from './components/Tables/HiddenTable'
+import TodoList from './components/TodoList'
+
+export default {
+  components: {
+    PanelGroup,
+    hiddenDangerTrend,
+    RefererWebsite,
+    WorldTotalPopulation,
+    TransactionTable,
+    HiddenTable,
+    TodoList
+  },
+  data() {
+    return {
+      handlePanelGroup: {
+        monitor: () => {
+          window.open('http://demo.easynvr.com:10800/#/index/icons')
+        },
+        messages: () => {
+          this.$router.push('/messageNotify/inBox')
+        },
+        file: () => {
+          this.$router.push('/home/myFile')
+        }
+
+      }
+
+    }
+  },
+  methods: {
+    handleSetLineChartData(type) {
+      this.handlePanelGroup[type]()
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.test-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.chart-wrapper {
+  background: #fff;
+  padding: 0;
+  margin-bottom: 32px;
+  .chart {
+    padding: 16px;
+  }
+}
+</style>
+

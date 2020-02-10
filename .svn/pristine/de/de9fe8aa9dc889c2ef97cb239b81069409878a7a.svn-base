@@ -1,0 +1,84 @@
+// 手机号码进行验证
+var isvalidPhone = (rule, value, callback) => {
+  const reg = /^1[3|4|5|7|8][0-9]\d{8}$/
+  if (value === '') {
+    callback(new Error('手机号码不能为空'))
+  }
+  if (!reg.test(value)) {
+    callback(new Error('请输入正确的手机号码'))
+  }
+  return true
+}
+
+// 密码进行验证 密码不能全部是数字，或全部是小写字母，或全部是大写字母
+var validatePass = (rule, value, callback) => {
+  /* 密码不能全部是数字，或全部是小写字母，或全部是大写字母 */
+  if (value === '') {
+    callback(new Error('请输入密码'))
+  } else if (value.toString().length < 8 || value.toString().length > 18) {
+    callback(new Error('密码长度为8-16位'))
+  } else if (/^[0-9]{1,20}$/.exec(value)) {
+    callback(new Error('不能全是数字'))
+  } else if (/^[a-z]+$/.exec(value)) {
+    callback(new Error('不能全是小写字母'))
+  } else if (/^[A-Z]+$/.exec(value)) {
+    callback(new Error('不能全是大写字母'))
+  } else {
+    callback()
+  }
+}
+
+// 再次输入密码验证
+
+// 邮箱进行验证
+var sendcode = (rule, value, callback) => {
+  var reg = /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/
+  if (value === '') {
+    callback(new Error('邮箱方式不能为空'))
+  }
+  if (!reg.test(value)) {
+    callback(new Error('请输入正确的邮箱地址'))
+  } else {
+    // this.$message({
+    //   message: '发送成功',
+    //   type: 'success',
+    //   center: true
+    // })
+    /*  1分钟后获取
+    this.time = 60
+    this.disabled = true
+    this.timer()
+    return true */
+  }
+}
+
+// 非空验证
+const forgetRuls = {
+  password: [{ validator: validatePass, trigger: 'blur' }],
+  safetyDirectorPhone: [
+    { validator: isvalidPhone, trigger: 'blur' }
+  ],
+  mailboxVerification: [{ validator: sendcode, trigger: 'blur' }],
+  unifiedSocialInformationCode: [
+    { required: true, message: '请输入统一社会信息代码', trigger: 'blur' }
+  ],
+  userName: [{
+    required: true, message: '用户名不能为空', trigger: 'blur'
+  }],
+  companyName: [{ required: true, message: '请输入企业名称', trigger: 'blur' }],
+  safetyDirector: [
+    { required: true, message: '请输入安全负责人', trigger: 'blur' }
+  ],
+  mobile: [{ required: true, message: '请输入移动电话号码', trigger: 'blur' }],
+  captcha: [{ required: true, message: '验证码不能为空', trigger: 'blur' }],
+  codeCertificateTypWhenRegistering: [
+    {
+      required: true,
+      message: '注册时用的代码证类型不能为空',
+      trigger: 'blur'
+    }
+  ],
+  IDNumber: [{ required: true, message: '证件号码不能为空', trigger: 'blur' }]
+}
+
+export default forgetRuls

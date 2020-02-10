@@ -1,0 +1,41 @@
+import { postRequest, deleteRequest, putRequest } from '@/utils/request'
+
+// 企业基本信息 -> 添加
+export function enterpriseBasicInfoAdd(data) {
+  return postRequest('/basicData/enterpriseBasicInfo/add', data)
+}
+
+// 企业基本信息 -> 删除
+export function enterpriseBasicInfoDelete(id) {
+  return deleteRequest(`/basicData/enterpriseBasicInfo/delete/${id}`)
+}
+
+// 企业基本信息 -> 修改
+export function enterpriseBasicInfoUpdate(data) {
+  return putRequest(`/basicData/enterpriseBasicInfo/update/${data.id}`, data)
+}
+
+// 企业基本信息 -> 查看
+export function enterpriseBasicInfoList(data) {
+  return postRequest('/basicData/enterpriseBasicInfo/list', data)
+}
+
+// 安全生产信息-查看
+export function safeProductionInfoList(data) {
+  return postRequest('/basicData/safeProductionInfo/list', data)
+}
+
+// 安全生产信息 -> 修改
+export function safeProductionInfoUpdate(data) {
+  return putRequest(`/basicData/safeProductionInfo/update/${data.id}`, data)
+}
+
+// 安全生产信息 -> 删除
+export function safeProductionInfoDelete(id) {
+  return deleteRequest(`/basicData/safeProductionInfo/delete/${id}`)
+}
+
+// 企业基本信息 -> 添加
+export function safeProductionInfoAdd(data) {
+  return postRequest('/basicData/safeProductionInfo/add', data)
+}

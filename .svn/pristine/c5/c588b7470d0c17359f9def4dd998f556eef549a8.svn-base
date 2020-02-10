@@ -1,0 +1,391 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-button type="primary" size="small" @click="addSpecialEquipmentForm">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <el-table
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <el-form class="demo-table-expand">
+              <el-row class="zhou-one">
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="产品编号：">
+                    <span>{{ props.row.productNumber }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="出场时间：">
+                    <span>{{ props.row.factoryTime }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="注册代码：">
+                    <span>{{ props.row.factoryRegistrationCode }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6" class="zhou-colBorder">
+                  <el-form-item label="使用证号：">
+                    <span>{{ props.row.useCardNumber }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="id"
+          label="序号"
+        />
+        <el-table-column
+          prop="name"
+          label="设备名称及型号"
+        />
+        <el-table-column
+          prop="vestingUnit"
+          label="归属单位"
+        />
+        <el-table-column
+          prop="address"
+          label="使用地点"
+          width="240"
+        />
+        <el-table-column
+          prop="dateOfApplication"
+          label="投用日期"
+        />
+        <el-table-column
+          prop="effectiveDate"
+          label="有效日期"
+        />
+        <el-table-column label="年检合格证" width="94">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button type="text" size="mini" icon="el-icon-search" @click="viewPics(scope.row.files)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button type="text" size="mini" icon="el-icon-edit" @click="editSpecialEquipmentForm(scope)" />
+              <el-button type="text" size="mini" icon="el-icon-delete" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="100">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button
+                type="text"
+                size="mini"
+                icon="el-icon-view"
+                @click="history(scope)"
+              />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!-- 展示图片的 -->
+      <el-dialog append-to-body :visible.sync="dialogViewPics" class="ViewPics">
+        <el-row :gutter="20" type="flex" justify="center">
+          <el-col v-for="(item,index) in files" :key="index" :span="8">
+            <el-image style="width:100%" :src="item.url" />
+          </el-col>
+        </el-row>
+      </el-dialog>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <el-dialog title="特种设备情况" :visible.sync="specialEquipmentFormDialog" width="800px">
+        <el-form
+          ref="specialEquipmentForm"
+          :rules="specialEquipmentFormRules"
+          size="small"
+          :model="specialEquipmentForm"
+          @closed="handleDialogClosed"
+        >
+          <el-row>
+            <el-col :span="10">
+              <el-form-item label="设备名称及型号" prop="name" label-width="120px">
+                <el-input v-model="specialEquipmentForm.name" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册代码" prop="factoryRegistrationCode" label-width="120px">
+                <el-input v-model="specialEquipmentForm.factoryRegistrationCode" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="10">
+              <el-form-item label="产品编号" prop="productNumber" label-width="78px">
+                <el-input v-model="specialEquipmentForm.productNumber" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="使用证号" prop="useCardNumber" label-width="120px">
+                <el-input v-model="specialEquipmentForm.useCardNumber" />
+              </el-form-item>
+            </el-col>
+            <!--  <el-col :span="6">
+              <el-form-item label="编号" prop="id" label-width="60px">
+                <el-input v-model="specialEquipmentForm.id" disabled />
+              </el-form-item>
+            </el-col> -->
+          </el-row>
+          <el-row>
+            <el-col :span="10">
+              <el-form-item label="出厂时间" prop="factoryTime" label-width="78px">
+                <el-date-picker
+                  v-model="specialEquipmentForm.factoryTime"
+                  type="date"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="使用地点" prop="address" label-width="120px">
+                <el-input v-model="specialEquipmentForm.address" />
+              </el-form-item>
+            </el-col>
+            <!--  <el-row>
+              <el-col :span="14">
+                <el-form-item label="有效期" prop="certificateTimeData" label-width="78px">
+                  <el-date-picker
+                    v-model="specialEquipmentForm.certificateTimeData"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    value-format="yyyy-MM-dd"
+                    @change="certificationTimeData"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row> -->
+          </el-row>
+          <el-row>
+            <el-col :span="12" style="width:48%">
+              <el-form-item label="投用日期" prop="dateOfApplication" label-width="78px">
+                <el-date-picker
+                  v-model="specialEquipmentForm.dateOfApplication"
+                  type="date"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="有效日期" prop="effectiveDate" label-width="78px">
+                <el-date-picker
+                  v-model="specialEquipmentForm.effectiveDate"
+                  type="date"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col>
+              <el-form-item label="年检合格证" prop="files" label-width="94px" required>
+                <sun-upload
+                  ref="UPLOAD"
+                  :data="GLOBAL.FILE_TYPE.INVOICE"
+                  :action="GLOBAL.FILE_API"
+                  accept=".pdf,.PDF,.txt,.doc"
+                  :on-success="handleSuccess"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemove"
+                  :file-list="specialEquipmentForm.files"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="specialEquipmentFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+    </div>
+  </div>
+</template>
+
+<script>
+import SunUpload from '@/components/upload'
+export default {
+  components: {
+    SunUpload
+  },
+  data() {
+    return {
+      tableData: [
+        {
+          id: '1',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1518 弄',
+          productNumber: '123325555',
+          factoryTime: '2012-12-30',
+          factoryRegistrationCode: '1655232',
+          useCardNumber: '52502662',
+          dateOfApplication: '2016-05-30',
+          vestingUnit: '归属单位1',
+          effectiveDate: '2019-03-05'
+        },
+        {
+          id: '2',
+          name: '王小虎2',
+          address: '南昌市西湖区',
+          productNumber: '123325555',
+          factoryTime: '2012-12-30',
+          factoryRegistrationCode: '1655232',
+          useCardNumber: '52502662',
+          dateOfApplication: '2016-05-30',
+          vestingUnit: '归属单位2',
+          effectiveDate: '2019-03-05'
+        },
+        {
+          id: '3',
+          name: '王小虎3',
+          address: '上海金沙江路 1518 弄',
+          productNumber: '123325555',
+          factoryTime: '2012-12-30',
+          factoryRegistrationCode: '1655232',
+          useCardNumber: '52502662',
+          dateOfApplication: '2016-05-30',
+          vestingUnit: '归属单位3',
+          effectiveDate: '2019-03-05'
+        }
+      ],
+      specialEquipmentForm: {
+        id: '',
+        name: '',
+        address: '',
+        productNumber: '',
+        factoryTime: '',
+        factoryRegistrationCode: '',
+        useCardNumber: '',
+        dateOfApplication: '',
+        effectiveDate: '',
+        // 测试有效期--区间
+        certificateTimeData: '',
+        fileIds: [],
+        files: []
+      },
+      specialEquipmentFormRules: {
+        name: [{ required: true, message: '设备名称和型号不能为空', trigger: 'blur' }],
+        address: [{ required: true, message: '使用地点不能为空', trigger: 'blur' }],
+        productNumber: [{ required: true, message: '产品编号不能为空', trigger: 'blur' }],
+        factoryTime: [{ required: true, message: '出厂时间不能为空', trigger: 'blur' }],
+        factoryRegistrationCode: [{ required: true, message: '注册代码不能为空', trigger: 'blur' }],
+        useCardNumber: [{ required: true, message: '使用证号不能为空', trigger: 'blur' }],
+        dateOfApplication: [{ required: true, message: '投用日期不能为空', trigger: 'blur' }],
+        effectiveDate: [{ required: true, message: '有效日期不能为空', trigger: 'blur' }]
+      },
+      files: [],
+      btnLoading: false,
+      historyTable: false,
+      historyDialog: false,
+      specialEquipmentFormDialog: false,
+      dialogViewPics: false
+    }
+  },
+  methods: {
+    handleSuccess(response, file, files) {
+      this.specialEquipmentForm.files = files.map(item => {
+        if (item.response) {
+          return item.response.obj
+        } else {
+          return item
+        }
+      })
+      this.btnLoading = false
+    },
+    handleRemove(file, files) {
+      this.specialEquipmentForm.files = files.map(item => {
+        if (item.response) {
+          return item.response.obj
+        } else {
+          return item
+        }
+      })
+    },
+    // 查看历史修改
+    history(scope) {
+    },
+    // 有效期区间进行赋值
+    certificationTimeData() {
+    /*  if (this.certificateForm.certificateTimeData === null || this.certificateForm.certificateTimeData.length === 0) {
+        return
+      }
+      this.certificateForm.certificationTime = this.certificateForm.certificateTimeData[0]
+      this.certificateForm.dueTime = this.certificateForm.certificateTimeData[1] */
+    },
+    // 点击特种设备情况提交
+    specialEquipmentFormSubmit() {},
+    addSpecialEquipmentForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+      // 每次打开，重置表单并清除验证
+        this.specialEquipmentForm.name = null
+        this.specialEquipmentForm.address = null
+        this.specialEquipmentForm.productNumber = null
+        this.specialEquipmentForm.factoryTime = null
+        this.specialEquipmentForm.factoryRegistrationCode = null
+        this.specialEquipmentForm.useCardNumber = null
+        this.specialEquipmentForm.dateOfApplication = null
+        this.specialEquipmentForm.effectiveDate = null
+      })
+      this.specialEquipmentFormDialog = true
+    },
+    // 修改特种设备情况
+    editSpecialEquipmentForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.specialEquipmentForm = { ...scope.row }
+      })
+      this.specialEquipmentFormDialog = true
+    },
+    // 查看照片
+    viewPics(files) {
+      this.dialogViewPics = true
+      this.files = files
+    },
+    // 处理dialog关闭
+    handleDialogClosed() {
+      this.$refs.specialEquipmentForm.resetFields()
+      this.specialEquipmentFormDialog = false
+    },
+    handlePictureCardPreview(file) {
+      this.viewPics([file])
+    }
+  }
+}
+</script>
+
+<style>
+.el-row {
+  margin-bottom: 0;
+}
+.demo-table-expand .el-form-item {
+  margin-bottom: 0px;
+}
+.el-date-editor.el-input, .el-date-editor.el-input__inner{
+  width:238px;
+}
+</style>

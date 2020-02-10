@@ -1,0 +1,10 @@
+// 百度地图标签的偏移值
+const BMAP_LABEL_OFFSET = { width: 20, height: -10 }
+// 文件上传类型
+const FILE_TYPE = {
+  RULES: { type: 1005 }
+}
+export default {
+  BMAP_LABEL_OFFSET,
+  FILE_TYPE
+}

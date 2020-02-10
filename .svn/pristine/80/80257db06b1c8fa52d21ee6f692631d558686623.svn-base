@@ -1,0 +1,85 @@
+<template>
+  <div class="sidebar">
+    <el-menu
+      :default-openeds="['1','2']"
+      :default-active="defaultActive"
+      class="el-menu-vertical-demo"
+    >
+      <el-submenu index="1">
+        <template slot="title">
+          <i class="el-icon-location" />
+          <span>个人常用菜单</span>
+        </template>
+        <el-menu-item index="1-1">
+          <img src="@/assets/images/sidebar/sidebar_information.png" class="side-icon">
+          职业病危害报告处理
+        </el-menu-item>
+        <el-menu-item index="1-2">
+          <img src="@/assets/images/sidebar/sidebar_information.png" class="side-icon">
+          职业病危害报告处理
+        </el-menu-item>
+      </el-submenu>
+      <template v-if="sider">
+        <el-submenu index="2">
+          <template slot="title">
+            <i class="el-icon-location" />
+            <span>{{ sider.meta.title }}</span>
+          </template>
+          <el-menu-item
+            v-for="item in sider.children"
+            :key="item.path"
+            :index="item.meta.url"
+          >
+            <router-link :to="item.path">
+              <img v-if="item.meta.icon" :src="getImg(item.meta.url,item.meta.icon)" class="side-icon">
+              {{ item.meta.title }}
+            </router-link>
+          </el-menu-item>
+        </el-submenu>
+      </template>
+    </el-menu>
+  </div>
+</template>
+
+<script>
+export default {
+  props: {
+    sider: {
+      type: Object
+    }
+  },
+  data() {
+    return {
+      tabPosition: 'left',
+      defaultActive: this.$route.path
+    }
+  },
+  watch: {
+    $route(to, form) {
+      this.defaultActive = to.path
+    }
+  },
+  methods: {
+    getImg(path, url) {
+      const context = require.context('@/assets/images/sidebar/', true, /.png$/)
+      if (path === this.defaultActive) {
+        url = url.replace(/\./, '_a.')
+      }
+      var imageUrl = context('./' + url)
+      return imageUrl
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.sidebar{
+  .is-active{
+    color: #fff;
+    background-color: #1890ff;
+  }
+}
+.side-icon{
+  margin-right: 10px;
+}
+</style>

@@ -1,0 +1,354 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <div class="panel-main">
+        <el-row>
+          <el-form :model="params">
+            <el-form-item label="所属企业" prop="queryEnterpriseId" label-width="110px">
+              <el-cascader
+                v-model="params.queryEnterpriseIds"
+                style="width: 100%"
+                size="small"
+                placeholder="请选择企业"
+                :options="enterpriseOptions"
+                :props="{ checkStrictly: true }"
+                clearable
+                @change="changeOption"
+              />
+            </el-form-item>
+          </el-form>
+        </el-row>
+        <div class="prompt zhou-prompt">如果您查看的文件不是图片请点击右上角的小图标进行查看哟!</div>
+        <el-row id="searchBar" class="searchBar">
+          <el-col :span="10">
+            <el-card>
+              <el-tree
+                ref="tree"
+                v-loading="loading"
+                node-key="id"
+                empty-text="空"
+                expand-on-click-node
+                :filter-node-method="filterNode"
+                :default-expanded-keys="treeExpandedKeys"
+                class="accessibleResources"
+                :data="fileCategoryList"
+                accordion
+                :load="loadNode"
+                lazy
+                draggable
+                @node-click="treeClick"
+                @node-expand="treeExpand"
+                @node-collapse="treeCollapse"
+              >
+                <!-- :props="defaultProps" -->
+                <span slot-scope="{ node, data }" class="custom-tree-node">
+                  <span class="el-tree-node__label ">{{ node.label }}</span>
+                  <!-- <span>{{ data.fileSize }} KB </span> -->
+                  <span>{{ data.operatorName }}</span>
+                  <!-- <span>{{ data.enterpriseName }}</span> -->
+                  <!-- <span>{{ data.enterpriseIds }}</span> -->
+                </span>
+              </el-tree>
+            </el-card>
+          </el-col>
+          <el-col :span="14" :class="searchBarFixed == true ? 'isFixed' :''">
+            <el-card v-show="fileDetailDialog" style="width:100%">
+              <div slot="header">
+                <el-row>
+                  <span class="information">文件详情</span>
+                  <el-button-group class="operate">
+                    <FileDownloadBtn :file-id="detail.id" :file-name="detail.fileName" />
+                    <sun-button v-show="isShowImageDetails" :type="'view'" @click="filePreview(detail)">查看文件</sun-button>
+                  </el-button-group>
+                </el-row>
+              </div>
+              <el-row>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-tickets" />文件名：
+                  </strong>
+                  <span class="rightSpan">{{ detail.fileName }}</span>
+                </el-col>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-warning-outline" />文件大小：
+                  </strong>
+                  <span class="rightSpan">{{ detail.fileSize + 'MB' }}</span>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-user-solid" />操作人：
+                  </strong>
+                  <span class="rightSpan">{{ detail.operatorName }}</span>
+                </el-col>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-upload" />上传时间：
+                  </strong>
+                  <span class="rightSpan">{{ detail.createTime | dateFormat }}</span>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col v-show="isShowImage" :span="12">
+                  <strong class="str">
+                    <i class="el-icon-picture" />所属部门：
+                  </strong>
+                  <span class="rightSpan">{{ detail.enterpriseName }}</span>
+                </el-col>
+                <el-col :span="12">
+                  <strong class="str">
+                    <i class="el-icon-download" />下载次数：
+                  </strong>
+                  <span class="rightSpan">{{ detail.downloads }}</span>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col v-show="isShowImage" :span="12">
+                  <strong class="str">
+                    <i class="el-icon-picture" />文件图片：
+                  </strong>
+                  <img :src="detail.url" width="250px;" alt="">
+                </el-col>
+              </el-row>
+            </el-card>
+          </el-col>
+        </el-row>
+      </div>
+      <!-- 用于预览上传多张图片的dialog -->
+      <pic-dialog :visible.sync="sunViewPics" :pic-list="sunPicList" />
+    </div>
+  </div>
+</template>
+
+<script>
+import { fileManageList } from '@/api/fileManagement/myFile'
+import { getEnterpriseOptions } from '@/api/config/index'
+import { mapGetters } from 'vuex'
+export default {
+  data() {
+    return {
+      params: {
+        id: null,
+        queryEnterpriseId: null
+      },
+      fileCategoryList: [],
+      treeExpandedKeys: [],
+      temp: [], // 用于保存树的状态
+      defaultProps: {
+        children: 'children'
+      },
+      enterpriseOptions: [],
+      searchBarFixed: false,
+      loading: false,
+      historyDialog: false,
+      detail: {},
+      fileDetailDialog: false,
+      isShowImageDetails: false,
+      isShowImage: false,
+      expandedNodeId: null
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'classify_options'
+    ]),
+    treeList() {
+      return this.permission_routes.filter(item => {
+        return item.meta
+      })
+    }
+  },
+  destroyed() {
+    window.removeEventListener('scroll', this.handleScroll)
+  },
+  created() {
+    // getEnterpriseOptions().then(res => {
+    // const data = res.data.obj
+    // this.projectOptions = data.map(item => {
+    //   return {
+    //     label: item.enterpriseName,
+    //     value: item.id
+    //   }
+    // })
+    // console.log(this.projectOptions
+    // this.params.enterpriseId = user.enterpriseCode
+    getEnterpriseOptions().then(res => {
+      this.enterpriseOptions = res.data.obj
+    })
+    // })
+  },
+  mounted() {
+    window.addEventListener('scroll', this.handleScroll)
+    const categoryMap = this.classify_options['上传文件类别']
+    for (const key in categoryMap) {
+      var item = categoryMap[key]
+      if (!item.children) {
+        item.children = [{ label: '暂无' }]
+      }
+      this.fileCategoryList.push(item)
+    }
+  },
+  methods: {
+    handleScroll() {
+      var scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+      // var offsetTop = document.querySelector('#searchBar').offsetTop
+      var offsetTop = 410 // 鼠标对于上移动了410
+      if (scrollTop > offsetTop) {
+        this.searchBarFixed = true
+      } else {
+        this.searchBarFixed = false
+      }
+    },
+    loadNode(node, resolve) {
+      console.log(node)
+      if (node.level === 0) {
+        return resolve([])
+      }
+      if (node.level > 1) return resolve([])
+
+      this.params.id = node.data.id
+      fileManageList(this.params).then(res => {
+        this.temp = this.depClone(res.data.obj)
+        const data = this.depClone(res.data.obj)
+        resolve(data)
+      }).catch(() => {})
+    },
+    // 过滤筛选
+    filterNode(value, data) {
+      if (!value) return true
+      return data.meta.title.indexOf(value) !== -1
+    },
+    // 当节点打开时，记录下打开节点的id
+    treeExpand(data, node, self) {
+      console.log(node)
+      this.treeExpandedKeys = [data.id]
+      this.fileDetailDialog = false
+    // 展开列表，获取该分类的下的数据
+    // this.getFileList(data.id, node)
+    },
+    // 当节点关闭时，移除节点的id
+    treeCollapse(data, node, thisNode) {
+      // console.log(thisNode)
+      data.children = []
+      // const index = this.treeExpandedKeys.indexOf(data.id)
+      // if (index > -1) {
+      //   this.treeExpandedKeys.splice(index, 1)
+      // }
+    },
+    fileUploadForm() {
+    // 编辑信息模态框显示
+      this.historyDialog = true
+    },
+    treeClick(data, node, thisNode) {
+      // console.log(thisNode)
+      // console.log(data)
+      if (node.level === 1) {
+        this.expandedNodeId = data.id
+        console.log(this.expandedNodeId)
+      }
+      if (node.level === 2) {
+      // 信息展示显示
+        this.detail = this.depClone(data)
+        this.fileDetailDialog = true
+        const fileName = this.detail.fileName // 文件名
+        const ext = fileName.substring(fileName.lastIndexOf('.') + 1)
+          .toLowerCase() // 文件后缀名
+        this.detail.fileSize = (this.detail.fileSize / 1024).toFixed(2)
+        console.log(this.detail.fileSize)
+        if (this.detail.fileSize === 0.00) {
+          this.detail.fileSize = 0.01
+          console.log(this.detail.fileSize)
+        }
+        if (ext === 'jpg' || ext === 'png') {
+        // 限制文件格式
+          this.isShowImageDetails = false
+          this.isShowImage = true
+          console.log('jpg')
+        } else {
+          this.isShowImageDetails = true
+          this.isShowImage = false
+          console.log('不对哦')
+        }
+      }
+    },
+    changeOption() {
+      if (this.expandedNodeId) {
+        console.log(this.$refs.tree.store.nodesMap[this.expandedNodeId])
+        this.$refs.tree.store.nodesMap[this.expandedNodeId].expanded = false
+        this.$refs.tree.store.nodesMap[this.expandedNodeId].data.children = []
+        this.$refs.tree.store.nodesMap[this.expandedNodeId].childNodes = []
+      }
+      // console.log(this.$refs.tree)
+      this.params.queryEnterpriseId = this.params.queryEnterpriseIds[this.params.queryEnterpriseIds.length - 1]
+      console.log(this.params.queryEnterpriseId)
+      console.log(this.params.queryEnterpriseIds)
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.accessibleResources {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  /deep/ .el-tree-node__content {
+    height: 40px;
+  }
+  /deep/ .custom-tree-node {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    padding-right: 8px;
+  }
+
+  /deep/ .el-tree-node.is-drop-inner>.el-tree-node__content .el-tree-node__label {
+    background-color: #409eff;
+    color: #fff;
+}
+}
+.panel-main{
+  position: relative;
+  top: 20px;
+  margin-bottom: 20px;
+}
+.operate{
+  position: relative;
+  bottom: 14px;
+  left: 350px;
+}
+.information{
+  position: relative;
+  left: 50%;
+  font-size: 24px;
+  font-weight: bold;
+}
+.rightSpan{
+  font-size: 16px;
+}
+.str {
+  padding-right: 10px;
+  line-height: 50px;
+  font-size: 16px;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.zhou-prompt{
+  width: 450px;
+}
+.searchBar{
+  .isFixed{
+    position:fixed;
+    width: 900px;
+    left: 976px;
+    background-color:#Fff;
+    top:0;
+    z-index:999;
+  }
+}
+</style>

@@ -1,0 +1,31 @@
+import { getRequest, postRequest, deleteRequest, putRequest } from '@/utils/request'
+
+// 动态分页查询 [隐患情况] 列表
+export function getHiddenDangerList(data) {
+  return postRequest('/safetyCheck/hiddenDanger/add/step1', data)
+}
+
+// 添加 [隐患情况] 信息
+export function addHiddenDanger(data) {
+  return postRequest('/safetyCheck/hiddenDanger/add/step1', data)
+}
+
+// 修改 [隐患情况] 信息
+export function updateHiddenDanger(id, data) {
+  return putRequest(`/safetyCheck/safetyCheck/update/${id}`, data)
+}
+
+// 通过 id 删除 [隐患情况] 信息
+export function deleteHiddenDanger(id) {
+  return deleteRequest(`/safetyCheck/safetyCheck/delete/${id}`)
+}
+
+// 通过 id 查询 [隐患情况] 的修改历史记录
+export function historyHiddenDanger(id) {
+  return postRequest(`/safetyCheck/safetyCheck/historys/${id}`)
+}
+
+// 获取项目列表
+export function getProjectsList() {
+  return getRequest('/safetyCheck/safetyCheck/getProjects')
+}

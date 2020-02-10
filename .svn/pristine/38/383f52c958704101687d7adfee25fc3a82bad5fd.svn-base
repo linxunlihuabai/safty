@@ -1,0 +1,477 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row type="flex" justify="space-between" align="top">
+
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-plus"
+          @click="addform"
+        >
+          新增
+        </el-button>
+
+        <div>
+          <el-autocomplete
+            v-model="searchTemp"
+            size="small"
+            :fetch-suggestions="querySearch"
+            placeholder="请输入内容"
+            style="width:180px;margin-right:10px"
+            :trigger-on-focus="false"
+            @select="handleSelect"
+          />
+
+          <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+        </div>
+      </el-row>
+      <el-row>
+        <el-col>
+          <!-- 安全费用使用情况 -->
+          <el-table
+            v-loading="planLoading"
+            class="open-table"
+            border
+            :data="tableData"
+            size="small"
+            stripe
+            @expand-change="expandChange"
+          >
+            <!-- 安全费用详情展示 -->
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <!-- 使用情况 -->
+                <el-table
+                  v-loading="false"
+                  :data="costTable"
+                  border
+                  style="width: 100%"
+                  class="inner-table usage"
+                >
+                  <el-table-column
+                    prop="date"
+                    label="使用情况"
+                    align="center"
+                  >
+                    <template slot="header" slot-scope="scope">
+                      <el-row class="slot-header">
+                        <el-col>
+                          使用情况
+                        </el-col>
+                        <el-col class="operation-group">
+                          <el-button-group class="operate">
+                            <el-button size="mini" type="text" icon="el-icon-circle-plus-outline" />
+                          </el-button-group>
+                        </el-col>
+                      </el-row>
+                    </template>
+                    <el-table-column
+                      prop="time"
+                      label="时间"
+                    />
+                    <el-table-column
+                      prop="content"
+                      label="内容"
+                    />
+                    <el-table-column
+                      prop="cost"
+                      label="金额"
+                    />
+                    <el-table-column
+                      prop="invoice"
+                      label="发票"
+                    />
+                    <el-table-column
+                      prop="tpye"
+                      label="用途分类"
+                    />
+                    <el-table-column label="操作">
+                      <template slot-scope="scope">
+                        <el-button-group class="operate">
+                          <el-button type="text" size="mini" icon="el-icon-edit" @click="editCostItem(scope)" />
+                          <el-button type="text" size="mini" icon="el-icon-delete" @click="delCostItem(scope)" />
+                        </el-button-group>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="历史修改" width="100">
+                      <template slot-scope="scope">
+                        <el-button-group class="operate">
+                          <el-button
+                            type="text"
+                            size="mini"
+                            icon="el-icon-view"
+                            @click="history(scope)"
+                          />
+                        </el-button-group>
+                      </template>
+                    </el-table-column>
+                  </el-table-column>
+
+                </el-table>
+              </template>
+            </el-table-column>
+            <el-table-column sortable prop="year" label="年份" />
+            <el-table-column sortable prop="enterpriseName" label="企业名称" />
+            <el-table-column sortable prop="expensePlan" label="提取计划" />
+            <el-table-column sortable prop="basis" label="提取依据" />
+            <el-table-column sortable prop="summary" label="年终总额" />
+            <el-table-column label="操作">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button type="text" size="mini" icon="el-icon-edit" @click="editPlanItem(scope)" />
+                  <el-button type="text" size="mini" icon="el-icon-printer" @click="editPlanItem(scope)" />
+                  <el-button type="text" size="mini" icon="el-icon-document" @click="editPlanItem(scope)" />
+                  <el-button type="text" size="mini" icon="el-icon-delete" @click="delPlanItem(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="历史修改" width="80">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-view"
+                    @click="historyPlan(scope)"
+                  />
+                </el-button-group>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-row>
+      <!-- 分页栏 -->
+
+      <el-row ref="page">
+        <!-- 分页栏 -->
+        <el-pagination
+          :current-page.sync="cpage"
+          :page-sizes="[5, 10, 15, 20]"
+          :page-size.sync="pageSize"
+          layout="sizes, prev, pager, next"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!-- 登记表 -->
+      <el-dialog
+        :title="handle "
+        :visible.sync="formDialog"
+        width="60%"
+        :close-on-click-modal="false"
+        @closed="handleDialogClosed('form')"
+      >
+
+        <el-form
+          id="addData"
+          ref="form"
+          size="small"
+          :model="form"
+          :rules="formRules"
+          label-width="130px"
+        >
+          <!-- <el-form-item label="企业名称" prop="enterpriseId">
+            <el-select v-model="form.enterpriseId" placeholder="请选择" class="enterpriseId" disabled>
+              <el-option
+                v-for="item in enterprise_options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </el-form-item> -->
+
+          <el-form-item label="年份" prop="year">
+            <el-date-picker
+              v-model="form.year"
+              type="year"
+              format="yyyy"
+              value-format="yyyy"
+              placeholder="选择年"
+            />
+          </el-form-item>
+
+          <el-form-item label="提取计划" prop="expensePlan">
+            <el-input v-model="form.expensePlan" />
+          </el-form-item>
+
+          <el-form-item label="提取依据" prop="basis">
+            <el-input v-model="form.basis" />
+          </el-form-item>
+
+          <el-form-item label="年终总额" prop="summary">
+            <el-input
+              v-model="form.summary"
+              placeholder="请输入年终总额"
+            />
+          </el-form-item>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="handleDialogClosed('form')">取 消</el-button>
+          <el-button type="primary" :loading="btnLoading" @click="formSubmit">{{ handle }}</el-button>
+        </div>
+      </el-dialog>
+    </div>
+    <!-- 用于查看历史记录的dialog -->
+    <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+      <el-table ref="table" border :data="historyTable" size="small" stripe>
+        <!-- 历史记录详情展示 -->
+        <el-table-column prop="year" label="年份" />
+        <el-table-column prop="enterpriseName" label="企业名称" />
+        <el-table-column prop="expensePlan" label="提取计划" />
+        <el-table-column prop="basis" label="提取依据" />
+        <el-table-column prop="operatorName" label="操作人" />
+        <el-table-column prop="updateTime" label="操作时间" />
+      </el-table>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { mapGetters } from 'vuex'
+import { parseTime } from '@/utils'
+import { depClone, fuzzySearch } from '@/utils/auth'
+import {
+  getSafetyCostPlanList,
+  addSafetyCostPlan,
+  deleteSafetyCostPlan,
+  updateSafetyCostPlan,
+  historySafetyCostPlan
+} from '@/api/basedata/safetyCost' // 安全费用计划
+import {
+  getSafetyCostList,
+  addSafetyCost,
+  deleteSafetyCost,
+  updateSafetyCost,
+  historySafetyCost
+} from '@/api/basedata/safetyCost' // 安全费用支出
+export default {
+  data() {
+    return {
+      handle: '', // 处理方式
+      search: '',
+      searchTemp: '',
+      table: [],
+      costTable: [],
+      planLoading: true,
+      costLoading: true,
+      cpage: 1,
+      pageSize: 5,
+      total: 0,
+      formDialog: false, // 弹出框标志
+      form: {
+        year: '',
+        expensePlan: '',
+        basis: '',
+        summary: ''
+      },
+      // 验证规则
+      formRules: {
+        year: [
+          { required: true, message: '请选择年份', trigger: 'change' }
+        ],
+        enterpriseId: [
+          { required: true, message: '请选择企业名称', trigger: 'change' }
+        ],
+        expensePlan: [
+          { required: true, message: '请输入提取计划', trigger: 'blur' }
+        ],
+        basis: [
+          { required: true, message: '请输入提取依据', trigger: 'blur' }
+        ],
+        summary: [
+          { required: true, message: '请输入年终总额', trigger: 'blur' }
+        ]
+      },
+      historyDialog: false,
+      historyTable: [],
+      dialogVisible: false,
+      btnLoading: false
+    }
+  },
+  computed: {
+    ...mapGetters([
+      'enterprise_options' // 企业名称
+    ]
+    ),
+    tableData() {
+      const search = this.search
+      return fuzzySearch(this.table, search, 'enterpriseName')
+    },
+    queryList() {
+      return this.table.map(data => {
+        return { value: data.enterpriseName }
+      })
+    }
+  },
+  watch: {
+    searchTemp(val) {
+      if (!val) {
+        this.search = ''
+      }
+    }
+  },
+  created() {
+    this.$store.dispatch('config/getEnterpriseOptions')
+    this.fetchPlanList()
+  },
+  methods: {
+    handleSizeChange(val) {
+      this.fetchPlanList()
+    },
+    handleCurrentChange(val) {
+      this.fetchPlanList()
+    },
+    // 动态分页查询安全费用计划
+    fetchPlanList(cpage, pageSize) {
+      const params = {}
+      params.page = cpage || this.cpage
+      params.size = pageSize || this.pageSize
+      getSafetyCostPlanList(params)
+        .then(res => {
+          this.planLoading = false
+          const pageObj = res.data.obj
+          console.log(pageObj)
+          this.total = pageObj.total
+
+          this.table = pageObj.list
+        }).catch(() => {})
+    },
+    // 动态分页查询安全费用支出
+    fetchCostList(id, cpage, pageSize) {
+      const params = {}
+      params.page = cpage || this.cpage
+      params.size = pageSize || this.pageSize
+      params.expensePlanId = id
+      getSafetyCostList(params)
+        .then(res => {
+          this.costLoading = false
+          const pageObj = res.data.obj
+          console.log(pageObj)
+          // this.total = pageObj.total
+
+          this.costTable = pageObj.list
+        }).catch(() => {})
+    },
+    // 过滤表格
+    onSearch() {
+      this.search = this.searchTemp
+    },
+    querySearch(queryString, cb) {
+      var results = fuzzySearch(this.queryList, queryString, 'value')
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    handleSelect() {
+      this.onSearch()
+    },
+    // 展开行改变时
+    expandChange(row, expandedRows) {
+      console.log(row, expandedRows)
+      expandedRows.forEach(item => {
+        console.log(item)
+        this.fetchCostList(item.id)
+      })
+    },
+    // 添加按钮
+    addform() {
+      this.formDialog = true
+      this.handle = '添加'
+    },
+    // 提交日常登记表
+    formSubmit() {
+      console.log(this.form)
+      this.$refs.form.validate((valid) => {
+        if (valid) {
+          const params = depClone(this.form)
+          if (this.handle === '添加') {
+            addSafetyCostPlan(params).then(res => {
+              this.formDialog = false
+              this.fetchPlanList()
+            })
+          } else if (this.handle === '修改') {
+            updateSafetyCostPlan(params.id, params).then((res) => {
+              this.formDialog = false
+              this.fetchPlanList()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 编辑单行表格
+    editPlanItem(scope) {
+      this.formDialog = true
+      this.handle = '修改'
+      this.$nextTick(() => {
+        this.form = { ...scope.row }
+      })
+    },
+    // 删除
+    delPlanItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning')
+        .then(() => {
+          deleteSafetyCostPlan(scope.row.id).then((res) => {
+            this.fetchPlanList()
+          })
+
+          console.log(scope)
+        })
+    },
+    // 查看历史修改
+    historyPlan(scope) {
+      historySafetyCostPlan(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          return {
+            ...item,
+            updateTime: parseTime(item.updateTime, '{y}-{m}-{d}')// 改造修改时间
+          }
+        })
+        this.historyDialog = true
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed(formName) {
+      const temp = formName + 'Dialog'
+      this[temp] = false
+      this.$refs[formName].resetFields()
+      // this.$refs.upload.abort()
+      this.loading = false
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.open-table{
+  /deep/ .inner-table{
+    margin-bottom: 20px;
+    thead th{
+      font-size: 16px
+    }
+  }
+}
+.slot-header{
+  position: relative;
+  .operation-group{
+    position: absolute;
+    right: 0;
+    width: auto
+  }
+}
+.btn-text-group{
+  /deep/ .el-button{
+    padding: 5px;
+    border: none
+  }
+}
+</style>

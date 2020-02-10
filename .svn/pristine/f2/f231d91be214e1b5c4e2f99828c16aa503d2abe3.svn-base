@@ -1,0 +1,223 @@
+<template>
+  <div class="dashboard-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row>
+        <el-col :span="6">
+          <el-button type="primary" size="small" @click="addCertificateForm">
+            <i class="el-icon-plus" /> 新增证书
+          </el-button>
+        </el-col>
+      </el-row>
+      <!-- 展示页面 -->
+      <el-row>
+        <el-table :data="tableData" stripe border>
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="certificateTitle" label="证书名称" />
+          <el-table-column prop="certificateNo" label="证书编号" />
+          <el-table-column prop="certificateType" label="证书类型" />
+          <el-table-column align="center" prop="expirationDate" label="到期时间">
+            <template slot-scope="scope">{{ scope.row.expirationDate | dateFormat('YYYY年MM月DD日') }}</template>
+          </el-table-column>
+          <el-table-column prop="certificateStatus" label="证书状态" />
+          <el-table-column label="操作">
+            <template slot-scope="scope">
+              <el-button type="text" size="small" @click="editCertificateForm(scope.$index,scope.row)">编辑</el-button>
+              <el-button type="text" size="small">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-row>
+      <!-- 分页栏 -->
+      <el-row>
+        <el-pagination
+          :current-page.sync="currentPage2"
+          :page-sizes="[100, 200, 300, 400]"
+          :page-size="100"
+          layout="sizes, prev, pager, next"
+          :total="1000"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <el-dialog title="人员持证" :visible.sync="certificateFormDialog" width="40%" :before-close="handleClose">
+        <el-form ref="certificateForm" :rules="certificateFormRules" size="small" :model="certificateForm" label-width="130px">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="姓名" prop="name">
+                <el-input v-model="certificateForm.name" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="证书名称" prop="certificateTitle">
+                <el-input v-model="certificateForm.certificateTitle" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="证书编号" prop="certificateNo">
+                <el-input v-model="certificateForm.certificateNo" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="证书类型" prop="certificateType">
+                <el-input v-model="certificateForm.certificateType" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="到期时间" prop="expirationDate">
+                <el-date-picker v-model="certificateForm.expirationDate" type="date" placeholder="选择日期" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="证书状态" prop="certificateStatus">
+                <el-select v-model="certificateForm.certificateStatus" placeholder="请选择证书状态">
+                  <el-option label="有效（正常）" value="1" />
+                  <el-option label="暂停" value="2" />
+                  <el-option label="撤销" value="3" />
+                  <el-option label="注销" value="4" />
+                  <el-option label="证书过期" value="5" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary">确定</el-button>
+            <el-button @click="certificateFormDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      tableData: [
+        {
+          expirationDate: '2016-05-02',
+          name: '王小虎',
+          certificateNo: 'Z100732010000113',
+          certificateType: '通用型证书',
+          certificateTitle: '计算机等级证书',
+          certificateStatus: '有效（正常）'
+        },
+        {
+          expirationDate: '2016-05-04',
+          name: '王2狐',
+          certificateType: '通用型证书',
+          certificateNo: 'Z100732010000113',
+          certificateTitle: '大学英语四六级',
+          certificateStatus: '暂停'
+        },
+        {
+          expirationDate: '2016-05-01',
+          name: '网散户',
+          certificateType: '通用型证书',
+          certificateNo: 'Z100732010000113',
+          certificateTitle: '计算机等级证书',
+          certificateStatus: '撤销'
+        },
+        {
+          expirationDate: '2016-05-03',
+          name: '可开',
+          certificateType: '英语能力证书',
+          certificateNo: 'Z100732010000113',
+          certificateTitle: '托福成绩证书',
+          certificateStatus: '注销'
+        },
+        {
+          expirationDate: '2016-05-03',
+          name: '周达',
+          certificateType: 'IT能力证书',
+          certificateNo: 'Z100732010000113',
+          certificateTitle: 'ACCP软件工程师',
+          certificateStatus: '证书过期'
+        }
+      ],
+      certificateForm: {
+        name: '',
+        certificateTitle: '',
+        certificateNo: '',
+        certificateType: '',
+        expirationDate: '',
+        certificateStatus: ''
+      },
+      certificateFormRules: {
+        name: [{ required: true, message: '姓名不能为空', trigger: 'blur' }],
+        certificateTitle: [
+          { required: true, message: '证书名称不能为空', trigger: 'blur' }
+        ],
+        certificateNo: [
+          { required: true, message: '证书编号不能为空', trigger: 'blur' }
+        ],
+        certificateType: [
+          { required: true, message: '证书类型不能为空', trigger: 'blur' }
+        ],
+        expirationDate: [
+          { required: true, message: '到期时间不能为空', trigger: 'blur' }
+        ],
+        certificateStatus: [
+          { required: true, message: '证书状态不能为空', trigger: 'blur' }
+        ]
+      },
+      certificateFormDialog: false,
+      addDialog: false,
+      currentPage2: 5,
+      /* 页面加载 */
+      // listLoading: true,
+      btnLoading: false
+    }
+  },
+  methods: {
+    addCertificateForm() {
+      this.certificateFormDialog = true
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.$refs.certificateForm.resetFields()
+      })
+    },
+    editCertificateForm(index, row) {
+      // 编辑信息模态框显示
+      this.certificateFormDialog = true
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.certificateForm = Object.assign({}, row)
+      })
+    },
+    handleClose(done) {
+      this.$confirm('确认关闭？')
+        .then(_ => {
+          done()
+        })
+        .catch(_ => {})
+    },
+    handleSizeChange(val) {
+      console.log(`每页 ${val} 条`)
+    },
+    handleCurrentChange(val) {
+      console.log(`当前页: ${val}`)
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+</style>

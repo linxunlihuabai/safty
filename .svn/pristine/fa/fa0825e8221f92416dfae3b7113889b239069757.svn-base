@@ -1,0 +1,82 @@
+import { postRequest, deleteRequest, putRequest, getRequest } from '@/utils/request'
+
+// 职业健康项目 -> 添加
+export function healthProjectAdd(data) {
+  return postRequest('/occupationalHealth/healthProject/add', data)
+}
+
+// 职业健康项目 -> 删除
+export function healthProjectDelete(id) {
+  return deleteRequest(`/occupationalHealth/healthProject/delete/${id}`)
+}
+
+// 职业健康项目 -> 修改
+export function healthProjectUpdate(data) {
+  return putRequest(`/occupationalHealth/healthProject/update/${data.id}`, data)
+}
+
+// 职业健康项目 -> 查看
+export function healthProjectList(data) {
+  return postRequest('/occupationalHealth/healthProject/list', data)
+}
+
+// 职业健康项目 -> 历史修改记录
+export function historyHealthProject(id) {
+  return postRequest(`/occupationalHealth/healthProject/historys/${id}`)
+}
+
+// 定期检查情况 -> 添加
+export function testingResultAdd(data) {
+  return postRequest('/occupationalHealth/testingResult/add', data)
+}
+
+// 定期检查情况 -> 删除
+export function testingResultDelete(id) {
+  return deleteRequest(`/occupationalHealth/testingResult/delete/${id}`)
+}
+
+// 定期检查情况 -> 修改
+export function testingResultUpdate(data) {
+  return putRequest(`/occupationalHealth/testingResult/update/${data.id}`, data)
+}
+
+// 定期检查情况 -> 查看
+export function testingResultList(data) {
+  return postRequest(`/occupationalHealth/testingResult/${data.workplaceId}/list`, data)
+}
+
+// 定期检查情况 -> 历史修改记录
+export function historyTestingResult(id) {
+  return postRequest(`/occupationalHealth/testingResult/historys/${id}`)
+}
+
+// 工作场所情况 -> 添加
+export function workplaceAdd(data) {
+  return postRequest('/occupationalHealth/workplace/add', data)
+}
+
+// 工作场所情况 -> 删除
+export function workplaceDelete(id) {
+  return deleteRequest(`/occupationalHealth/workplace/delete/${id}`)
+}
+
+// 工作场所情况 -> 修改
+export function workplaceUpdate(data) {
+  return putRequest(`/occupationalHealth/workplace/update/${data.id}`, data)
+}
+
+// 工作场所情况 -> 查看
+export function workplaceList(data) {
+  return postRequest(`/occupationalHealth/workplace/list`, data)
+}
+
+// 获取职业健康项目列表
+export function getHealthProjectIdList() {
+  return getRequest('/occupationalHealth/workplace/projectList')
+}
+
+// 工作场所情况 -> 历史修改记录
+export function historyWorkplace(id) {
+  return postRequest(`/occupationalHealth/workplace/historys/${id}`)
+}
+

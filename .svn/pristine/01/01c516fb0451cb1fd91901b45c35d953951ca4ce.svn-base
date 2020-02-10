@@ -1,0 +1,107 @@
+@import './variables.scss';
+@import './mixin.scss';
+@import './transition.scss';
+@import './element-ui.scss';
+@import './sidebar.scss';
+
+@font-face {
+  font-family: 'titlefont';
+  font-display: swap;
+  src: url('//at.alicdn.com/t/webfont_oe3n7wlof6.eot'); /* IE9*/
+  src: url('//at.alicdn.com/t/webfont_oe3n7wlof6.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+  url('//at.alicdn.com/t/webfont_oe3n7wlof6.woff2') format('woff2'),
+  url('//at.alicdn.com/t/webfont_oe3n7wlof6.woff') format('woff'), /* chrome、firefox */
+  url('//at.alicdn.com/t/webfont_oe3n7wlof6.ttf') format('truetype'), /* chrome、firefox、opera、Safari, Android, iOS 4.2+*/
+  url('//at.alicdn.com/t/webfont_oe3n7wlof6.svg#杨任东竹石体-Bold') format('svg'); /* iOS 4.1- */
+}
+.title-font {
+  font-family: "titlefont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  height: 100%;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;
+  background-color: #f0f0f0;
+  user-select: none;
+}
+
+label {
+  font-weight: 700;
+}
+
+html {
+  height: 100%;
+  box-sizing: border-box;
+  font-size: 62.5%;
+}
+
+#app {
+  height: 100%;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+a:focus,
+a:active {
+  outline: none;
+}
+
+a,
+a:focus,
+a:hover {
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+}
+
+div:focus {
+  outline: none;
+}
+
+.clearfix {
+  &:after {
+    visibility: hidden;
+    display: block;
+    font-size: 0;
+    content: " ";
+    clear: both;
+    height: 0;
+  }
+}
+
+// main-container global css
+.app-container {
+  padding: 20px;
+}
+.panel{
+  background-color: #fff;
+  padding: 20px ;
+  .panel-btns{
+    padding-bottom: 20px;;
+  }
+  .panel-main{
+    .panel-main-title{
+      padding: 10px 20px ;
+      // border-radius: 4px;
+      background-color: #d3dce6;
+    }
+    .panel-main-container{
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      box-shadow: $boxShaDowBase
+    }
+  }
+
+}

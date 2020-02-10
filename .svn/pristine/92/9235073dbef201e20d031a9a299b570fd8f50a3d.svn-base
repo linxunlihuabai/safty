@@ -1,0 +1,52 @@
+<template>
+  <div>
+    <el-menu  
+    :default-openeds="['1','2']"
+    class="el-menu-vertical-demo">
+      <el-submenu index="1">
+        <template slot="title">
+          <i class="el-icon-location"></i>
+          <span>个人常用菜单</span>
+        </template>
+        <el-menu-item index="1-1">职业病危害报告处理</el-menu-item>
+        <el-menu-item index="1-2">职业病危害报告处理</el-menu-item>
+        <el-menu-item index="1-3">职业病危害报告处理</el-menu-item>
+        <el-menu-item index="1-4">职业病危害报告处理</el-menu-item>
+        <el-menu-item index="1-5">职业病危害报告处理</el-menu-item>
+      </el-submenu>
+      <template v-if="menu">
+        <el-submenu index="2">
+          <template slot="title">
+            <i class="el-icon-location"></i>
+            <span>{{menu.name}}</span>
+          </template>
+          <el-menu-item
+            :index="item.path"
+            v-for="item in menu.list"
+            :key="item.path"
+          >{{item.name}}</el-menu-item>
+        </el-submenu>
+      </template>
+    </el-menu>
+  </div>
+</template>
+
+<script>
+export default {
+  props: {
+    menu: {
+      type: Object,
+    }
+  },
+  data(){
+    return{
+       tabPosition: 'left'
+    }
+  },
+  methods: {
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

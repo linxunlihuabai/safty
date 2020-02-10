@@ -1,0 +1,1258 @@
+<template>
+  <div class="dashboard-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <!-- 搜索框的按钮哟 -->
+      <el-row>
+        <el-col :span="24">
+          <el-form :inline="true" :model="formInline" class="demo-form-inline">
+            <el-form-item label="企业名称" prop="companyName" required>
+              <el-cascader
+                v-model="formInline.enterpriseOptions"
+                style="width: 100%"
+                size="small"
+                placeholder="请选择企业"
+                :options="formInline.enterpriseOptions"
+                :props="{ checkStrictly: true }"
+                clearable
+                @change="handleEnterpriseChange"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-input
+                v-model="formInline.organization"
+                placeholder="单位名称"
+                style="width:180px;"
+                size="small"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" icon="el-icon-search" size="small" @click="onSubmit">查询</el-button>
+            </el-form-item>
+          </el-form>
+        </el-col>
+      </el-row>
+
+      <el-tabs v-model="activeName">
+        <el-tab-pane label="企业基本信息" name="first">
+          <el-button type="primary" size="small" @click="addDialog=true">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+          <el-table border :data="tableData" size="small" stripe :expand-row-keys="expands" :row-key="getRowKeys" @expand-change="expandSelect">
+            <!-- 详情展示 -->
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <el-form class="demo-table-expand">
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="企业名称：">
+                        <span>{{ props.row.companyName }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="代码证类型：">
+                        <span>{{ props.row.codeCertificateType }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="单位类别：">
+                        <span>{{ props.row.unitCategory }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="注册地址：">
+                        <span>{{ props.row.registeredAddress }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="统一社会信用代码：">
+                        <span>{{ props.row.unifiedSocialCreditCode }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="生产经营地址：">
+
+                        <span>{{ props.row.businessAddress }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="营业执照类别：">
+                        <span>{{ props.row.typeOfBusinessLicense }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="法定代表人：">
+                        <span>{{ props.row.legalRepresentative }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="法定代表人联系电话：">
+                        <span>{{ props.row.legalRepresentativeContactNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="经营范围：">
+                        <span>{{ props.row.businessScope }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="行业类别：">
+                        <span>{{ props.row.industryCategory }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="工商登记有效期：">
+                        <span>{{ props.row.validityOfBusinessRegistration }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="企业规模：">
+                        <span>{{ props.row.enterpriseScale }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="经济类型：">
+                        <span>{{ props.row.economicType }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="父级单位：">
+                        <span>{{ props.row.theParentUnit }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="注册证件上传：">
+                        <el-image :src="props.row.RegistrationDocumentUpload" style="width:150px; height: 150px" />
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="办公地点GPS坐标：">
+                        <baidu-map
+                          :center="props.row.center"
+                          :zoom="zoom"
+                          style="float:left; width: 400px; height: 280px"
+                          :scroll-wheel-zoom="true"
+                          @ready="handler"
+                          @click="getClickInfo"
+                        />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </el-form>
+              </template>
+            </el-table-column>
+            <el-table-column sortable prop="companyName" label="企业名称" />
+            <el-table-column sortable prop="legalRepresentative" label="法定代表人" />
+            <el-table-column sortable prop="legalRepresentativeContactNumber" label="联系电话" />
+            <el-table-column sortable prop="theParentUnit" label="父级单位" />
+            <el-table-column label="操作">
+              <template slot-scope="scope">
+                {{ setCurrentIndex(scope.$index) }}
+                <el-button
+                  type="text"
+                  size="small"
+                  @click="editOpenDialog(scope.$index,scope.row)"
+                >编辑</el-button>
+                <el-button type="text" size="small">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+        <el-tab-pane label="安全生产信息" name="second">
+          <el-button type="primary" size="small" @click="addSafeDialog=true">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+          <el-table :data="safeTableData" border style="width: 100%">
+            <el-table-column type="expand">
+              <template slot-scope="props">
+                <el-form class="demo-table-expand">
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="安全生产主要负责人：">
+                        <span>{{ props.row.safetyProductionMainResponsiblePerson }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="从业人数：">
+                        <span>{{ props.row.numberOfPeopleEngaged }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="安全生产主要负责人联系电话：">
+                        <span>{{ props.row.safetyProductionMainResponsiblePersonContactNumber }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="注册安全工程师人数：">
+                        <span>{{ props.row.numberOfRegisteredSafetyEngineers }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="分管安全负责人：">
+                        <span>{{ props.row.inChargeOfSafety }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="特种作业人数：">
+                        <span>{{ props.row.specialOperationPersonnel }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="分管安全负责人电话：">
+                        <span>{{ props.row.inChargeOfSecurityResponsiblePersonTelephone }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="生产状态：">
+                        <span>{{ props.row.productionState }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="专职安全管理人员：">
+                        <span>{{ props.row.safetyManagementPersonnel }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="安全生产许可证有效期：">
+                        <span>{{ props.row.validityPeriodOfSafetyProductionLicense }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="专职安全管理人员电话：">
+                        <span>{{ props.row.safetyManagementPersonnelTelephone }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="工商登记有效期：">
+                        <span>{{ props.row.validityOfBusinessRegistration }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="单位值班电话：">
+                        <span>{{ props.row.dutyTelephone }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="电子邮箱：">
+                        <span>{{ props.row.email }}</span>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="6">
+                      <el-form-item label="父级单位：">
+                        <span>{{ props.row.theParentUnit }}</span>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row>
+                    <el-col :span="6">
+                      <el-form-item label="许可证扫描件上传：">
+                        <el-image :src="props.row.RegistrationDocumentUpload" style="width:150px; height: 150px" />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                </el-form>
+              </template>
+            </el-table-column>
+            <el-table-column prop="safetyProductionMainResponsiblePerson" label="安全生产主要负责人" />
+            <el-table-column prop="safetyProductionMainResponsiblePersonContactNumber" label="安全生产主要负责人联系电话" />
+            <el-table-column prop="dutyTelephone" label="单位值班电话" />
+            <el-table-column sortable prop="theParentUnit" label="父级单位" />
+            <el-table-column label="操作">
+              <template slot-scope="scope">
+                <el-button
+                  type="text"
+                  size="small"
+                  @click="editOpenSafeDialog(scope.$index,scope.row)"
+                >编辑</el-button>
+                <el-button type="text" size="small">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+      <!-- 分页栏 -->
+      <el-row>
+        <!-- 分页栏 -->
+        <el-pagination
+          :current-page.sync="currentPage2"
+          :page-sizes="[100, 200, 300, 400]"
+          :page-size="100"
+          layout="sizes, prev, pager, next"
+          :total="1000"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!-- 修改 -->
+      <el-dialog title="修改" :visible.sync="editDialog" width="50%" :before-close="handleClose">
+        <el-form ref="editData" :rules="rules" size="small" :model="editData" label-width="150px">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="企业名称" prop="companyName">
+                <el-input v-model="editData.companyName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="代码证类型" prop="codeCertificateType">
+                <el-input v-model="editData.codeCertificateType" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="单位类别" prop="unitCategory">
+                <el-input v-model="editData.unitCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址" prop="registeredAddress">
+                <el-input v-model="editData.registeredAddress" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="统一社会信用代码" prop="unifiedSocialCreditCode">
+                <el-input v-model="editData.unifiedSocialCreditCode" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="生产经营地址" prop="businessAddress">
+                <el-input v-model="editData.businessAddress" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="营业执照类别" prop="typeOfBusinessLicense">
+                <el-input v-model="editData.typeOfBusinessLicense" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="法定代表人" prop="legalRepresentative">
+                <el-input v-model="editData.legalRepresentative" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="法定代表人联系电话" prop="legalRepresentativeContactNumber">
+                <el-input v-model="editData.legalRepresentativeContactNumber" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="经营范围" prop="businessScope">
+                <el-input v-model="editData.businessScope" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="行业类别" prop="industryCategory">
+                <el-input v-model="editData.industryCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="工商登记有效期" prop="validityOfBusinessRegistration">
+                <el-input v-model="editData.validityOfBusinessRegistration" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="企业规模" prop="enterpriseScale">
+                <el-input v-model="editData.enterpriseScale" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="经济类型" prop="economicType">
+                <el-input v-model="editData.economicType" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="父级单位" prop="theParentUnit">
+                <el-input v-model="editData.theParentUnit" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item label="注册证件" prop="RegistrationDocumentUpload">
+              <el-upload
+                v-model="editData.RegistrationDocumentUpload"
+                action="https://jsonplaceholder.typicode.com/posts/"
+                :file-list="fileList"
+                list-type="picture-card"
+                :on-preview="handlePictureCardPreview"
+                :on-remove="handleRemove"
+                @error="handleLoadError"
+              >
+                <i class="el-icon-plus" />
+              </el-upload>
+              <el-dialog append-to-body :visible.sync="dialogVisible">
+                <img width="100%" :src="dialogImageUrl">
+              </el-dialog>
+            </el-form-item>
+          </el-row>
+          <!--  <el-row>
+            <el-col :span="12" prop="longitude">
+              <el-form-item label="办公地点坐标经度">
+                <el-input v-model="editData.longitude" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12" prop="latitude">
+              <el-form-item label="办公地点坐标纬度">
+                <el-input v-model="editData.latitude" />
+              </el-form-item>
+            </el-col>
+          </el-row> -->
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary">确定</el-button>
+            <el-button @click="editDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+      <!-- 弹出添加窗口 -->
+      <el-dialog title="新增" :visible.sync="addDialog" width="50%" :before-close="handleClose">
+        <el-form
+          id="addData"
+          ref="addData"
+          size="small"
+          :model="addData"
+          :rules="rules"
+          label-width="150px"
+        >
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="企业名称" prop="companyName">
+                <el-input v-model="addData.companyName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="代码证类型" prop="codeCertificateType">
+                <el-input v-model="addData.codeCertificateType" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="单位类别" prop="unitCategory">
+                <el-input v-model="addData.unitCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册地址" prop="registeredAddress">
+                <el-input v-model="addData.registeredAddress" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="统一社会信用代码" prop="unifiedSocialCreditCode">
+                <el-input v-model="addData.unifiedSocialCreditCode" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="生产经营地址" prop="businessAddress">
+                <el-input v-model="addData.businessAddress" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="营业执照类别" prop="typeOfBusinessLicense">
+                <el-input v-model="addData.typeOfBusinessLicense" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="法定代表人" prop="legalRepresentative">
+                <el-input v-model="addData.legalRepresentative" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="法定代表人联系电话" prop="legalRepresentativeContactNumber">
+                <el-input v-model="addData.legalRepresentativeContactNumber" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="经营范围" prop="businessScope">
+                <el-input v-model="addData.businessScope" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="行业类别" prop="industryCategory">
+                <el-input v-model="addData.industryCategory" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="工商登记有效期" prop="validityOfBusinessRegistration">
+                <el-input v-model="addData.validityOfBusinessRegistration" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="企业规模" prop="enterpriseScale">
+                <el-input v-model="addData.enterpriseScale" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="经济类型" prop="economicType">
+                <el-input v-model="addData.economicType" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="父级单位" prop="theParentUnit">
+                <el-input v-model="addData.theParentUnit" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item label="注册证件" prop="RegistrationDocumentUpload">
+              <el-upload
+                v-model="addData.RegistrationDocumentUpload"
+                action="https://jsonplaceholder.typicode.com/posts/"
+                list-type="picture-card"
+                :on-preview="handlePictureCardPreview"
+                :on-remove="handleRemove"
+                @error="handleLoadError"
+              >
+                <i class="el-icon-plus" />
+              </el-upload>
+              <el-dialog append-to-body :visible.sync="dialogVisible">
+                <img width="100%" :src="dialogImageUrl">
+              </el-dialog>
+            </el-form-item>
+          </el-row>
+          <!--  <el-row>
+            <el-col :span="12">
+              <el-form-item label="办公地点坐标经度" prop="longitude">
+                <el-input v-model="addData.longitude" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="办公地点坐标纬度" prop="latitude">
+                <el-input v-model="addData.latitude" />
+              </el-form-item>
+            </el-col>
+          </el-row> -->
+          <el-row>
+            <el-form-item>
+              <el-button :loading="btnLoading" type="primary" @click="submitForm('addData')">确定</el-button>
+              <el-button @click="addDialog = false">取消</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </el-dialog>
+      <!-- 安全生产信息的修改 -->
+      <el-dialog title="修改" :visible.sync="editSafeDialog" width="50%" :before-close="handleClose">
+        <el-form ref="editSafeData" :rules="rulesSafe" size="small" :model="editSafeData" label-width="150px">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="安全生产主要负责人" prop="safetyProductionMainResponsiblePerson">
+                <el-input v-model="editSafeData.safetyProductionMainResponsiblePerson" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="从业人数" prop="numberOfPeopleEngaged">
+                <el-input v-model="editSafeData.numberOfPeopleEngaged" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="安全生产主要负责人联系电话" prop="safetyProductionMainResponsiblePersonContactNumber">
+                <el-input v-model="editSafeData.safetyProductionMainResponsiblePersonContactNumber" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册安全工程师人数" prop="numberOfRegisteredSafetyEngineers">
+                <el-input v-model="editSafeData.numberOfRegisteredSafetyEngineers" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="分管安全负责人" prop="inChargeOfSafety">
+                <el-input v-model="editSafeData.inChargeOfSafety" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="特种作业人数" prop="specialOperationPersonnel">
+                <el-input v-model="editSafeData.specialOperationPersonnel" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="分管安全负责人电话" prop="inChargeOfSecurityResponsiblePersonTelephone">
+                <el-input v-model="editSafeData.inChargeOfSecurityResponsiblePersonTelephone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="生产状态" prop="productionState">
+                <el-input v-model="editSafeData.productionState" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="专职安全管理人员" prop="safetyManagementPersonnel">
+                <el-input v-model="editSafeData.safetyManagementPersonnel" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="安全生产许可证有效期" prop="validityPeriodOfSafetyProductionLicense">
+                <el-input v-model="editSafeData.validityPeriodOfSafetyProductionLicense" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="专职安全管理人员电话" prop="safetyManagementPersonnelTelephone">
+                <el-input v-model="editSafeData.safetyManagementPersonnelTelephone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="单位值班电话" prop="dutyTelephone">
+                <el-input v-model="editSafeData.dutyTelephone" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="父级单位" prop="theParentUnit">
+                <el-input v-model="editSafeData.theParentUnit" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item label="注册证件" prop="RegistrationDocumentUpload">
+              <el-upload
+                v-model="editSafeData.RegistrationDocumentUpload"
+                action="https://jsonplaceholder.typicode.com/posts/"
+                :file-list="fileList"
+                list-type="picture-card"
+                :on-preview="handlePictureCardPreview"
+                :on-remove="handleRemove"
+                @error="handleLoadError"
+              >
+                <i class="el-icon-plus" />
+              </el-upload>
+              <el-dialog append-to-body :visible.sync="dialogVisible">
+                <img width="100%" :src="dialogImageUrl">
+              </el-dialog>
+            </el-form-item>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary">确定</el-button>
+            <el-button @click="editSafeDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+      <el-dialog title="新增" :visible.sync="addSafeDialog" width="50%" :before-close="handleClose">
+        <el-form
+          ref="addSafeData"
+          size="small"
+          :model="addSafeData"
+          :rules="rulesSafe"
+          label-width="150px"
+        >
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="安全生产主要负责人" prop="safetyProductionMainResponsiblePerson">
+                <el-input v-model="addSafeData.safetyProductionMainResponsiblePerson" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="从业人数" prop="numberOfPeopleEngaged">
+                <el-input v-model="addSafeData.numberOfPeopleEngaged" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="安全生产主要负责人联系电话" prop="safetyProductionMainResponsiblePersonContactNumber">
+                <el-input v-model="addSafeData.safetyProductionMainResponsiblePersonContactNumber" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="注册安全工程师人数" prop="numberOfRegisteredSafetyEngineers">
+                <el-input v-model="addSafeData.numberOfRegisteredSafetyEngineers" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="分管安全负责人" prop="inChargeOfSafety">
+                <el-input v-model="addSafeData.inChargeOfSafety" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="特种作业人数" prop="specialOperationPersonnel">
+                <el-input v-model="addSafeData.specialOperationPersonnel" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="分管安全负责人电话" prop="inChargeOfSecurityResponsiblePersonTelephone">
+                <el-input v-model="addSafeData.inChargeOfSecurityResponsiblePersonTelephone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="生产状态" prop="productionState">
+                <el-input v-model="addSafeData.productionState" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="专职安全管理人员" prop="safetyManagementPersonnel">
+                <el-input v-model="addSafeData.safetyManagementPersonnel" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="安全生产许可证有效期" prop="validityPeriodOfSafetyProductionLicense">
+                <el-input v-model="addSafeData.validityPeriodOfSafetyProductionLicense" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="专职安全管理人员电话" prop="safetyManagementPersonnelTelephone">
+                <el-input v-model="addSafeData.safetyManagementPersonnelTelephone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="单位值班电话" prop="dutyTelephone">
+                <el-input v-model="addSafeData.dutyTelephone" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="父级单位" prop="theParentUnit">
+                <el-input v-model="addSafeData.theParentUnit" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item label="注册证件" prop="RegistrationDocumentUpload">
+              <el-upload
+                v-model="addSafeData.RegistrationDocumentUpload"
+                action="https://jsonplaceholder.typicode.com/posts/"
+                list-type="picture-card"
+                :on-preview="handlePictureCardPreview"
+                :on-remove="handleRemove"
+                @error="handleLoadError"
+              >
+                <i class="el-icon-plus" />
+              </el-upload>
+              <el-dialog append-to-body :visible.sync="dialogVisible">
+                <img width="100%" :src="dialogImageUrl">
+              </el-dialog>
+            </el-form-item>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary">确定</el-button>
+            <el-button @click="addSafeDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+    </div>
+    <!-- 引入地图 -->
+    <div>
+      <div id="bmap" />
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: '',
+  data() {
+    return {
+      fileList: [
+        {
+          // name可以为空，但是路径不可以
+          name: 'food.jpeg',
+          url:
+            'https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1575692911476&di=31f0688922bdef0b8930b51dd835d23f&imgtype=0&src=http%3A%2F%2Fb-ssl.duitang.com%2Fuploads%2Fitem%2F201210%2F04%2F20121004231502_NrBQG.jpeg'
+        },
+        {
+          name: 'food1.jpeg',
+          url:
+            'https://fuss10.elemecdn.com/3/63/4e7f3a15429bfda99bce42a18cdd1jpeg.jpeg?imageMogr2/thumbnail/360x360/format/webp/quality/100'
+        },
+        {
+          name: '',
+          url: ''
+        }
+      ],
+      /* 搜索栏显示 */
+      formInline: {
+        enterpriseOptions: [],
+        companyName: ''
+      },
+      tableData: [
+        {
+          companyName: '测绘院',
+          codeCertificateType: 'qyshfjaf1452636',
+          unitCategory: '计划部',
+          registeredAddress: '北京朝阳区',
+          unifiedSocialCreditCode: 'qyshfjaf1452636',
+          businessAddress: '江西省南昌市',
+          typeOfBusinessLicense: '花话类别',
+          legalRepresentative: '王小虎',
+          legalRepresentativeContactNumber: '18296231552',
+          businessScope: '局域',
+          industryCategory: '服务业',
+          validityOfBusinessRegistration: '2022-11-02',
+          enterpriseScale: '超级大',
+          economicType: '白痴不',
+          theParentUnit: '父级单位1',
+          id: '1',
+          center: {
+            lng: 116.007802,
+            lat: 29.658627
+          },
+          RegistrationDocumentUpload:
+            'https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1575692911476&di=31f0688922bdef0b8930b51dd835d23f&imgtype=0&src=http%3A%2F%2Fb-ssl.duitang.com%2Fuploads%2Fitem%2F201210%2F04%2F20121004231502_NrBQG.jpeg'
+        },
+        {
+          companyName: '测绘院',
+          codeCertificateType: 'qyshfjaf1452636',
+          unitCategory: '计划部',
+          registeredAddress: '北京朝阳区',
+          unifiedSocialCreditCode: 'qyshfjaf1452636',
+          businessAddress: '江西省南昌市',
+          typeOfBusinessLicense: '花话类别',
+          legalRepresentative: '王小虎',
+          legalRepresentativeContactNumber: '18296231552',
+          businessScope: '局域',
+          industryCategory: '服务业',
+          validityOfBusinessRegistration: '2022-11-02',
+          enterpriseScale: '超级大',
+          economicType: '白痴不',
+          center: {
+            lng: 115.822616,
+            lat: 28.73558
+          },
+          id: '2',
+          theParentUnit: '父级单位1',
+          RegistrationDocumentUpload:
+            'https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg'
+        },
+        {
+          companyName: '测绘院',
+          codeCertificateType: 'qyshfjaf1452636',
+          unitCategory: '计划部',
+          registeredAddress: '北京朝阳区',
+          unifiedSocialCreditCode: 'qyshfjaf1452636',
+          businessAddress: '江西省南昌市',
+          typeOfBusinessLicense: '花话类别',
+          legalRepresentative: '王小虎',
+          legalRepresentativeContactNumber: '18296231552',
+          businessScope: '局域',
+          industryCategory: '服务业',
+          validityOfBusinessRegistration: '2022-11-02',
+          enterpriseScale: '超级大',
+          economicType: '白痴不',
+          theParentUnit: '父级单位1',
+          center: {
+            lng: 115.822616,
+            lat: 28.73558
+          },
+          id: '3',
+          RegistrationDocumentUpload:
+            'https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg'
+        }
+      ],
+      safeTableData: [
+        {
+          safetyProductionMainResponsiblePerson: '王小强',
+          numberOfPeopleEngaged: '110人',
+          safetyProductionMainResponsiblePersonContactNumber: '13684824612',
+          numberOfRegisteredSafetyEngineers: '36人',
+          inChargeOfSafety: '网大小',
+          specialOperationPersonnel: '62人',
+          inChargeOfSecurityResponsiblePersonTelephone: '13524612669',
+          productionState: '正在进行中',
+          safetyManagementPersonnel: '管理所',
+          validityPeriodOfSafetyProductionLicense: '2019-12-31',
+          safetyManagementPersonnelTelephone: '1855241313',
+          RegistrationDocumentUpload: '',
+          theParentUnit: '父级单位1',
+          dutyTelephone: '15296235123',
+          email: '197@qq.com'
+        },
+        {
+          safetyProductionMainResponsiblePerson: '王二所',
+          numberOfPeopleEngaged: '110人',
+          safetyProductionMainResponsiblePersonContactNumber: '13684824612',
+          numberOfRegisteredSafetyEngineers: '36人',
+          inChargeOfSafety: '网开',
+          specialOperationPersonnel: '62人',
+          inChargeOfSecurityResponsiblePersonTelephone: '13524612669',
+          productionState: '正在进行中',
+          theParentUnit: '父级单位2',
+          safetyManagementPersonnel: '管理所',
+          validityPeriodOfSafetyProductionLicense: '2019-12-31',
+          safetyManagementPersonnelTelephone: '1855241313',
+          RegistrationDocumentUpload: '',
+          dutyTelephone: '15296235123',
+          email: '197@qq.com'
+        },
+        {
+          safetyProductionMainResponsiblePerson: '王小强',
+          numberOfPeopleEngaged: '110人',
+          safetyProductionMainResponsiblePersonContactNumber: '13684824612',
+          numberOfRegisteredSafetyEngineers: '36人',
+          inChargeOfSafety: '网大小',
+          specialOperationPersonnel: '62人',
+          theParentUnit: '父级单位3',
+          inChargeOfSecurityResponsiblePersonTelephone: '13524612669',
+          productionState: '正在进行中',
+          safetyManagementPersonnel: '管理所',
+          validityPeriodOfSafetyProductionLicense: '2019-12-31',
+          safetyManagementPersonnelTelephone: '1855241313',
+          RegistrationDocumentUpload: '',
+          dutyTelephone: '15296235123',
+          email: '197@qq.com'
+        }
+      ],
+      editData: {
+        companyName: '',
+        codeCertificateType: '',
+        unitCategory: '',
+        registeredAddress: '',
+        unifiedSocialCreditCode: '',
+        businessAddress: '',
+        typeOfBusinessLicense: '',
+        legalRepresentative: '',
+        legalRepresentativeContactNumber: '',
+        businessScope: '',
+        industryCategory: '',
+        validityOfBusinessRegistration: '',
+        enterpriseScale: '',
+        economicType: '',
+        theParentUnit: '',
+        RegistrationDocumentUpload: '', /*
+        longitude: '', */
+        latitude: ''
+      },
+      editSafeData: {
+        safetyProductionMainResponsiblePerson: '',
+        numberOfPeopleEngaged: '',
+        safetyProductionMainResponsiblePersonContactNumber: '',
+        numberOfRegisteredSafetyEngineers: '',
+        inChargeOfSafety: '',
+        specialOperationPersonnel: '',
+        inChargeOfSecurityResponsiblePersonTelephone: '',
+        productionState: '',
+        safetyManagementPersonnel: '',
+        validityPeriodOfSafetyProductionLicense: '',
+        safetyManagementPersonnelTelephone: '',
+        RegistrationDocumentUpload: '',
+        dutyTelephone: '',
+        theParentUnit: '',
+        email: ''
+      },
+      addData: {
+        companyName: '',
+        codeCertificateType: '',
+        unitCategory: '',
+        registeredAddress: '',
+        unifiedSocialCreditCode: '',
+        businessAddress: '',
+        typeOfBusinessLicense: '',
+        legalRepresentative: '',
+        legalRepresentativeContactNumber: '',
+        businessScope: '',
+        industryCategory: '',
+        validityOfBusinessRegistration: '',
+        enterpriseScale: '',
+        economicType: '',
+        theParentUnit: '',
+        RegistrationDocumentUpload: '', /*
+        longitude: '', */
+        latitude: ''
+      },
+      addSafeData: {
+        safetyProductionMainResponsiblePerson: '',
+        numberOfPeopleEngaged: '',
+        safetyProductionMainResponsiblePersonContactNumber: '',
+        numberOfRegisteredSafetyEngineers: '',
+        inChargeOfSafety: '',
+        specialOperationPersonnel: '',
+        inChargeOfSecurityResponsiblePersonTelephone: '',
+        productionState: '',
+        safetyManagementPersonnel: '',
+        validityPeriodOfSafetyProductionLicense: '',
+        safetyManagementPersonnelTelephone: '',
+        RegistrationDocumentUpload: '',
+        dutyTelephone: '',
+        theParentUnit: '',
+        email: ''
+      },
+      rules: {/*
+        longitude: [
+          { required: true, message: '坐标经度不能为空', trigger: 'blur' }
+        ],
+        latitude: [
+          { required: true, message: '坐标纬度不能为空', trigger: 'blur' }
+        ], */
+        theParentUnit: [
+          { required: true, message: '父级单位不能为空', trigger: 'blur' }
+        ],
+        companyName: [
+          { required: true, message: '企业名称不能为空', trigger: 'blur' }
+        ],
+        codeCertificateType: [
+          { required: true, message: '代码证类型不能为空', trigger: 'blur' }
+        ],
+        unitCategory: [
+          { required: true, message: '单位类别不能为空', trigger: 'blur' }
+        ],
+        registeredAddress: [
+          { required: true, message: '注册地址不能为空', trigger: 'blur' }
+        ],
+        unifiedSocialCreditCode: [
+          { required: true, message: '统一社会信用代码不能为空', trigger: 'blur' }
+        ],
+        businessAddress: [
+          { required: true, message: '生产经营地址不能为空', trigger: 'blur' }
+        ],
+        typeOfBusinessLicense: [
+          { required: true, message: '营业执照类别不能为空', trigger: 'blur' }
+        ],
+        legalRepresentative: [
+          { required: true, message: '法定代表人不能为空', trigger: 'blur' }
+        ],
+        legalRepresentativeContactNumber: [
+          { required: true, message: '法定代表人联系电话不能为空', trigger: 'blur' }
+        ],
+        businessScope: [
+          { required: true, message: '经营范围不能为空', trigger: 'blur' }
+        ],
+        industryCategory: [
+          { required: true, message: '行业类别不能为空', trigger: 'blur' }
+        ],
+        validityOfBusinessRegistration: [
+          { required: true, message: '工商登记有效期不能为空', trigger: 'blur' }
+        ],
+        enterpriseScale: [
+          { required: true, message: '行业规模不能为空', trigger: 'blur' }
+        ],
+        economicType: [
+          { required: true, message: '经济类型不能为空', trigger: 'blur' }
+        ],
+        RegistrationDocumentUpload: [
+          { required: true, message: '注册证件上传不能为空', trigger: 'blur' }
+        ],
+        officeLocationGPSCoordinates: [
+          { required: true, message: '办公地点GPS坐标不能为空', trigger: 'blur' }
+        ]
+      },
+      rulesSafe: {
+        theParentUnit: [
+          { required: true, message: '父级单位不能为空', trigger: 'blur' }
+        ],
+        safetyProductionMainResponsiblePerson: [
+          { required: true, message: '安全生产主要负责人不能为空', trigger: 'blur' }
+        ], numberOfPeopleEngaged: [
+          { required: true, message: '从业人数不能为空', trigger: 'blur' }
+        ], safetyProductionMainResponsiblePersonContactNumber: [
+          { required: true, message: '安全生产主要负责人联系电话不能为空', trigger: 'blur' }
+        ], numberOfRegisteredSafetyEngineers: [
+          { required: true, message: '注册安全工程师人数不能为空', trigger: 'blur' }
+        ],
+        inChargeOfSafety: [
+          { required: true, message: '分管安全负责人不能为空', trigger: 'blur' }
+        ],
+        specialOperationPersonnel: [
+          { required: true, message: '特种作业人数不能为空', trigger: 'blur' }
+        ], inChargeOfSecurityResponsiblePersonTelephone: [
+          { required: true, message: '分管安全负责人电话不能为空', trigger: 'blur' }
+        ], productionState: [
+          { required: true, message: '生产状态不能为空', trigger: 'blur' }
+        ],
+        safetyManagementPersonnel: [
+          { required: true, message: '专职安全管理人员不能为空', trigger: 'blur' }
+        ], validityPeriodOfSafetyProductionLicense: [
+          { required: true, message: '安全生产许可证有效期不能为空', trigger: 'blur' }
+        ], safetyManagementPersonnelTelephone: [
+          { required: true, message: '专职安全管理人员电话不能为空', trigger: 'blur' }
+        ], RegistrationDocumentUpload: [
+          { required: true, message: '许可证扫描件上传不能为空', trigger: 'blur' }
+        ],
+        dutyTelephone: [
+          { required: true, message: '单位值班电话不能为空', trigger: 'blur' }
+        ],
+        email: [
+          { required: true, message: '电子邮箱不能为空', trigger: 'blur' }
+        ]
+      },
+      editDialog: false,
+      editSafeDialog: false,
+      dialogImageUrl: '',
+      activeName: 'first',
+      /* 页面加载 */
+      // listLoading: true,
+      dialogVisible: false,
+      addDialog: false,
+      addSafeDialog: false,
+      // 分页
+      currentPage2: 5,
+      btnLoading: false,
+      // 引入百度地图默认经纬度以及倍数
+      zoom: 11,
+      /* 默认只要打开另一个就关闭之前的 */
+      getRowKeys(row) {
+        // console.log(row)
+        return row.id
+      },
+      center: {
+        lng: 0,
+        lat: 0
+      },
+      expands: []
+
+    }
+  },
+  methods: {
+    // 设置当前对象所在的下标，用于点击详情前获取数组中该对象的经纬度
+    setCurrentIndex(index) {
+      this.tableData[index].index = index
+    },
+    // 折叠面板每次只能展开一行
+    expandSelect(row, expandedRows) {
+      console.log(row)
+      console.log(expandedRows)
+
+      var that = this
+      if (expandedRows.length) {
+        that.expands = []
+        if (row) {
+          this.center = row.center
+          // 打开当前点击的 详情
+          that.expands.push(row.id)// 每次push进去的是每行的ID
+        }
+      } else {
+        console.log(111)
+
+        that.expands = []// 默认不展开
+      }
+    },
+    handleEnterpriseChange(value) {
+      if (value !== null || value !== []) {
+        this.userInfo.enterpriseCode = value[value.length - 1]
+      }
+    },
+    handler({ BMap, map }) {
+      // window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(this.center.lng, this.center.lat) // 初始化地图,设置中心点坐标和地图级别
+      map.centerAndZoom(point, this.zoom)
+      var marker = new BMap.Marker(point) // 创建标注
+      map.addOverlay(marker) // 将标注添加到地图中
+      var circle = new BMap.Circle(point, 6, {
+        strokeColor: 'Red',
+        strokeWeight: 6,
+        strokeOpacity: 1,
+        Color: 'Red',
+        fillColor: '#f03'
+      })
+      // 将标注添加到地图中
+      map.addOverlay(circle)
+    },
+    getClickInfo(e) {
+      this.center.longitude = e.point.lng
+      this.center.latitude = e.point.lat
+    },
+    handleSizeChange(val) {
+      console.log(`每页 ${val} 条`)
+    },
+    handleCurrentChange(val) {
+      console.log(`当前页: ${val}`)
+    },
+    /* 查询提交按钮 */
+    onSubmit() {
+      console.log('submit!')
+    },
+    handleClose(done) {
+      this.$confirm('确认关闭？')
+        .then(_ => {
+          done()
+        })
+        .catch(_ => {})
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          alert('添加成功')
+        }
+      })
+    },
+    editOpenDialog(index, row) {
+      this.editDialog = true // 编辑信息模态框显示
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editData = Object.assign({}, row)
+    },
+    editOpenSafeDialog(index, row) {
+      this.editSafeDialog = true // 编辑信息模态框显示
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editSafeData = Object.assign({}, row)
+    },
+    /* 照片墙 */
+    handleRemove(file, fileList) {
+      console.log(file, fileList)
+    },
+    handlePictureCardPreview(file) {
+      this.dialogImageUrl = file.url
+      this.dialogVisible = true
+    },
+    /* 显示图片出错时 */
+    handleLoadError(e) {
+      const img = e.srcElement
+      this.imageUrl = this.errorLoadImg //  用加载失败的图片替代之
+      img.onerror = null //  清除错误:如果错误时加载时显示的图片出错，将会一直循环，所以我们必须清除掉错误，限制运行一次
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+</style>

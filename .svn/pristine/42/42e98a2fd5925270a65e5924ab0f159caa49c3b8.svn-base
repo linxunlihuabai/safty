@@ -1,0 +1,175 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <div class="panel-main">
+        <el-input placeholder="输入关键字进行过滤" v-model="filterText"></el-input>
+        <el-tree
+          class="accessibleResources"
+          :data="organizationList"
+          node-key="id"
+          default-expand-all
+          :expand-on-click-node="false"
+          :filter-node-method="filterNode"
+          :props="defaultProps"
+          ref="tree"
+        >
+          <span class="custom-tree-node" slot-scope="{ node, data }">
+            <span>{{ node.label }}</span>
+            <span>
+              <el-button type="primary" size="mini" @click="() => append(data)">添加部门</el-button>
+              <el-button type="danger" size="mini" @click="() => remove(node, data)">删除部门</el-button>
+            </span>
+          </span>
+        </el-tree>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapGetters } from "vuex";
+let newid = 1000;
+export default {
+  data() {
+    return {
+      filterText: "",
+      roleList: [
+        {
+          id: 1,
+          name: "系统管理员"
+        },
+        {
+          id: 2,
+          name: "局账户"
+        },
+        {
+          id: 3,
+          name: "队账户"
+        },
+        {
+          id: 4,
+          name: "单位账户"
+        },
+        {
+          id: 5,
+          name: "未分配账户账户"
+        }
+      ],
+      treeName: [],
+      defaultProps: {
+        children: "children",
+        label: function(data) {
+          return data.meta.title;
+        }
+      },
+      organizationList: []
+    };
+  },
+  computed: {
+    ...mapGetters(["permission_routes"]),
+    treeList() {
+      return this.permission_routes.filter(item => {
+        return item.meta;
+      });
+    }
+  },
+  created() {
+    this.organizationList = this.treeList;
+    console.log(this.treeList);
+  },
+  watch: {
+    filterText(val) {
+      this.$refs.tree.filter(val);
+    }
+  },
+  methods: {
+    //过滤筛选
+    filterNode(value, data) {
+      if (!value) return true;
+      return data.meta.title.indexOf(value) !== -1;
+    },
+    //
+    append(data) {
+      this.$prompt("请输入组织名称", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消"
+      })
+        .then(({ value }) => {
+          const newChild = {
+            id: newid++,
+            meta: { title: value, icon: "example", origin: "/login" },
+            children: []
+          };
+
+          if (!data.children) {
+            this.$set(data, "children", []);
+          }
+          data.children.push(newChild);
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "取消输入"
+          });
+        });
+    },
+
+    remove(node, data) {
+      this.$confirm("您确定要删除该组织么?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      })
+        .then(() => {
+          const parent = node.parent;
+          const children = parent.data.children || parent.data;
+
+          const index = children.findIndex(d => {
+            return d.$treeNodeId === data.$treeNodeId;
+          });
+          children.splice(index, 1);
+          this.$message({
+            type: "success",
+            message: "删除成功！"
+          });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消删除"
+          });
+        });
+    }
+  }
+};
+</script>
+
+<style lang="scss">
+.custom-tree-node {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  padding-right: 8px;
+}
+.accessibleResources {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.footbtn {
+  display: flex;
+  justify-content: flex-end;
+}
+</style>
+
+<style lang="scss" scoped>
+.accessibleResources {
+  /deep/.el-tree-node__content {
+    height: 40px;
+  }
+}
+</style>

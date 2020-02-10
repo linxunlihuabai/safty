@@ -1,0 +1,204 @@
+<template>
+  <el-upload
+    ref="upload"
+    :name="name"
+    :data="data"
+    drag
+    :action="action"
+    :accept="accept"
+    :limit="limit"
+    :list-type="listType"
+    :on-progress="handleProgress"
+    :on-error="handleError"
+    :on-success="handleSuccess"
+    :on-preview="handlePreview"
+    :on-remove="handleRemove"
+    :on-exceed="handleExceed"
+    :file-list="fileList"
+    :multiple="multiple"
+    :before-upload="handleBeforeUpload"
+  >
+    <i class="el-icon-upload" />
+    <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+    <div slot="tip" class="el-upload__tip"><span v-if="limit">最多上传{{ limit }}个文件,且</span> 文件限制大小5Mb</div>
+  </el-upload>
+</template>
+
+<script>
+export default {
+  props: {
+    name: {
+      type: String,
+      default: 'file'
+    },
+    action: {
+      type: String,
+      default: '/ajax/upload'
+    },
+    data: {
+      type: Object,
+      default: null
+    },
+    accept: {
+      type: String,
+      default: null
+    },
+    limit: {
+      type: Number,
+      default: null
+    },
+    multiple: {
+      type: Boolean,
+      default: false
+    },
+    fileList: Array,
+    listType: {
+      type: String,
+      default: 'text'
+    },
+    fileSize: {
+      type: Number,
+      default: 5120 // 默认大小5m
+    },
+    btnLoading: {
+      type: Boolean,
+      default: false
+    },
+    beforeUpload: {
+      type: Function,
+      default: null
+    },
+    onProgress: {
+      type: Function,
+      default: null
+    },
+    onSuccess: {
+      type: Function,
+      default: null
+    },
+    onPreview: {
+      type: Function,
+      default: null
+    },
+    onExceed: {
+      type: Function,
+      default: null
+    },
+    onRemove: {
+      type: Function,
+      default: null
+    },
+    onError: {
+      type: Function,
+      default: null
+    },
+    onChange: { type: Function, default: function() { } },
+    beforeRemove: { type: Function, default: function() { return true } }
+  },
+  methods: {
+    // 上传处理
+    handleBeforeUpload(file) {
+      const fileName = file.name // 文件名
+      const ext = fileName.substring(fileName.lastIndexOf('.') + 1) // 文件后缀名
+        .toLowerCase()
+      if (this.accept) {
+        // 限制文件格式
+        if (this.accept.indexOf(ext) < 0) {
+          this.$message.error('文件类型不合法，请上传' + this.accept)
+          return false
+        }
+      }
+      // 默认大小5m
+      if (this.fileSize) {
+        // 限制文件大小，单位为k
+        if (file.size / 1024 > this.fileSize) {
+          this.$message.error('文件大小限制为' + this.fileSize / 1024 + 'Mb')
+          return false
+        }
+      }
+      if (this.beforeUpload) {
+        this.beforeUpload(file)
+      }
+    },
+    handleProgress(event, file, files) {
+      console.log('上传中')
+      this.$emit('update:btnLoading', true)
+      if (this.onProgress) { this.onProgress(event, file, files) }
+    },
+    handleSuccess(response, file, files) {
+      console.log('文件上传成功')
+      this.$message.success('文件上传成功！')
+      const data = files.map(item => {
+        if (item.response) {
+          return item.response.obj
+        } else {
+          return item
+        }
+      })
+      this.$emit('update:fileList', data)
+      this.$emit('update:btnLoading', false)
+
+      console.log(this.$refs.upload.$parent.$parent)
+      // 成功后清除表单验证
+      if (this.$refs.upload.$parent.$parent.clearValidate) {
+        this.$refs.upload.$parent.$parent.clearValidate()
+      }
+
+      if (this.onSuccess) { this.onSuccess(response, file, files) }
+    },
+    handleError(err, file, files) {
+      console.log('上传出错')
+      if (err.status === 401) {
+        this.$confirm(
+          '您的登录信息已过期，您可以取消以停留在此页，或重新登录',
+          '系统提示', {
+            confirmButtonText: '重新登录',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        ).then(() => {
+          this.$router.replace('/login')
+        })
+      } else if (err.status === 404) {
+        this.$message.error('上传文件路径不存在')
+      } else if (err.status === 500) {
+        this.$message.error('服务器异常')
+      } else {
+        this.$message.error('上传失败')
+      }
+
+      this.$emit('update:btnLoading', false)
+      if (this.onError) { this.onError(err, file, files) }
+    },
+    handleRemove(file, files) {
+      console.log('移除')
+      const data = files.map(item => {
+        if (item.response) {
+          return item.response.obj
+        } else {
+          return item
+        }
+      })
+      this.$emit('update:fileList', data)
+      if (this.onRemove) { this.onRemove(file, files) }
+    },
+    handleExceed(files, fileList) {
+      this.$message.error(`最多上传${this.limit}个文件！`)
+      if (this.onExceed) {
+        this.onExceed(files, fileList)
+      }
+    },
+    handlePreview(file) {
+      this.filePreview(file)
+      if (this.onPreview) { this.onPreview(file) }
+    }
+  }
+}
+</script>
+<style lang="scss" scoped>
+ .el-upload__tip{
+   color: #409EFF;
+   line-height: normal;
+   margin-top: 0;
+ }
+</style>

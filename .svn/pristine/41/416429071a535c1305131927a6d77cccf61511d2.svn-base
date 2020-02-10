@@ -1,0 +1,15 @@
+
+// 配置全局组件
+import Breadcrumb from '@/components/Breadcrumb'
+import SunSelect from '@/components/select'
+import SunUpload from '@/components/upload'
+import PicDialog from '@/components/picDialog'
+
+export default {
+  install(Vue) {
+    Vue.component('Breadcrumb', Breadcrumb)
+    Vue.component('SunSelect', SunSelect)
+    Vue.component('SunUpload', SunUpload)
+    Vue.component('PicDialog', PicDialog)
+  }
+}

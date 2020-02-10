@@ -1,0 +1,158 @@
+<template>
+  <div>
+    <el-button @click="dialogVisible = true">点击打开 Dialog</el-button>
+    <el-dialog :visible.sync="dialogVisible" title="提示">
+      <el-form
+        id="addData"
+        ref="dailyForm"
+        size="small"
+        :model="dailyForm"
+        :rules="dailyFormRules"
+        label-width="130px"
+      >
+        <table border="1" class="formTable">
+          <tr>
+            <td>
+              <el-form-item label="检查地点" prop="address">
+                <el-input v-model="dailyForm.address" />
+              </el-form-item>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <el-form-item label="检查时间" prop="time">
+                <el-date-picker
+                  v-model="dailyForm.time"
+                  type="date"
+                  value-format="yyyy-MM-dd"
+                  placeholder="选择日期"
+                />
+              </el-form-item>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <el-form-item label="检查人员" prop="personnel">
+                <el-input v-model="dailyForm.personnel" />
+              </el-form-item>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <el-form-item label="领导参与情况" prop="leader">
+                <el-radio v-model="dailyForm.leader" label="参与">参与</el-radio>
+                <el-radio v-model="dailyForm.leader" label="未参与">未参与</el-radio>
+              </el-form-item>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <el-form-item label="隐患数量" prop="num">
+                <el-input-number v-model="dailyForm.num" :disabled="true" />
+              </el-form-item>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <el-form-item label="文件" prop="fileList">
+                <el-upload
+                  ref="dailyUpload"
+                  class="upload-demo"
+                  action="https://jsonplaceholder.typicode.com/posts/"
+                  list-type="picture-card"
+                  :on-progress="handleProgress"
+                  :on-error="handleError"
+                  :on-success="handleSuccess"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemove"
+                  :file-list="dailyForm.fileList"
+                  multiple
+                >
+                  <i class="el-icon-upload" />
+                  <div class="el-upload__text">点击上传</div>
+                </el-upload>
+              </el-form-item>
+            </td>
+          </tr>
+          <tr>
+            <td>
+
+              <el-button @click="resetForm('dailyForm')">重置</el-button>
+              <el-button type="primary" :loading="dailyLoading" @click="dailyFormSubmit">{{ handle }}</el-button>
+
+            </td>
+          </tr>
+        </table>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      tableData: [{
+        id: '12987122',
+        name: '王小虎',
+        amount1: '234',
+        amount2: '3.2',
+        amount3: 10
+      }, {
+        id: '12987123',
+        name: '王小虎',
+        amount1: '165',
+        amount2: '4.43',
+        amount3: 12
+      }, {
+        id: '12987124',
+        name: '王小虎',
+        amount1: '324',
+        amount2: '1.9',
+        amount3: 9
+      }, {
+        id: '12987125',
+        name: '王小虎',
+        amount1: '621',
+        amount2: '2.2',
+        amount3: 17
+      }, {
+        id: '12987126',
+        name: '王小虎',
+        amount1: '539',
+        amount2: '4.1',
+        amount3: 15
+      }],
+
+      dialogVisible: false }
+  },
+  methods: {
+    getSummaries(param) {
+      const { columns, data } = param
+      const sums = []
+      columns.forEach((column, index) => {
+        if (index === 0) {
+          sums[index] = '总价'
+          return
+        }
+        const values = data.map(item => Number(item[column.property]))
+        if (!values.every(value => isNaN(value))) {
+          sums[index] = values.reduce((prev, curr) => {
+            const value = Number(curr)
+            if (!isNaN(value)) {
+              return prev + curr
+            } else {
+              return prev
+            }
+          }, 0)
+          sums[index] += ' 元'
+        } else {
+          sums[index] = 'N/A'
+        }
+      })
+
+      return sums
+    }
+  }
+}
+</script>

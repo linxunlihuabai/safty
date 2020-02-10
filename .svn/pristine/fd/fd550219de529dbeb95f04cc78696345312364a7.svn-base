@@ -1,0 +1,683 @@
+<template>
+  <div class="dashboard-container">
+    <el-row>
+      <el-col :span="6">
+        <el-button type="primary" @click="addDialog=true" size="small">
+          <i class="el-icon-plus"></i> 新增
+        </el-button>
+      </el-col>
+      <el-col :span="18">
+        <el-form :inline="true" :model="formInline" class="demo-form-inline">
+          <el-form-item label="企业名称">
+            <el-select v-model="formInline.companyName" size="small" placeholder="企业名称">
+              <el-option label="测绘院" value="1"></el-option>
+              <el-option label="地质院" value="2"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-input
+              v-model="formInline.organization"
+              size="small"
+              placeholder="单位名称"
+              style="width:180px;"
+            ></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="el-icon-search" @click="onSubmit" size="small">查询</el-button>
+          </el-form-item>
+        </el-form>
+      </el-col>
+    </el-row>
+    <el-row>
+      <el-col>
+        <el-table :data="tableData" border size="small" stripe>
+          <!-- 详情展示 -->
+          <el-table-column type="expand">
+            <template slot-scope="props">
+              <el-form class="demo-table-expand">
+                <el-row>
+                  <el-col :span="8">
+                    <el-form-item label="企业名称">
+                      <span>{{ props.row.companyName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="法定代表人">
+                      <span>{{ props.row.legalRepresentative }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="联系电话">
+                      <span>{{ props.row.phone }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="8">
+                    <el-form-item label="安全生产主要负责人">
+                      <span>{{ props.row.companyName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="从业人数">
+                      <span>{{ props.row.legalRepresentative }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="注册安全工程师人数">
+                      <span>{{ props.row.phone }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="8">
+                    <el-form-item label="特种作业人数">
+                      <span>{{ props.row.companyName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="电话">
+                      <span>{{ props.row.legalRepresentative }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="生产状态">
+                      <span>{{ props.row.phone }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="8">
+                    <el-form-item label="专职安全管理人员">
+                      <span>{{ props.row.companyName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="安全生产许可证有效期">
+                      <span>{{ props.row.legalRepresentative }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="联系电话">
+                      <span>{{ props.row.phone }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="8">
+                    <el-form-item label="单位值班电话">
+                      <span>{{ props.row.companyName }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="电子邮箱">
+                      <span>{{ props.row.legalRepresentative }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="联系电话">
+                      <span>{{ props.row.phone }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-form-item label="许可证扫描件上传">
+                    <div class="block">
+                      <el-image :src="licence">
+                        <div slot="placeholder" class="image-slot">
+                          加载中
+                          <span class="dot">...</span>
+                        </div>
+                      </el-image>
+                    </div>
+                  </el-form-item>
+                </el-row>
+              </el-form>
+            </template>
+          </el-table-column>
+          <el-table-column sortable prop="companyName" label="企业名称" width="180"></el-table-column>
+          <el-table-column sortable prop="legalRepresentative" label="法定代表人" width="180"></el-table-column>
+          <el-table-column sortable prop="phone" label="联系电话" width="200"></el-table-column>
+          <el-table-column label="操作" width="300px;">
+            <template slot-scope="scope">
+              <el-button type="text" size="small" @click="editOpenDialog(scope.$index,scope.row)">编辑</el-button>
+              <el-button type="text" size="small">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-col>
+    </el-row>
+    <el-row>
+      <!-- 分页栏 -->
+      <el-pagination layout="prev, pager, next" :total="50"></el-pagination>
+    </el-row>
+    <!-- 修改 -->
+    <el-dialog title="修改" :visible.sync="editDialog" width="40%" :before-close="handleClose">
+      <el-form ref="editData" :rules="rules" size="small" :model="editData" label-width="100px">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="企业名称">
+              <el-input v-model="editData.companyName"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="法定代表人">
+              <el-input v-model="editData.legalRepresentative"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="editData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="editData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="editData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="editData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="editData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="editData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="editData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="editData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="editData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="editData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="企业名称">
+              <el-input v-model="editData.companyName"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="法定代表人">
+              <el-input v-model="editData.legalRepresentative"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="editData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="editData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="editData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="editData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="editData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="editData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="editData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="editData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item>
+          <el-button :loading="btnLoading" type="primary">确定</el-button>
+          <el-button @click="editDialog = false">取消</el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+    <!-- 弹出添加窗口 -->
+    <el-dialog title="新增" :visible.sync="addDialog" width="40%" :before-close="handleClose">
+      <el-form
+        id="addData"
+        size="small"
+        :model="addData"
+        :rules="rules"
+        ref="addData"
+        label-width="110px"
+      >
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="企业名称">
+              <el-input v-model="addData.companyName"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="法定代表人">
+              <el-input v-model="addData.legalRepresentative"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="企业名称">
+              <el-input v-model="addData.companyName"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="法定代表人">
+              <el-input v-model="addData.legalRepresentative"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="联系电话">
+              <el-input v-model="addData.phone"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="注册地址">
+              <el-input v-model="addData.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="submitForm('addData')">确定</el-button>
+            <el-button @click="addDialog = false">取消</el-button>
+          </el-form-item>
+        </el-row>
+      </el-form>
+    </el-dialog>
+    <el-row>
+      <el-col :span="24">
+        <div id="bmap"></div>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script>
+import { mapGetters } from "vuex";
+
+export default {
+  name: "Dashboard",
+  computed: {
+    ...mapGetters(["name"])
+  },
+  methods: {
+    /* 查询提交按钮 */
+    onSubmit() {
+      console.log("submit!");
+    },
+    handleClose(done) {
+      this.$confirm("确认关闭？")
+        .then(_ => {
+          done();
+        })
+        .catch(_ => {});
+    },
+    errorHandler() {
+      return true;
+    },
+    editOpenDialog(index, row) {
+      this.editDialog = true; // 编辑信息模态框显示
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editData = Object.assign({}, row);
+    }
+  },
+  data() {
+    return {
+      formInline: {
+        organization: "",
+        companyName: ""
+      },
+      tableData: [
+        {
+          companyName: "测绘院",
+          phone: "111",
+          date: "2016-05-03",
+          legalRepresentative: "王小虎",
+          province: "上海",
+          city: "普陀区",
+          address: "上海市普陀区金沙江路 1518 弄",
+          zip: 200333
+        },
+        {
+          companyName: "地勘院",
+          phone: "111222",
+          date: "2016-05-02",
+          legalRepresentative: "王小虎",
+          province: "上海",
+          city: "普陀区",
+          address: "上海市普陀区金沙江路 1518 弄",
+          zip: 200333
+        },
+        {
+          companyName: "地勘院",
+          phone: "111222",
+          date: "2016-05-04",
+          legalRepresentative: "李四",
+          province: "上海",
+          city: "普陀区",
+          address: "上海市普陀区金沙江路 1518 弄",
+          zip: 200333
+        },
+        {
+          companyName: "地勘院",
+          phone: "111222",
+          date: "2016-05-01",
+          legalRepresentative: "王小虎",
+          province: "上海",
+          city: "普陀区",
+          address: "上海市普陀区金沙江路 1518 弄",
+          zip: 200333
+        },
+        {
+          companyName: "地勘院",
+          phone: "111222",
+          date: "2016-05-08",
+          legalRepresentative: "王小虎",
+          province: "上海",
+          city: "普陀区",
+          address: "上海市普陀区金沙江路 1518 弄",
+          zip: 200333
+        }
+      ],
+      editData: {
+        companyName: "",
+        legalRepresentative: "",
+        phone: ""
+      },
+      addData: { companyName: "", legalRepresentative: "", phone: "" },
+      rules: {
+        companyName: [
+          { required: true, message: "请输入企业名称", trigger: "blur" }
+        ],
+        legalRepresentative: [
+          { required: true, message: "请输入法定代表人", trigger: "blur" }
+        ],
+        phone: [{ required: true, message: "请输入联系电话", trigger: "blur" }]
+      },
+      licence:
+        "https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg",
+      editDialog: false,
+      input: "",
+      basicDetails: false,
+      addDialog: false,
+      btnLoading: false
+    };
+  },
+  mounted() {
+    var map = new BMap.Map("bmap");
+    map.centerAndZoom(new BMap.Point(116.417854, 39.921988), 15);
+    var data_info = [
+      [
+        116.417854,
+        39.921988,
+        "地址：北京市东城区王府井大街88号乐天银泰百货八层"
+      ],
+      [116.406605, 39.921585, "地址：北京市东城区东华门大街"],
+      [116.412222, 39.912345, "地址：北京市东城区正义路甲5号"]
+    ];
+    var opts = {
+      width: 250, // 信息窗口宽度
+      height: 80, // 信息窗口高度
+      title: "信息窗口", // 信息窗口标题
+      enableMessage: true //设置允许信息窗发送短息
+    };
+    for (var i = 0; i < data_info.length; i++) {
+      var marker = new BMap.Marker(
+        new BMap.Point(data_info[i][0], data_info[i][1])
+      ); // 创建标注
+      var content = data_info[i][2];
+      map.addOverlay(marker); // 将标注添加到地图中
+      addClickHandler(content, marker);
+    }
+    function addClickHandler(content, marker) {
+      marker.addEventListener("click", function(e) {
+        openInfo(content, e);
+      });
+    }
+    function openInfo(content, e) {
+      var p = e.target;
+      var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat);
+      var infoWindow = new BMap.InfoWindow(content, opts); // 创建信息窗口对象
+      map.openInfoWindow(infoWindow, point); //开启信息窗口
+    }
+    map.enableScrollWheelZoom(true); //开启鼠标滚轮缩放
+  }
+};
+</script>
+
+<style lang="scss">
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+#bmap {
+  height: 500px;
+}
+.licence {
+  width: 100px;
+  height: 100px;
+}
+</style>

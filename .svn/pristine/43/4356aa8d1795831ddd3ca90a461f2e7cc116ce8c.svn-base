@@ -1,0 +1,787 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-button type="primary" size="small" @click="addDialog=true">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <el-table
+        size="small"
+        :data="page.list"
+        border
+        stripe
+        :expand-row-keys="expands"
+        :row-key="getRowKeys"
+        style="width: 100%"
+        @expand-change="expandSelect"
+      >
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <el-form class="demo-table-expand">
+              <el-row>
+                <el-col :span="6">
+                  <el-form-item label="企业名称：">
+                    <span>{{ props.row.enterpriseName }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="项目名称：">
+                    <span>{{ props.row.projectName }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="项目所在地：">
+                    <span>{{ props.row.location }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="6">
+                  <el-form-item label="项目类型：">
+                    <span>{{ props.row.projecType }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="合同产值：">
+                    <span>{{ props.row.production }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="主要工作内容：">
+                    <span>{{ props.row.jobContent }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="危险源登记：">
+                    <span>{{ props.row.hazardSourceRegistration }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="6">
+                  <el-form-item label="项目负责人：">
+                    <span>{{ props.row.projectLeader }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="项目负责人电话：">
+                    <span>{{ props.row.projectLeaderPhone }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="项目安全管理人员：">
+                    <span>{{ props.row.safetyManager }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="项目安全管理人员电话：">
+                    <span>{{ props.row.safetyManagerPhone }}</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="6">
+                  <el-form-item label="主要风险或重点部位：">
+                    <span>{{ props.row.majorRisksOrKeyPositions }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="6">
+                  <el-form-item label="是否为重点项目：">
+                    <span>{{ props.row.stress }}</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="办公地点GPS坐标：">
+                    <baidu-map
+                      :center="props.row.projectGPSCoordinates"
+                      :zoom="zoom"
+                      style="float:left; width: 400px; height: 280px"
+                      :scroll-wheel-zoom="true"
+                      @ready="handler"
+                    />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="projectName"
+          label="项目名称"
+        />
+        <el-table-column
+          prop="startDate"
+          label="项目开始时间"
+          width="180"
+        />
+        <el-table-column
+          prop="dueDate"
+          label="预计结束时间"
+        />
+        <el-table-column
+          prop="production"
+          label="合同产值"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button type="text" size="mini" icon="el-icon-edit" @click="editOpenDialog(scope.$index, scope.row)" />
+              <el-button type="text" size="mini" icon="el-icon-delete" @click="delOldBase(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button
+                type="text"
+                size="mini"
+                icon="el-icon-view"
+                @click="historyProjectStatus(scope)"
+              />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!-- 分页栏 -->
+      <el-row>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :current-page="page.page"
+          :total="page.total"
+          :page-sizes="[10, 20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!-- 修改 -->
+      <el-dialog title="项目情况-修改" :visible.sync="editDialog" width="60%">
+        <el-form ref="editData" style="border:1px red solid;padding:20px;" class="editData" :rules="rules" size="small" :model="editData">
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="项目名称" prop="projectName">
+                <el-input
+                  v-model="editData.projectName"
+                  style="padding-right:20px;"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="项目所在地" prop="location">
+                <el-input v-model="editData.location" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="危险源登记" prop="hazardSourceRegistration">
+                <el-input v-model="editData.hazardSourceRegistration" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="主要风险或重点部位" prop="majorRisksOrKeyPositions">
+                <el-input v-model="editData.majorRisksOrKeyPositions" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="项目开始和结束时间" prop="projectTimeData" label-width="150px">
+                <el-date-picker
+                  v-model="projectTimeData"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  value-format="yyyy-MM-dd"
+                  @change="projectTimeDataChange"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="是否为重点项目" prop="stress">
+                <el-checkbox v-model="editData.stress">是</el-checkbox>
+                <!-- <el-input v-model="editData.stress" style="padding-right:20px;" /> -->
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="项目类型" prop="projecType">
+                <el-input v-model="editData.projecType" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="合同产值" prop="production">
+                <el-input v-model="editData.production" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="主要工作内容" prop="jobContent">
+                <el-input v-model="editData.jobContent" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="项目安全管理人员" prop="safetyManager">
+                <el-input v-model="editData.safetyManager" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="项目安全管理人员电话" prop="safetyManagerPhone">
+                <el-input v-model="editData.safetyManagerPhone" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="项目负责人" prop="projectLeader">
+                <el-input v-model="editData.projectLeader" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="项目负责人电话" prop="projectLeaderPhone">
+                <el-input v-model="editData.projectLeaderPhone" style="padding-right:20px;" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="办公地点GPS坐标">
+                <el-input v-model="locData.lng" style="width:150px;" />
+                <el-input v-model="locData.lat" style="width:150px;" />
+                <baidu-map
+                  :center="editData.projectGPSCoordinates"
+                  :zoom="zoom"
+                  style="width: 100%; height: 280px"
+                  ak="sCrmUchPh7eKuHSyuZKx0e1acqyk7REF"
+                  :scroll-wheel-zoom="true"
+                  @ready="editDialogMap"
+                  @click="getEditClickInfoMap"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="submitEditDataForm('editData')">确定</el-button>
+            <el-button @click="editDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+      <!-- 弹出添加窗口 -->
+      <el-dialog title="项目情况-新增" :visible.sync="addDialog" width="60%">
+        <el-form
+          id="addData"
+          ref="addData"
+          size="small"
+          :model="addData"
+          :rules="rules"
+          label-width="150px"
+        >
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="项目名称" prop="projectName">
+                <el-input v-model="addData.projectName" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="项目开始时间" prop="startDate">
+                <el-input v-model="addData.startDate" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="项目预计结束时间" prop="dueDate">
+                <el-input v-model="addData.dueDate" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="项目所在地" prop="location">
+                <el-input v-model="addData.location" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="是否为重点项目" prop="stress">
+                <el-input v-model="addData.stress" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="项目类型" prop="projecType">
+                <el-input v-model="addData.projecType" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="合同产值" prop="production">
+                <el-input v-model="addData.production" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="主要工作内容" prop="jobContent">
+                <el-input v-model="addData.jobContent" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="危险源登记" prop="hazardSourceRegistration">
+                <el-input v-model="addData.hazardSourceRegistration" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="主要风险或重点部位" prop="majorRisksOrKeyPositions">
+                <el-input v-model="addData.majorRisksOrKeyPositions" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="办公地点GPS坐标" required>
+                <el-row>
+                  <el-col :span="8">
+                    <el-row>
+                      <el-col :span="12">
+                        <el-input v-model="locData.lng" placeholder="坐标经度" />
+                      </el-col>
+                      <el-col :span="12">
+                        <el-input v-model="locData.lat" placeholder="坐标纬度" style="padding-left:10px;" />
+                      </el-col>
+                    </el-row>
+                  </el-col>
+                </el-row>
+                <baidu-map
+                  :center="addData.projectGPSCoordinates"
+                  :zoom="zoom"
+                  style="float:left; width: 100%; height: 280px"
+                  ak="sCrmUchPh7eKuHSyuZKx0e1acqyk7REF"
+                  :scroll-wheel-zoom="true"
+                  @ready="addDialogMap"
+                  @click="getAddClickInfoMap"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="submitForm('addData')">确定</el-button>
+            <el-button @click="addDialog = false">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+      <el-button icon="el-icon-view" @click="showMap = true">显示地图</el-button>
+      <el-button @click="showMap = false">隐藏地图</el-button>
+      <!-- 地图 -->
+      <div v-if="showMap">
+        <el-row>
+          <el-col :span="24">
+            <baidu-map
+              :zoom="zoom"
+              style="width: 100%;height:300px;"
+              :scroll-wheel-zoom="true"
+              @ready="mapReady"
+            />
+          </el-col>
+        </el-row>
+      </div>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { projectStatusAdd, projectStatusDelete, projectStatusUpdate, projectStatusList, historyProjectStatus } from '@/api/basedata/projectStatus'
+import { parseTime } from '@/utils'
+import GLOBAL from '@/utils/global'
+export default {
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 10
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      editData: {
+        projectName: '',
+        startDate: '',
+        dueDate: '',
+        location: '',
+        projecType: '',
+        projectLeader: '',
+        projectLeaderPhone: '',
+        safetyManager: '',
+        safetyManagerPhone: '',
+        safetyOfficer: '',
+        safetyOfficerPhone: '',
+        production: '',
+        jobContent: '',
+        hazardSourceRegistration: '',
+        majorRisksOrKeyPositions: '',
+        stress: '',
+        id: '',
+        projectTimeData: [],
+        GPSCoordinates: {
+          lng: '',
+          lat: ''
+        }
+      },
+      addData: {
+        projectName: '',
+        startDate: '',
+        dueDate: '',
+        location: '',
+        projecType: '',
+        projectLeader: '',
+        projectLeaderPhone: '',
+        safetyManager: '',
+        safetyManagerPhone: '',
+        safetyOfficer: '',
+        safetyOfficerPhone: '',
+        production: '',
+        jobContent: '',
+        hazardSourceRegistration: '',
+        majorRisksOrKeyPositions: '',
+        stress: '',
+        id: '',
+        projectTimeData: [],
+        GPSCoordinates: {
+          lng: '',
+          lat: ''
+        }
+      },
+      rules: {
+        projectName: [
+          { required: true, message: '项目名称不能为空', trigger: 'blur' }
+        ],
+        startDate: [
+          { required: true, message: '项目开始时间不能为空', trigger: 'blur' }
+        ],
+        dueDate: [
+          { required: true, message: '项目预计结束时间不能为空', trigger: 'blur' }
+        ],
+        location: [
+          { required: true, message: '项目所在地不能为空', trigger: 'blur' }
+        ],
+        projecType: [
+          { required: true, message: '项目类型不能为空', trigger: 'blur' }
+        ],
+        production: [
+          { required: true, message: '合同产值不能为空', trigger: 'blur' }
+        ],
+        jobContent: [
+          { required: true, message: '主要工作内容不能为空', trigger: 'blur' }
+        ],
+        hazardSourceRegistration: [
+          { required: true, message: '危险源登记不能为空', trigger: 'blur' }
+        ],
+        majorRisksOrKeyPositions: [
+          { required: true, message: '主要风险或重点部位不能为空', trigger: 'blur' }
+        ],
+        stress: [
+          { required: true, message: '是否为重点项目不能为空', trigger: 'blur' }
+        ]
+      },
+      // 引入百度地图默认经纬度以及倍数
+      zoom: 11,
+      projectTimeData: [new Date(), new Date()],
+      /* 默认只要打开另一个就关闭之前的 */
+      getRowKeys(row) {
+        // console.log(row)
+        return row.id
+      },
+      projectGPSCoordinates: {
+        lng: 0,
+        lat: 0
+      },
+      GPSCoordinatesCenter: [
+        [106.653298, 29.732213, '重庆江北国际机场'],
+        [115.807698, 28.662684, '地址：南昌市红谷滩新区学府大道999号'],
+        [116.412222, 39.912345, '地址：北京市东城区正义路甲5号'],
+        [111.716982, 40.890667, '呼和浩特']
+      ],
+      locData: {
+        ids: 0,
+        lng: '',
+        lat: ''
+      },
+      expands: [],
+      // 分页
+      currentPage: 5,
+      showMap: false,
+      historyTable: false,
+      historyDialog: false,
+      editDialog: false,
+      btnLoading: false,
+      addDialog: false
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    // 删除项目信息
+    delOldBase(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          projectStatusDelete(Object.assign({}, row).id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    submitEditDataForm(formName) {
+      this.editData.gpsLng = this.locData.lng
+      this.editData.gpsLat = this.locData.lat
+      this.projectTimeData = [
+        this.editData.startDate,
+        this.editData.dueDate
+      ]
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.btnLoading = false
+          projectStatusUpdate(this.editData)
+            .then(res => {
+              if (res.data.status === 200) {
+                this.editDialog = false
+                this.fetchData()
+              } else {
+                this.$message.error('修改失败，请重试联系管理员!')
+                this.$message.error(res.data.msg)
+              }
+            })
+            .catch(() => {
+              this.$message.error('修改失败!')
+            })
+        }
+      })
+    },
+    submitAddDataForm(formName) {
+      this.addData.gpsLng = this.locData.lng
+      this.addData.gpsLat = this.locData.lat
+      this.projectTimeData = [
+        this.addData.startDate,
+        this.addData.dueDate
+      ]
+      this.$refs[formName].validate(valid => {
+        if (!this.addData.gpsLng || !this.addData.gpsLat) {
+          this.$message.error('请选择办公地点坐标')
+          return
+        }
+        if (valid) {
+          this.btnLoading = false
+          projectStatusAdd(this.addData)
+            .then(res => {
+              if (res.data.status === 200) {
+                this.fetchData()
+                this.addDialog = false
+              } else {
+                this.$message.error('添加失败，请重试联系管理员!')
+                this.$message.error(res.data.msg)
+              }
+            })
+            .catch(() => {
+              this.$message.error('添加失败!')
+            })
+        }
+      })
+    },
+    projectTimeDataChange() {
+      if (this.projectTimeData === null || this.projectTimeData[0] === null ||
+        this.projectTimeData[1] === null) {
+        return
+      }
+      this.editData.startDate = this.projectTimeData[0]
+      this.editData.dueDate = this.projectTimeData[1]
+      console.log(this.editData.dueDate)
+      console.log(this.editData.startDate)
+    },
+    // 获取信息
+    fetchData() {
+      projectStatusList(this.params).then(res => {
+        this.oldBaseListLoading = false
+        this.page = res.data.obj
+      })
+    },
+    // 查看历史修改
+    historyProjectStatus(scope) {
+      historyProjectStatus(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historyDialog = true
+      })
+    },
+    // 点击添加和修改里面的弹窗-点击获取地点
+    getAddClickInfoMap(e) {
+      // 清除所要清除的覆盖物
+      map.clearOverlays()
+      var myMarker = new BMap.Marker(new BMap.Point(e.point.lng, e.point.lat))
+      map.addOverlay(myMarker)
+      this.locData.lng = e.point.lng
+      this.locData.lat = e.point.lat
+    },
+    getEditClickInfoMap(e) {
+      // 清除所要清除的覆盖物
+      map.clearOverlays()
+      var myMarker = new BMap.Marker(new BMap.Point(e.point.lng, e.point.lat))
+      map.addOverlay(myMarker)
+      this.locData.lng = e.point.lng
+      this.locData.lat = e.point.lat
+    },
+    editDialogMap({ BMap, map }) {
+      window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(this.locData.lng, this.locData.lat) // 初始化地图,设置中心点坐标和地图级别
+      map.centerAndZoom(point, this.zoom)
+      var marker = new BMap.Marker(point) // 创建标注
+      map.addOverlay(marker) // 将标注添加到地图中
+    },
+    addDialogMap({ BMap, map }) {
+      window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(116.331398, 39.897445)
+      map.centerAndZoom(point, this.zoom)
+      function myFun(result) {
+        var cityName = result.name
+        map.setCenter(cityName)
+      }
+      var myCity = new BMap.LocalCity()
+      myCity.get(myFun)
+    },
+    // 大地图
+    mapReady({ BMap, map }) {
+      map.centerAndZoom(new BMap.Point(104.769128, 34.972443), 5)
+      var data_info = this.GPSCoordinatesCenter
+      var opts = {
+        width: 250, // 信息窗口宽度
+        height: 60, // 信息窗口高度
+        title: '信息窗口', // 信息窗口标题
+        enableMessage: true // 设置允许信息窗发送短息
+      }
+      for (var i = 0; i < data_info.length; i++) {
+      // eslint-disable-next-line no-undef
+        var marker = new BMap.Marker(
+          new BMap.Point(data_info[i][0], data_info[i][1])
+        )
+        // 创建标注
+        var content = data_info[i][2]
+        map.addOverlay(marker)
+        var label = new BMap.Label(data_info[i][2], {
+          offset: new BMap.Size(
+            GLOBAL.BMAP_LABEL_OFFSET.width,
+            GLOBAL.BMAP_LABEL_OFFSET.height
+          )
+        })
+        marker.setLabel(label)
+        // 将标注添加到地图中
+        addClickHandler(content, marker)
+      }
+      function addClickHandler(content, marker) {
+        marker.addEventListener('click', function(e) {
+          openInfo(content, e)
+        })
+      }
+      function openInfo(content, e) {
+        var p = e.target
+        var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat)
+        var infoWindow = new BMap.InfoWindow(content, opts) // 创建信息窗口对象
+        map.openInfoWindow(infoWindow, point) // 开启信息窗口
+      }
+    },
+    // 设置当前对象所在的下标，用于点击详情前获取数组中该对象的经纬度
+    setCurrentIndex(index) {
+      this.tableData[index].index = index
+    },
+    // 折叠面板每次只能展开一行
+    expandSelect(row, expandedRows) {
+      var that = this
+      if (expandedRows.length) {
+        that.expands = []
+        if (row) {
+          this.projectGPSCoordinates.lng = row.gpsLng
+          this.projectGPSCoordinates.lat = row.gpsLat
+          console.log(this.projectGPSCoordinates.lng)
+          console.log(this.projectGPSCoordinates.lat)
+          // 打开当前点击的 详情
+          that.expands.push(row.id)// 每次push进去的是每行的ID
+        }
+      } else {
+        console.log(111)
+
+        that.expands = []// 默认不展开
+      }
+    },
+    // 详情里面的小地图
+    handler({ BMap, map }) {
+      // window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(this.projectGPSCoordinates.lng, this.projectGPSCoordinates.lat) // 初始化地图,设置中心点坐标和地图级别
+      map.centerAndZoom(point, this.zoom)
+      var marker = new BMap.Marker(point) // 创建标注
+      map.addOverlay(marker) // 将标注添加到地图中
+      var circle = new BMap.Circle(point, 6, {
+        strokeColor: 'Red',
+        strokeWeight: 6,
+        strokeOpacity: 1,
+        Color: 'Red',
+        fillColor: '#f03'
+      })
+      // 将标注添加到地图中
+      map.addOverlay(circle)
+    },
+    submitForm(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          alert('添加成功')
+        }
+      })
+    },
+    editOpenDialog(index, row) {
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editData = Object.assign({}, row)
+      this.projectGPSCoordinates.lng = this.editData.gpsLng
+      this.projectGPSCoordinates.lat = this.editData.gpsLat
+      this.locData = this.projectGPSCoordinates
+      this.projectTimeData = [
+        this.editData.startDate,
+        this.editData.dueDate
+      ]
+      this.editDialog = true // 编辑信息模态框显示
+    },
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+.el-input__inner{
+  padding-right:20px !important;
+}
+</style>

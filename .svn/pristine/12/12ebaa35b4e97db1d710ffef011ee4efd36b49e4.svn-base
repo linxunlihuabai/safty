@@ -1,0 +1,670 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <div>
+        <el-button type="primary" size="small" @click="addDialog=true">
+          <i class="el-icon-plus" /> 新增
+        </el-button>
+        <el-table v-loading="oldBaseListLoading" border :data="page.list" size="small" stripe :expand-row-keys="expands" :row-key="getRowKeys" @expand-change="expandSelect">
+          <!-- 详情展示 -->
+          <el-table-column type="expand">
+            <template slot-scope="props">
+              <el-form class="demo-table-expand">
+                <el-row>
+                  <el-col :span="6">
+                    <el-form-item label="基地名称：">
+                      <span>{{ props.row.name }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="基地现状：">
+                      <span>{{ props.row.presentSituation }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="基地地址：">
+                      <span>{{ props.row.address }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="分管领导：">
+                      <span>{{ props.row.leader }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6">
+                    <el-form-item label="分管领导联系方式：">
+                      <span>{{ props.row.leaderPhone }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="基地负责人：">
+                      <span>{{ props.row.responsiblePhone }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="基地负责人联系方式：">
+                      <span>{{ props.row.contactInformationOfBasePrincipal }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="留守工作人员(人)：">
+                      <span>{{ props.row.workers }}</span>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="6">
+                    <el-form-item label="留守居民(人)：">
+                      <span>{{ props.row.residents }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-form-item label="危险源：">
+                      <span>{{ props.row.dangerous }}</span>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="基地GPS坐标：">
+                      <baidu-map
+                        :center="props.row.GPSCoordinates"
+                        :zoom="zoom"
+                        style="float:left; width: 400px; height: 280px"
+                        :scroll-wheel-zoom="true"
+                        @ready="smallMap"
+                      />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-form>
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="基地名称" />
+          <el-table-column prop="presentSituation" label="基地现状" />
+          <el-table-column prop="leader" label="分管领导" />
+          <el-table-column prop="leaderPhone" label="分管领导联系方式" />
+          <el-table-column prop="responsiblePhone" label="基地负责人" />
+          <el-table-column label="操作" width="120">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <el-button type="text" size="mini" icon="el-icon-edit" @click="editOpenDialog(scope.$index, scope.row)" />
+                <el-button type="text" size="mini" icon="el-icon-delete" @click="delOldBase(scope.$index, scope.row)" />
+              </el-button-group>
+            </template>
+          </el-table-column>
+          <el-table-column label="历史记录">
+            <template slot-scope="scope">
+              <el-button-group class="operate">
+                <el-button
+                  type="text"
+                  size="mini"
+                  icon="el-icon-view"
+                  @click="historyOldBase(scope)"
+                />
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-button icon="el-icon-view" @click="showMap = true">显示地图</el-button>
+        <el-button @click="showMap = false">隐藏地图</el-button>
+      </div>
+
+      <!-- 修改 -->
+      <el-dialog title="老基地-修改" :visible.sync="editDialog" width="60%">
+        <el-form ref="editData" :rules="rules" size="small" :model="editData" label-width="150px">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="基地名称" prop="name">
+                <el-input v-model="editData.name" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="基地现状" prop="presentSituation">
+                <el-input v-model="editData.presentSituation" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="基地地址" prop="address">
+                <el-input v-model="editData.address" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="危险源" prop="dangerous">
+                <el-input v-model="editData.dangerous" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="分管领导" prop="leader">
+                <el-input v-model="editData.leader" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="分管领导联系方式" prop="leaderPhone">
+                <el-input v-model="editData.leaderPhone" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="基地负责人" prop="responsiblePhone">
+                <el-input v-model="editData.responsiblePhone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="基地负责人联系方式" prop="contactInformationOfBasePrincipal">
+                <el-input v-model="editData.contactInformationOfBasePrincipal" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="留守工作人员(人)" prop="workers">
+                <el-input v-model="editData.workers" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="留守居民(人)" prop="residents">
+                <el-input v-model="editData.residents" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="办公地点GPS坐标">
+                <el-input v-model="locData.lng" style="width:150px;" />
+                <el-input v-model="locData.lat" style="width:150px;" />
+                <baidu-map
+                  :center="editData.projectGPSCoordinates"
+                  :zoom="zoom"
+                  style="width: 100%; height: 280px"
+                  ak="sCrmUchPh7eKuHSyuZKx0e1acqyk7REF"
+                  :scroll-wheel-zoom="true"
+                  @ready="editDialogMap"
+                  @click="getEditClickInfoMap"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item>
+              <el-button :loading="btnLoading" type="primary" @click="submitEditDataForm('editData')">确定</el-button>
+              <el-button @click="editDialog = false">取消</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="老基地-新增" :visible.sync="addDialog" width="60%">
+        <el-form ref="addData" :rules="rules" size="small" :model="addData" label-width="150px">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="基地名称" prop="name">
+                <el-input v-model="addData.name" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="基地现状" prop="presentSituation">
+                <el-input v-model="addData.presentSituation" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="基地地址" prop="address">
+                <el-input v-model="addData.address" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="危险源" prop="dangerous">
+                <el-input v-model="addData.dangerous" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="分管领导" prop="leader">
+                <el-input v-model="addData.leader" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="分管领导联系方式" prop="leaderPhone">
+                <el-input v-model="addData.leaderPhone" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="基地负责人" prop="responsiblePhone">
+                <el-input v-model="addData.responsiblePhone" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="基地负责人联系方式" prop="contactInformationOfBasePrincipal">
+                <el-input v-model="addData.contactInformationOfBasePrincipal" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="留守工作人员(人)" prop="workers">
+                <el-input v-model="addData.workers" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="留守居民(人)" prop="residents">
+                <el-input v-model="addData.residents" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="办公地点GPS坐标" required>
+                <el-row>
+                  <el-col :span="8">
+                    <el-row>
+                      <el-col :span="12">
+                        <el-input v-model="locData.lng" placeholder="坐标经度" />
+                      </el-col>
+                      <el-col :span="12">
+                        <el-input v-model="locData.lat" placeholder="坐标纬度" style="padding-left:10px;" />
+                      </el-col>
+                    </el-row>
+                  </el-col>
+                </el-row>
+                <baidu-map
+                  :center="addData.projectGPSCoordinates"
+                  :zoom="zoom"
+                  style="float:left; width: 100%; height: 280px"
+                  ak="sCrmUchPh7eKuHSyuZKx0e1acqyk7REF"
+                  :scroll-wheel-zoom="true"
+                  @ready="addDialogMap"
+                  @click="getAddClickInfoMap"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item>
+              <el-button :loading="btnLoading" type="primary" @click="submitAddDataForm('addData')">确定</el-button>
+              <el-button @click="addDialog = false">取消</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </el-dialog>
+      <!-- 分页栏 -->
+      <el-row>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :current-page="page.page"
+          :total="page.total"
+          :page-sizes="[10, 20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!-- 地图 -->
+      <div v-if="showMap">
+        <el-row>
+          <el-col :span="24">
+            <baidu-map
+              :zoom="zoom"
+              style="width: 100%;height:300px;"
+              :scroll-wheel-zoom="true"
+              @ready="bigMap"
+            />
+          </el-col>
+        </el-row>
+      </div>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyTable" size="small" stripe>
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+    </div>
+  </div>
+</template>
+
+<script>
+import { oldBaseAdd, oldBaseDelete, oldBaseUpdate, oldBaseList, historyOldBase } from '@/api/basedata/oldBase'
+import { parseTime } from '@/utils'
+import GLOBAL from '@/utils/global'
+export default {
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 10
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      editData: {
+        name: '',
+        presentSituation: '',
+        address: '',
+        GPSCoordinates: {
+          lng: '',
+          lat: ''
+        },
+        leader: '',
+        leaderPhone: '',
+        responsiblePhone: '',
+        contactInformationOfBasePrincipal: '',
+        workers: '',
+        residents: '',
+        dangerous: ''
+      },
+      addData: {
+        name: '',
+        presentSituation: '',
+        address: '',
+        projectGPSCoordinates: {
+          lng: '',
+          lat: ''
+        },
+        leader: '',
+        leaderPhone: '',
+        responsiblePhone: '',
+        contactInformationOfBasePrincipal: '',
+        workers: '',
+        residents: '',
+        dangerous: ''
+      },
+      GPSCoordinatesCenter: [
+        [106.653298, 29.732213, '重庆江北国际机场'],
+        [115.807698, 28.662684, '地址：南昌市红谷滩新区学府大道999号'],
+        [116.412222, 39.912345, '地址：北京市东城区正义路甲5号'],
+        [111.716982, 40.890667, '呼和浩特']
+      ],
+      projectGPSCoordinates: {
+        lng: 0,
+        lat: 0
+      },
+      rules: {
+        name: [
+          { required: true, message: '基地名称不能为空', trigger: 'blur' }
+        ],
+        presentSituation: [
+          { required: true, message: '基地现状不能为空', trigger: 'blur' }
+        ],
+        address: [
+          { required: true, message: '基地地址不能为空', trigger: 'blur' }
+        ],
+        GPSCoordinates: [
+          { required: true, message: '基地GPS坐标不能为空', trigger: 'blur' }
+        ],
+        leader: [
+          { required: true, message: '分管领导不能为空', trigger: 'blur' }
+        ],
+        leaderPhone: [
+          { required: true, message: '分管领导联系方式不能为空', trigger: 'blur' }
+        ],
+        responsiblePhone: [
+          { required: true, message: '基地负责人不能为空', trigger: 'blur' }
+        ],
+        contactInformationOfBasePrincipal: [
+          { required: true, message: '基地负责人联系方式不能为空', trigger: 'blur' }
+        ],
+        workers: [
+          { required: true, message: '留守工作人员(人)不能为空', trigger: 'blur' }
+        ],
+        residents: [
+          { required: true, message: '留守居民(人)不能为空', trigger: 'blur' }
+        ],
+        dangerous: [
+          { required: true, message: '危险源不能为空', trigger: 'blur' }
+        ]
+      },
+      showMap: false,
+      zoom: 11,
+      historyTable: false,
+      historyDialog: false,
+      btnLoading: false,
+      currentPage: 5,
+      /* 默认只要打开另一个就关闭之前的 */
+      getRowKeys(row) {
+        return row.id
+      },
+      locData: {
+        ids: 0,
+        lng: '',
+        lat: ''
+      },
+      addDialog: false,
+      oldBaseListLoading: true,
+      editDialog: false,
+      expands: []
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    // 获取信息
+    fetchData() {
+      oldBaseList(this.params).then(res => {
+        this.oldBaseListLoading = false
+        this.page = res.data.obj
+      })
+    },
+    // 删除老基地
+    delOldBase(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          oldBaseDelete(Object.assign({}, row).id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 查看历史修改
+    historyOldBase(scope) {
+      historyOldBase(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historyDialog = true
+      })
+    },
+    // 添加里面的地图
+    addDialogMap({ BMap, map }) {
+      window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(116.331398, 39.897445)
+      map.centerAndZoom(point, this.zoom)
+      function myFun(result) {
+        var cityName = result.name
+        map.setCenter(cityName)
+      }
+      var myCity = new BMap.LocalCity()
+      myCity.get(myFun)
+    },
+    // 修改里面的地图
+    editDialogMap({ BMap, map }) {
+      window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(this.locData.lng, this.locData.lat) // 初始化地图,设置中心点坐标和地图级别
+      map.centerAndZoom(point, this.zoom)
+      var marker = new BMap.Marker(point) // 创建标注
+      map.addOverlay(marker) // 将标注添加到地图中
+    },
+    // 详情里面的小地图
+    smallMap({ BMap, map }) {
+      // window.map = map // 将map变量存储在全局
+      var point = new BMap.Point(this.projectGPSCoordinates.lng, this.projectGPSCoordinates.lat) // 初始化地图,设置中心点坐标和地图级别
+      map.centerAndZoom(point, this.zoom)
+      var label = new BMap.Label('哈嘎嘿嘿')
+      var marker = new BMap.Marker(point, label) // 创建标注
+      map.addOverlay(marker) // 将标注添加到地图中
+      var circle = new BMap.Circle(point, 6, {
+        strokeColor: 'Red',
+        strokeWeight: 6,
+        strokeOpacity: 1,
+        Color: 'Red',
+        fillColor: '#f03'
+      })
+      // 将标注添加到地图中
+      map.addOverlay(circle)
+    },
+    // 显示的大地图
+    bigMap({ BMap, map }) {
+      map.centerAndZoom(new BMap.Point(104.769128, 34.972443), 5)
+      var data_info = this.GPSCoordinatesCenter
+      var opts = {
+        width: 250, // 信息窗口宽度
+        height: 60, // 信息窗口高度
+        title: '信息窗口', // 信息窗口标题
+        enableMessage: true // 设置允许信息窗发送短息
+      }
+      for (var i = 0; i < data_info.length; i++) {
+      // eslint-disable-next-line no-undef
+        var marker = new BMap.Marker(
+          new BMap.Point(data_info[i][0], data_info[i][1])
+        )
+        // 创建标注
+        var content = data_info[i][2]
+        map.addOverlay(marker)
+        var label = new BMap.Label(data_info[i][2], {
+          offset: new BMap.Size(
+            GLOBAL.BMAP_LABEL_OFFSET.width,
+            GLOBAL.BMAP_LABEL_OFFSET.height
+          )
+        })
+        marker.setLabel(label)
+        // 将标注添加到地图中
+        addClickHandler(content, marker)
+      }
+      function addClickHandler(content, marker) {
+        marker.addEventListener('click', function(e) {
+          openInfo(content, e)
+        })
+      }
+      function openInfo(content, e) {
+        var p = e.target
+        var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat)
+        var infoWindow = new BMap.InfoWindow(content, opts) // 创建信息窗口对象
+        map.openInfoWindow(infoWindow, point) // 开启信息窗口
+      }
+    },
+    // 点击添加和修改里面的弹窗-点击获取地点
+    getAddClickInfoMap(e) {
+      // 清除所要清除的覆盖物
+      map.clearOverlays()
+      var myMarker = new BMap.Marker(new BMap.Point(e.point.lng, e.point.lat))
+      map.addOverlay(myMarker)
+      this.locData.lng = e.point.lng
+      this.locData.lat = e.point.lat
+    },
+    getEditClickInfoMap(e) {
+      // 清除所要清除的覆盖物
+      map.clearOverlays()
+      var myMarker = new BMap.Marker(new BMap.Point(e.point.lng, e.point.lat))
+      map.addOverlay(myMarker)
+      this.locData.lng = e.point.lng
+      this.locData.lat = e.point.lat
+    },
+    submitEditDataForm(formName) {
+      this.editData.gpsLng = this.locData.lng
+      this.editData.gpsLat = this.locData.lat
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.btnLoading = false
+          oldBaseUpdate(this.editData)
+            .then(res => {
+              if (res.data.status === 200) {
+                this.fetchData()
+                this.editDialog = false
+              } else {
+                this.$message.error('修改失败，请重试联系管理员!')
+                this.$message.error(res.data.msg)
+              }
+            })
+            .catch(() => {
+              this.$message.error('修改失败!')
+            })
+        }
+      })
+    },
+    submitAddDataForm(formName) {
+      this.addData.gpsLng = this.locData.lng
+      this.addData.gpsLat = this.locData.lat
+      this.$refs[formName].validate(valid => {
+        if (!this.addData.gpsLng || !this.addData.gpsLat) {
+          this.$message.error('请选择办公地点坐标')
+          return
+        }
+        if (valid) {
+          this.btnLoading = false
+          oldBaseAdd(this.addData)
+            .then(res => {
+              if (res.data.status === 200) {
+                this.fetchData()
+                this.addDialog = false
+              } else {
+                this.$message.error('添加失败，请重试联系管理员!')
+                this.$message.error(res.data.msg)
+              }
+            })
+            .catch(() => {
+              this.$message.error('添加失败!')
+            })
+        }
+      })
+    },
+    editOpenDialog(index, row) {
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.editData = Object.assign({}, row)
+      this.projectGPSCoordinates.lng = this.editData.gpsLng
+      this.projectGPSCoordinates.lat = this.editData.gpsLat
+      this.locData = this.projectGPSCoordinates
+      this.editDialog = true // 编辑信息模态框显示
+    },
+    // 设置当前对象所在的下标，用于点击详情前获取数组中该对象的经纬度
+    setCurrentIndex(index) {
+      this.tableData[index].index = index
+    },
+    // 折叠面板每次只能展开一行
+    expandSelect(row, expandedRows) {
+      var that = this
+      if (expandedRows.length) {
+        that.expands = []
+        if (row) {
+          this.projectGPSCoordinates.lng = row.gpsLng
+          this.projectGPSCoordinates.lat = row.gpsLat
+          // 打开当前点击的 详情
+          that.expands.push(row.id)// 每次push进去的是每行的ID
+        }
+      } else {
+        that.expands = []// 默认不展开
+      }
+    },
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    }
+  }
+}
+</script>
+
+<style scoped>
+#bmap {
+  height: 520px;
+}
+</style>

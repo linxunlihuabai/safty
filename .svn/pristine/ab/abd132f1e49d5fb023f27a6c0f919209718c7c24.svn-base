@@ -1,0 +1,32 @@
+import Cookies from 'js-cookie'
+
+const TokenKey = 'SIMP'
+// tokenf方法
+export function getToken() {
+  return Cookies.get(TokenKey)
+}
+
+export function setToken(token) {
+  return Cookies.set(TokenKey, token)
+}
+
+export function removeToken() {
+  return Cookies.remove(TokenKey)
+}
+
+export function setStatus(status) {
+  return Cookies.set(TokenKey, status)
+}
+// 深拷贝方法
+export function depClone(obj) {
+  return JSON.parse(JSON.stringify(obj))
+}
+// 模糊搜索（表格）
+export function fuzzySearch(dataArray, search, flag) {
+  if (search) {
+    return dataArray.filter(data => {
+      return String(data[flag]).toLowerCase().includes(search)
+    })
+  }
+  return dataArray
+}

@@ -1,0 +1,375 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row type="flex" justify="space-between" align="top">
+
+        <el-button
+          type="primary"
+          size="small"
+          icon="el-icon-plus"
+          @click="addform($event,dialogClosed)"
+        >
+          新增
+        </el-button>
+
+        <div>
+          <el-autocomplete
+            v-model="searchTemp"
+            size="small"
+            :fetch-suggestions="querySearch"
+            placeholder="请输入内容"
+            style="width:180px;margin-right:10px"
+            :trigger-on-focus="false"
+            @select="handleSelect"
+          />
+          <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+        </div>
+      </el-row>
+      <el-row>
+        <el-col>
+
+          <el-table
+            ref="table"
+            v-loading="tableDataLoading"
+            border
+            :data="tableData"
+            size="small"
+            stripe
+          >
+            <!-- 详情展示 -->
+            <el-table-column prop="title" label="文件标题" />
+            <el-table-column prop="zh-type" label="法规行业分类" />
+            <el-table-column prop="zh-module" label="法律法规分类" />
+            <el-table-column prop="issuedUnit" label="发行单位" />
+            <el-table-column prop="issuedNumber" label="发行编号" />
+            <el-table-column prop="issuedDate" label="发行日期" />
+            <el-table-column prop="effectiveDate" label="生效日期" />
+            <el-table-column prop="applications" label="适用领域" />
+            <el-table-column label="附件" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'view'" @click="filePreview(scope.row.files[0])" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" :width="GLOBAL.TABLE_CELL_WIDTH.MEDIUM">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'edit'" @click="editItem(scope)" />
+                  <sun-button :type="'delete'" @click="delItem(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column label="历史修改" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <sun-button :type="'history'" @click="history(scope)" />
+                </el-button-group>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-row>
+      <!-- 分页栏 -->
+
+      <el-row ref="page">
+        <!-- 分页栏 -->
+        <el-pagination
+          :current-page.sync="cpage"
+          :page-sizes="[5, 10, 15, 20]"
+          :page-size.sync="pageSize"
+          layout="sizes, prev, pager, next"
+          :total="total"
+          @size-change="handlePageSizeChange"
+          @current-change="handleCpageChange"
+        />
+      </el-row>
+      <!-- 弹出添加窗口 -->
+
+      <!-- 登记表 -->
+      <el-dialog
+        :title="handle "
+        :visible.sync="formDialog"
+        :width="GLOBAL.DIALOG_WIDTH.MEDIUM"
+        :close-on-click-modal="false"
+        @closed="handleDialogClosed('form')"
+      >
+
+        <el-form
+          id="addData"
+          ref="form"
+          size="small"
+          :model="form"
+          :rules="formRules"
+          :label-width="GLOBAL.FORM_LABEL_WIDTH.MEDIUM"
+        >
+
+          <el-form-item label="文件标题" prop="title">
+            <el-input v-model="form.title" />
+          </el-form-item>
+
+          <el-form-item label="法律法规分类" prop="module">
+            <sun-select v-model="form.module" :module="'法律法规分类'" />
+          </el-form-item>
+
+          <el-form-item label="行业法规分类" prop="type">
+            <sun-select v-model="form.type" :module="'行业法规分类'" :disabled="disabled" />
+          </el-form-item>
+
+          <el-form-item label="发行单位" prop="issuedUnit">
+            <el-input v-model="form.issuedUnit" />
+          </el-form-item>
+          <el-form-item label="适用领域" prop="applications">
+            <el-input v-model="form.applications" />
+          </el-form-item>
+
+          <el-form-item label="发行编号" prop="issuedNumber">
+            <el-input v-model="form.issuedNumber" />
+          </el-form-item>
+
+          <el-form-item label="发行日期" prop="issuedDate">
+            <el-date-picker
+              v-model="form.issuedDate"
+              type="date"
+              placeholder="选择日期"
+              format="yyyy-MM-dd"
+              value-format="yyyy-MM-dd"
+            />
+          </el-form-item>
+
+          <el-form-item label="生效日期" prop="effectiveDate">
+            <el-date-picker
+              v-model="form.effectiveDate"
+              type="date"
+              placeholder="选择日期"
+              format="yyyy-MM-dd"
+              value-format="yyyy-MM-dd"
+            />
+          </el-form-item>
+
+          <el-form-item label="附件" prop="files">
+            <sun-upload
+              ref="UPLOAD"
+              :data="GLOBAL.FILE_TYPE.RULES"
+              :file-list.sync="form.files"
+              :limit="1"
+              :btn-loading.sync="btnLoading"
+            />
+          </el-form-item>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="handleDialogClosed('form')">取 消</el-button>
+          <el-button type="primary" :loading="btnLoading" @click="formSubmit">{{ handle }}</el-button>
+        </div>
+      </el-dialog>
+    </div>
+    <!-- 用于预览上传多张图片的dialog -->
+    <pic-dialog :visible.sync="sunViewPics" :pic-list="sunPicList" />
+    <!-- 用于查看历史记录的dialog -->
+    <el-dialog
+      title="历史记录"
+      :visible.sync="historyDialog"
+      :close-on-click-modal="false"
+      :width="GLOBAL.DIALOG_WIDTH.BIG"
+    >
+      <el-table ref="table" border :data="historyTable" size="small" stripe>
+        <!-- 历史记录详情展示 -->
+        <el-table-column prop="title" label="文件标题" />
+        <el-table-column prop="zh-type" label="法规行业分类" />
+        <el-table-column prop="zh-module" label="法律法规分类" />
+        <el-table-column prop="issuedUnit" label="发行单位" />
+        <el-table-column prop="issuedNumber" label="发行编号" />
+        <el-table-column prop="issuedDate" label="发行日期" />
+        <el-table-column prop="effectiveDate" label="生效日期" />
+        <el-table-column prop="applications" label="适用领域" />
+        <el-table-column label="附件" :width="GLOBAL.TABLE_CELL_WIDTH.MINI">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'view'" @click="filePreview(scope.row.files[0])" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column prop="operatorName" label="操作人" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+        <el-table-column prop="updateTime" label="操作时间" :width="GLOBAL.TABLE_CELL_WIDTH.SMALL" />
+      </el-table>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { zhClassify } from '@/utils'
+import {
+  getLawsList,
+  addLaws,
+  updateLaws,
+  deleteLaws,
+  historyLaws
+} from '@/api/laws/lawsAndRegulations' // 法律法规API
+export default {
+  data() {
+    return {
+      tableDataLoading: true,
+      form: {
+        title: '',
+        type: 515, // 行业法规分类
+        module: '', // 法律法规分类
+        issuedUnit: '', // 发行单位
+        issuedNumber: '', // 发行编号
+        issuedDate: '', // 发行日期
+        effectiveDate: '', // 生效日期
+        applications: '', // 适用领域
+        files: []
+      },
+      btnLoading: false,
+      // 验证规则
+      formRules: {
+        type: [
+          { required: true, message: '请选择行业法规分类', trigger: 'change' }
+        ],
+        module: [
+          { required: true, message: '请选择法律法规分类', trigger: 'change' }
+        ],
+        title: [
+          { required: true, message: '请输入标题', trigger: 'blur' }
+        ],
+        issuedUnit: [
+          { required: true, message: '请输入发行单位', trigger: 'blur' }
+        ],
+        applications: [
+          { required: true, message: '请输入适用领域', trigger: 'blur' }
+        ],
+        issuedNumber: [
+          { required: true, message: '请输入发行编号', trigger: 'blur' }
+        ],
+        issuedDate: [
+          { required: true, message: '请选择发行日期', trigger: 'change' }
+        ],
+        effectiveDate: [
+          { required: true, message: '请选择生效日期', trigger: 'change' }
+        ],
+        files: [
+          { required: true, message: '请选择文件', trigger: 'change' }
+        ]
+      },
+      formDialog: false, // 弹出框标志
+      table: [],
+      cpage: 1,
+      pageSize: 5,
+      total: 0,
+      historyDialog: false,
+      historyTable: [] // 历史记录
+    }
+  },
+  computed: {
+    tableData() {
+      const search = this.search
+      return this.fuzzySearch(this.table, search, 'title')
+    },
+    queryList() {
+      return this.table.map(data => {
+        return { value: data.title }
+      })
+    },
+    disabled() {
+      // 403 是行业法规
+      if (this.form.module === 403) {
+        return false
+      } else {
+        return true
+      }
+    }
+  },
+  watch: {
+    'form.module': {
+      handler(val) {
+        if (val !== 403) {
+          this.$nextTick(() => {
+            this.form.type = 515
+          })
+        }
+      }
+    }
+  },
+  created() {
+    this.fetchList()
+  },
+  methods: {
+    // 动态分页查询企业资质信息
+    fetchList(cpage, pageSize) {
+      const params = {}
+      params.page = cpage || this.cpage
+      params.size = pageSize || this.pageSize
+      // params.rule_type = 201
+      getLawsList(params)
+        .then(res => {
+          const pageObj = res.data.obj
+          this.total = pageObj.total
+          // 改造时间戳
+          const list = pageObj.list
+          zhClassify(list, [['行业法规分类', 'type'], ['法律法规分类', 'module']])
+          console.log(list)
+          this.table = list
+          this.tableDataLoading = false
+          this.btnLoading = false
+        }).catch(() => {})
+    },
+
+    // 提交登记表
+    formSubmit() {
+      this.$refs.form.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          const params = this.depClone(this.form)
+          // 改造文件
+          params.attachments = params.files[0].fileId
+          if (this.handle === '添加') {
+            addLaws(params).then(res => {
+              this.formDialog = false
+              this.fetchList()
+            })
+          } else if (this.handle === '修改') {
+            updateLaws(params.id, params).then((res) => {
+              this.formDialog = false
+              this.fetchList()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 删除
+    delItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning')
+        .then(() => {
+          deleteLaws(scope.row.id).then((res) => {
+            this.fetchList()
+          })
+
+          console.log(scope)
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historyLaws(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        zhClassify(this.historyTable, [['行业法规分类', 'type'], ['法律法规分类', 'module']])
+        this.historyDialog = true
+      })
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+</style>

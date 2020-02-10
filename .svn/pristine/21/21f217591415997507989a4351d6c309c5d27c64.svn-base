@@ -1,0 +1,48 @@
+<template>
+  <el-row>
+    <el-card class="tips-card">
+      <div slot="header" class="tips-header">
+        <span>未提交报表企业{{ 18 }}个</span>
+        <el-date-picker
+          v-model="time"
+          type="month"
+          placeholder="选择时间"
+        />
+        <!-- {{ time }} -->
+      </div>
+      <el-row class="tips-content">
+        <el-col v-for="p in 18" :key="p" :span="6">
+          <el-tag>江西省核工业地质局二六六大队{{ p }}</el-tag>
+        </el-col>
+      </el-row>
+    </el-card>
+  </el-row>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      time: Date.now()
+    }
+  }
+
+}
+</script>
+
+<style lang="scss" scoped>
+.tips-card{
+  .tips-header{
+    display: flex;
+    justify-content: space-between;
+    .el-date-editor{
+      width: 322px;
+    }
+  }
+  .tips-content{
+    .el-col{
+      margin-bottom: 10px;
+    }
+  }
+}
+</style>

@@ -1,0 +1,125 @@
+<template>
+  <div class="navbar">
+    <div class="navList">
+      <ul class="menu-list">
+        <li v-for="item in menu" :key="item.id" :class="path == item.path ? 'active':''">
+          <router-link :to="item.path">{{item.name}}</router-link>
+        </li>
+      </ul>
+    </div>
+
+    <div class="right-menu"></div>
+  </div>
+</template>
+
+<script>
+import { mapState } from "vuex";
+export default {
+  data() {
+    return {
+    };
+  },
+  computed: {
+    ...mapState("menu", {
+      menu: "menulist"
+    }),
+    path() {
+      return this.$route.path;
+    }
+  },
+  methods: {
+  },
+  watch:{
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+$mainColor: #1078c9;
+.navbar {
+  height: 50px;
+  overflow: hidden;
+  position: relative;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  .navList {
+    overflow: hidden;
+    background-color: $mainColor;
+    .menu-list {
+      float: left;
+      list-style: none;
+      overflow: hidden;
+      padding: 0;
+      margin: 0;
+      li {
+        float: left;
+        color: #fff;
+        height: 50px;
+        line-height: 50px;
+        padding: 0 20px;
+        font-size: 1.6rem;
+        cursor: pointer;
+        &.active {
+          color: #333;
+          background-color: #fff;
+        }
+      }
+    }
+  }
+  .breadcrumb-container {
+    float: left;
+  }
+
+  .right-menu {
+    float: right;
+    height: 100%;
+    line-height: 50px;
+
+    &:focus {
+      outline: none;
+    }
+
+    .right-menu-item {
+      display: inline-block;
+      padding: 0 8px;
+      height: 100%;
+      font-size: 18px;
+      color: #5a5e66;
+      vertical-align: text-bottom;
+
+      &.hover-effect {
+        cursor: pointer;
+        transition: background 0.3s;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.025);
+        }
+      }
+    }
+
+    .avatar-container {
+      margin-right: 30px;
+
+      .avatar-wrapper {
+        margin-top: 5px;
+        position: relative;
+
+        .user-avatar {
+          cursor: pointer;
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+        }
+
+        .el-icon-caret-bottom {
+          cursor: pointer;
+          position: absolute;
+          right: -20px;
+          top: 25px;
+          font-size: 12px;
+        }
+      }
+    }
+  }
+}
+</style>

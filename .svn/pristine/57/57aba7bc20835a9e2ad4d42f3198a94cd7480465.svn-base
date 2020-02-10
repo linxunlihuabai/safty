@@ -1,0 +1,27 @@
+import { postRequest, getRequest } from '@/utils/request'
+
+export function checkEmail(email) {
+  return getRequest('/register/check/email/' + email, {})
+}
+
+// es6新语法
+export function checkResponsiblePersonPhone(responsiblePersonPhone) {
+  return getRequest(
+    `/register/check/responsiblePersonPhone/${responsiblePersonPhone}`, {})
+}
+
+export function checkUsername(username) {
+  return getRequest(`/register/check/username/${username}`, {})
+}
+
+export function getRegisterCaptcha(data) {
+  return postRequest('/register/captcha', data)
+}
+
+export function register(data) {
+  return postRequest('/register', data)
+}
+
+export function login(data) {
+  return postRequest('/login', data)
+}

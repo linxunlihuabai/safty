@@ -1,0 +1,788 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row type="flex" justify="space-between" align="top">
+        <el-button type="primary" size="small" icon="el-icon-plus" @click="addDailyForm">新增</el-button>
+
+        <div>
+          <el-autocomplete
+            v-model="searchTemp"
+            size="small"
+            :fetch-suggestions="querySearch"
+            placeholder="请输入内容"
+            style="width:180px;margin-right:10px"
+            :trigger-on-focus="false"
+            @select="handleSelect"
+          />
+
+          <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+        </div>
+      </el-row>
+      <el-row>
+        <el-col>
+          <!-- v-loading="listLoading" -->
+          <!-- 安全费用使用情况 -->
+          <el-table
+            ref="table"
+            class="usage-of-safety-expenses"
+            border
+            :data="tableData"
+            size="small"
+            stripe
+          >
+            <!-- 安全费用详情展示 -->
+            <el-table-column prop="address" label="检查地点" />
+            <el-table-column prop="time" label="检查时间" />
+            <el-table-column prop="personnel" label="检查人员" />
+            <el-table-column prop="num" label="隐患数量" />
+            <el-table-column prop="leader" label="领导参与情况" />
+            <el-table-column label="照片" width="80">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-search"
+                    @click="viewPics(scope.row.fileList)"
+                  />
+                </el-button-group>
+
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-edit"
+                    @click="editItem(scope)"
+                  />
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-delete"
+                    @click="delItem(scope)"
+                  />
+                </el-button-group>
+              </template>
+            </el-table-column>
+            <el-table-column prop="address" label="历史记录" width="80">
+              <template slot-scope="scope">
+                <el-button-group class="operate">
+                  <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-view"
+                  />
+                </el-button-group>
+
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-row>
+      <!-- 分页栏 -->
+
+      <el-row v-if="false" ref="page">
+        <!-- 分页栏 -->
+        <el-pagination
+          :current-page.sync="currentPage2"
+          :page-sizes="[100, 200, 300, 400]"
+          :page-size="100"
+          layout="sizes, prev, pager, next"
+          :total="1000"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+
+      <!-- 弹出添加窗口 -->
+
+      <!-- 日常检查登记表 -->
+      <el-dialog
+        title="日常检查登记表"
+        :visible.sync="dailyFormDialog"
+        width="60%"
+        :close-on-click-modal="false"
+        @closed="handleDialogClosed('dailyForm')"
+      >
+        <el-form
+          id="addData"
+          ref="dailyForm"
+          size="small"
+          :model="dailyForm"
+          :rules="dailyFormRules"
+          label-width="130px"
+        >
+          <table border="1" class="formTable">
+            <tr>
+              <td>
+                <el-form-item label="检查地点" prop="address">
+                  <el-input v-model="dailyForm.address" />
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <el-form-item label="检查时间" prop="time">
+                  <el-date-picker
+                    v-model="dailyForm.time"
+                    type="date"
+                    value-format="yyyy-MM-dd"
+                    placeholder="选择日期"
+                  />
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <el-form-item label="检查人员" prop="personnel">
+                  <el-input v-model="dailyForm.personnel" />
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <el-form-item label="领导参与情况" prop="leader">
+                  <el-radio v-model="dailyForm.leader" label="参与">参与</el-radio>
+                  <el-radio v-model="dailyForm.leader" label="未参与">未参与</el-radio>
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <el-form-item label="隐患数量" prop="num">
+                  <el-input-number v-model="dailyForm.num" :disabled="true" />
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <el-form-item label="文件" prop="fileList">
+                  <el-upload
+                    ref="dailyUpload"
+                    class="upload-demo"
+                    action="https://jsonplaceholder.typicode.com/posts/"
+                    list-type="picture-card"
+                    :on-progress="handleProgress"
+                    :on-error="handleError"
+                    :on-success="handleSuccess"
+                    :on-preview="handlePictureCardPreview"
+                    :on-remove="handleRemove"
+                    :file-list="dailyForm.fileList"
+                    multiple
+                  >
+                    <i class="el-icon-upload" />
+                    <div class="el-upload__text">点击上传</div>
+                  </el-upload>
+                </el-form-item>
+              </td>
+            </tr>
+            <tr>
+              <td>
+
+                <el-button @click="resetForm('dailyForm')">重置</el-button>
+                <el-button type="primary" :loading="dailyLoading" @click="dailyFormSubmit">{{ handle }}</el-button>
+
+              </td>
+            </tr>
+          </table>
+        </el-form>
+        <el-divider />
+        <el-button type="primary" size="small" @click="addDangerForm">添加隐患登记</el-button>
+        <el-table :data="dailyForm.dangerTable" style="width: 100%" empty-text="战无数据">
+          <el-table-column label="主要隐患" align="center">
+            <template slot="header" slot-scope="scope">
+              <span class="header-label">{{ scope.column.label }}</span>
+            </template>
+            <template scope="scope">
+              <el-radio
+                v-model="dailyForm.radio"
+                class="radio"
+                :label="scope.$index"
+                @change="checkMain(scope)"
+              >&nbsp;</el-radio>
+            </template>
+          </el-table-column>
+          <el-table-column prop="field" label="排查领域">
+            <template slot="header" slot-scope="scope">
+              <span class="header-label">{{ scope.column.label }}</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="name" label="项目名称">
+            <template slot="header" slot-scope="scope">
+              <span class="header-label">{{ scope.column.label }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="content" label="隐患内容">
+            <template slot="header" slot-scope="scope">
+              <span class="header-label">{{ scope.column.label }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="level" label="隐患等级">
+            <template slot="header" slot-scope="scope">
+              <span class="header-label">{{ scope.column.label }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="state" label="状态">
+            <template slot="header" slot-scope="scope">
+              <span class="header-label">{{ scope.column.label }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="隐患照片" prop="address">
+            <template slot="header" slot-scope="scope">
+              <span class="header-label">{{ scope.column.label }}</span>
+            </template>
+            <template slot-scope="scope">
+              <el-button-group>
+                <el-button
+                  type="primary"
+                  size="mini"
+                  icon="el-icon-search"
+                  @click="viewPics(scope.row.fileList)"
+                >查看现场照片</el-button>
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </el-table>
+        <!-- 内层弹窗 -->
+
+        <!-- 隐患登记表 -->
+        <el-dialog
+          title="隐患登记表"
+          :visible.sync="dangerFormDialog"
+          width="50%"
+          append-to-body
+          :close-on-click-modal="false"
+          @closed="handleDialogClosed('dangerForm')"
+        >
+          <el-form
+            ref="dangerForm"
+            size="small"
+            :model="dangerForm"
+            label-width="130px"
+            :rules="dangerFormRules"
+          >
+            <table border="1" class="formTable">
+              <tr>
+                <td>
+                  <el-form-item label="排查领域" prop="field">
+                    <el-input v-model="dangerForm.field" />
+                  </el-form-item>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <el-form-item label="项目名称" prop="name">
+                    <el-select v-model="dangerForm.name" filterable placeholder="请选择">
+                      <el-option
+                        v-for="item in options"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
+                    </el-select>
+                  </el-form-item>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <el-form-item label="隐患内容" prop="content">
+                    <el-input v-model="dangerForm.content" type="textarea" />
+                  </el-form-item>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <el-form-item label="隐患等级" prop="level">
+                    <el-select v-model="dangerForm.level" placeholder="请选择">
+                      <el-option
+                        v-for="item in options"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
+                    </el-select>
+                  </el-form-item>
+                </td>
+              </tr>
+              <tr>
+                <td>
+
+                  <el-form-item label="状态" prop="state">
+                    <el-select v-model="dangerForm.state" placeholder="请选择">
+                      <el-option
+                        v-for="item in options"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
+                    </el-select>
+                  </el-form-item>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <el-form-item label="隐患照片" prop="fileList">
+                    <el-upload
+                      ref="dangerUpload"
+                      action="https://jsonplaceholder.typicode.com/posts/"
+                      list-type="picture-card"
+                      :on-progress="handleDangerFileProgress"
+                      :on-error="handleDangerFileError"
+                      :on-preview="handlePictureCardPreview"
+                      :on-success="handleDangerFileSuccess"
+                      :on-remove="handleDangerFileRemove"
+                      :file-list="dangerForm.fileList"
+                      multiple
+                    >
+                      <i class="el-icon-upload" />
+                      <div class="el-upload__text">点击上传</div>
+                    </el-upload>
+                  </el-form-item>
+                </td>
+              </tr>
+              <tr>
+                <td>
+
+                  <el-button @click="resetForm('dangerForm')">重置</el-button>
+                  <el-button type="primary" :loading="dangerLoading" @click="onSave">保存</el-button>
+
+                </td>
+              </tr>
+            </table>
+
+          </el-form>
+        </el-dialog>
+      </el-dialog>
+    </div>
+    <!-- 用于预览上传多张图片的dialog -->
+    <el-dialog append-to-body :visible.sync="dialogViewPics" class="ViewPics">
+      <el-row :gutter="20" type="flex" justify="center">
+        <el-col v-for="(item,index) in fileList" :key="index" :span="8">
+          <el-image style="width:100%" :src="item.url" />
+        </el-col>
+      </el-row>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { depClone, fuzzySearch } from '@/utils/auth'
+export default {
+  data() {
+    return {
+      handle: '', // 处理方式
+      search: '',
+      searchTemp: '',
+      // 日常检查登记表
+      dailyForm: {
+        address: '',
+        time: '',
+        personnel: '',
+        leader: null,
+        num: 0,
+        fileList: [],
+        dangerTable: [],
+        radio: 0
+      },
+      dailyLoading: false,
+      // 日常检查登记表验证规则
+      dailyFormRules: {
+        address: [
+          { required: true, message: '请输入检查地址', trigger: 'blur' }
+        ],
+        time: [
+          { required: true, message: '请选择检查时间', trigger: 'change' }
+        ],
+        personnel: [
+          { required: true, message: '请输入检查人员', trigger: 'blur' }
+        ],
+        leader: [
+          { required: true, message: '请输入领导参与情况', trigger: 'blur' }
+        ],
+        fileList: [{ required: true, message: '请上传文件', trigger: 'change' }]
+      },
+      // 隐患登记表
+      dangerForm: {
+        main: 0,
+        field: '',
+        name: '',
+        content: '',
+        level: '',
+        state: '',
+        fileList: []
+      },
+      dangerLoading: false,
+      // 隐患登记表验证规则
+      dangerFormRules: {
+        field: [{ required: true, message: '请输入检查领域', trigger: 'blur' }],
+        name: [{ required: true, message: '请输入项目名称', trigger: 'blur' }],
+        content: [
+          { required: true, message: '请输入隐患内容', trigger: 'blur' }
+        ],
+        level: [
+          { required: true, message: '请选择隐患等级', trigger: 'change' }
+        ],
+        state: [{ required: true, message: '请选择状态', trigger: 'change' }],
+        fileList: [{ required: true, message: '请上传文件', trigger: 'change' }]
+      },
+      dailyFormDialog: false, // 日常检查登记表弹出框标志
+      dangerFormDialog: false, // 隐患登记表弹出框标志
+      options: [
+        {
+          value: '正常',
+          label: '正常'
+        },
+        {
+          value: '待整改',
+          label: '待整改'
+        },
+        {
+          value: '整改中',
+          label: '整改中'
+        },
+        {
+          value: '待验收',
+          label: '待验收'
+        },
+        {
+          value: '关闭',
+          label: '关闭'
+        }
+      ],
+      dailyTable: [
+        { 'address': '南昌',
+          'time': '2019-12-13',
+          'personnel': '所有',
+          'leader': '未参与',
+          'num': 0,
+          'fileList': [{ 'status': 'success', 'name': '皮卡丘.jpg', 'size': 15516, 'percentage': 100, 'uid': 1577410382128, 'raw': { 'uid': 1577410382128 }, 'url': 'http://dmimg.5054399.com/allimg/pkm/pk/22.jpg', 'response': { 'id': 101 }}],
+          'dangerTable': [],
+          'radio': 0
+        },
+        { 'address': '北京',
+          'time': '2019-12-03',
+          'personnel': '李四',
+          'leader': '参与',
+          'num': 0,
+          'fileList': [{ 'status': 'success', 'name': 'pik.jpg', 'size': 15516, 'percentage': 100, 'uid': 1577410382128, 'raw': { 'uid': 1577410382128 }, 'url': 'http://file02.16sucai.com/d/file/2015/0128/8b0f093a8edea9f7e7458406f19098af.jpg', 'response': { 'id': 101 }}],
+          'dangerTable': [],
+          'radio': 0
+        },
+        { 'address': '南极点',
+          'time': '2017-12-13',
+          'personnel': '张三',
+          'leader': '未参与',
+          'num': 0,
+          'fileList': [{ 'status': 'success', 'name': '微信图片_20191204090205.jpg', 'size': 15516, 'percentage': 100, 'uid': 1577410382128, 'raw': { 'uid': 1577410382128 }, 'url': 'http://img12.3lian.com/gaoqing02/02/93/37.jpg', 'response': { 'id': 101 }}],
+          'dangerTable': [],
+          'radio': 0
+        },
+        { 'address': '程度',
+          'time': '2019-12-03',
+          'personnel': '李四',
+          'leader': '参与',
+          'num': 0,
+          'fileList': [{ 'status': 'success', 'name': '微信图片_20191204090205.jpg', 'size': 15516, 'percentage': 100, 'uid': 1577410382128, 'raw': { 'uid': 1577410382128 }, 'url': 'http://file02.16sucai.com/d/file/2014/0829/372edfeb74c3119b666237bd4af92be5.jpg', 'response': { 'id': 101 }}],
+          'dangerTable': [],
+          'radio': 0
+        }
+      ],
+      dangerTable: [],
+      active: 0,
+      fileList: [],
+      dialogViewPic: false,
+      dialogViewPics: false,
+      dialogImageUrl: '',
+      btnLoading: false
+    }
+  },
+  computed: {
+    tableData() {
+      const search = this.search
+      return fuzzySearch(this.dailyTable, search, 'address')
+    },
+    queryList() {
+      return this.dailyTable.map(data => {
+        return { value: data.address }
+      })
+    }
+  },
+  watch: {
+    searchTemp(val) {
+      if (!val) {
+        this.search = ''
+      }
+    }
+  },
+  methods: {
+    // 过滤表格
+    onSearch() {
+      this.search = this.searchTemp
+    },
+    querySearch(queryString, cb) {
+      var results = fuzzySearch(this.queryList, queryString, 'value')
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    handleSelect() {
+      this.onSearch()
+    },
+    // 查看照片
+    viewPics(fileList) {
+      console.log(fileList)
+      this.dialogViewPics = true
+      this.fileList = fileList
+    },
+    // 重置表单
+    resetForm(formName) {
+      this.$refs[formName].resetFields()
+      if (formName === 'dailyForm') {
+        this.$refs.dailyUpload.abort()
+        this.dailyLoading = false
+      } else if (formName === 'dangerForm') {
+        this.$refs.dangerUpload.abort()
+        this.dangerForm = false
+      }
+    },
+    // 添加日常登记表按钮
+    addDailyForm() {
+      this.dailyFormDialog = true
+      this.handle = '添加'
+      this.$nextTick(() => {
+        // 默认表格为空
+        this.dailyForm.dangerTable = []
+        // 默认为第一个选中
+        this.dailyForm.radio = 0
+      })
+    },
+    // 提交日常登记表
+    dailyFormSubmit() {
+      console.log(this.dailyForm.fileList)
+      this.$refs.dailyForm.validate(valid => {
+        if (valid) {
+          if (this.handle === '添加') {
+            this.dailyForm.dangerTable = this.dailyForm.dangerTable.map(
+              (item, index) => {
+                if (this.dailyForm.radio === index) {
+                  item.main = 1
+                } else {
+                  item.main = 0
+                }
+                return item
+              }
+            )
+            this.dailyTable.push(depClone(this.dailyForm))
+            this.dailyFormDialog = false
+            console.log(this.dailyTable)
+          } else if (this.handle === '修改') {
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 添加隐患表按钮
+    addDangerForm() {
+      this.dangerFormDialog = true
+    },
+    // 保存隐患登记表
+    onSave() {
+      this.$refs.dangerForm.validate(valid => {
+        if (valid) {
+          this.dailyForm.dangerTable.push(depClone(this.dangerForm))
+          // 隐患数量自增
+          this.dailyForm.num++
+          this.$refs.dangerForm.resetFields()
+          this.dangerFormDialog = false
+          console.log(this.dangerForm)
+        } else {
+          return false
+        }
+      })
+    },
+    handleSizeChange(val) {
+      console.log(`每页 ${val} 条`)
+    },
+    handleCurrentChange(val) {
+      console.log(`当前页: ${val}`)
+    },
+
+    // 编辑单行表格
+    editItem(scope) {
+      this.dailyFormDialog = true
+      this.handle = '修改'
+      this.dailyForm = { ...scope.row }
+      console.log(scope)
+    },
+    // 删除
+    delItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning').then(() => {
+        this.tableData.splice(scope.$index, 1)
+        console.log(scope.$index)
+      })
+    },
+    // 处理dialog关闭
+    handleDialogClosed(formName) {
+      const temp = formName + 'Dialog'
+      this[temp] = false
+      this.$refs[formName].resetFields()
+      if (formName === 'dailyForm') {
+        this.$refs.dailyUpload.abort()
+        this.dailyLoading = false
+      } else if (formName === 'dangerForm') {
+        this.$refs.dangerUpload.abort()
+        this.dangerLoading = false
+      }
+    },
+    // 日常检查登记表的图片上传处理
+    handleProgress(event, file, fileList) {
+      this.dailyLoading = true
+    },
+    handleSuccess(response, file, fileList) {
+      this.dailyForm.fileList = fileList
+      this.dailyLoading = false
+    },
+    handleError(err, file, fileList) {
+      this.dailyLoading = false
+      console.log(err)
+    },
+    handleRemove(file, fileList) {
+      this.dailyForm.fileList = fileList
+    },
+    handlePictureCardPreview(file) {
+      console.log(this.dailyForm.fileList)
+      this.viewPics([file])
+    },
+    // 隐患登记表的图片上传处理
+    handleDangerFileProgress(event, file, fileList) {
+      this.dangerLoading = true
+    },
+    handleDangerFileSuccess(response, file, fileList) {
+      this.dangerForm.fileList = fileList
+      this.dangerLoading = false
+    },
+    handleDangerFileError(err, file, fileList) {
+      this.dangerLoading = false
+      console.log(err)
+    },
+    handleDangerFileRemove(file, fileList) {
+      this.dangerForm.fileList = fileList
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+.usage-of-safety-expenses {
+  /deep/ .inner-table {
+    margin-bottom: 20px;
+    thead th {
+      font-size: 1.6rem;
+    }
+  }
+}
+.slot-header {
+  position: relative;
+  .operation-group {
+    position: absolute;
+    right: 0;
+    width: auto;
+  }
+}
+.btn-text-group {
+  /deep/ .el-button {
+    padding: 5px;
+    border: none;
+  }
+}
+.ViewPics {
+  /deep/ .el-dialog__body {
+    text-align: center;
+  }
+}
+//嵌套表单输入框的表格
+.formTable{
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #ebeef5;
+  tr{
+      &:nth-child(even){
+        background-color: #fafafa;
+      }
+      &:last-of-type{
+        background-color: #fff;
+        td{
+          padding-right: 0;
+          text-align: center
+        }
+        .el-button{
+          padding-left: 60px;
+          padding-right: 60px;
+        }
+      }
+    td{
+      padding: 10px 0;
+      padding-right: 20%;
+      vertical-align: middle;
+      /deep/ .el-form-item--mini.el-form-item,.el-form-item--small.el-form-item{
+        margin-bottom: 0 ;
+      }
+      /deep/ .el-upload--picture-card{
+          line-height: normal;
+        i{
+          font-size: 67px;
+          color: #c0c4cc;
+          margin: 40px 0 16px;
+          line-height: 50px;
+        }
+        .el-upload__text{
+          color: #606266;
+          font-size: 14px;
+          text-align: center;
+          line-height: normal;
+        }
+
+      }
+    }
+  }
+}
+
+.header-label{
+    display: inline-block;
+    line-height: 1;
+    white-space: nowrap;
+    background: #fff;
+    border: 1px solid #dcdfe6;
+    color: #606266;
+    text-align: center;
+    box-sizing: border-box;
+    outline: none;
+    margin: 0;
+    font-weight: 500;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    padding: 9px 0;
+    width: 88px;
+    text-align: center;
+    border-radius: 3px;
+}
+
+</style>

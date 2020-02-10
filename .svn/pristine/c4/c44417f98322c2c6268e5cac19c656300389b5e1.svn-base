@@ -1,0 +1,309 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-row>
+        <el-col :span="6">
+          <el-button type="primary" size="small" @click="addMonthlyForm">
+            <i class="el-icon-plus" /> 新增
+          </el-button>
+        </el-col>
+      </el-row>
+      <el-table
+        v-loading="securityConferenceListLoading"
+        :data="page.list"
+        border
+        stripe
+        :row-key="getRowKeys"
+        :expand-row-keys="expands"
+        style="width: 100%"
+        @expand-change="expandChange"
+      >
+        <!-- 详情展示 -->
+        <el-table-column type="expand">
+          <template slot-scope="props">
+            <sun-article
+              :title="props.row.title"
+              :name="props.row.operatorName"
+              :time="props.row.updateTime"
+              :content="props.row.content"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="leader"
+          label="召开人"
+        />
+        <el-table-column
+          prop="title"
+          label="主题"
+        />
+        <el-table-column prop="content" label="内容">
+          <template slot-scope="scope">
+            {{ scope.row.content | ellipsis }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="date"
+          label="时间"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editMonthlyForm(scope)" />
+              <sun-button :type="'delete'" @click="delMonthlyList(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'history'" @click="history(scope)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-dialog title="历史记录" :visible.sync="historyDialog" :close-on-click-modal="false" width="72%">
+        <el-table
+          ref="table"
+          stripe
+          :row-key="getRowKeys"
+          :expand-row-keys="expands"
+          border
+          :data="historyTable"
+          size="small"
+          @expand-change="expandChange"
+        >
+          <el-table-column
+            prop="leader"
+            label="召开人"
+          />
+          <el-table-column
+            prop="title"
+            label="主题"
+          />
+          <el-table-column
+            prop="content"
+            label="内容"
+          />
+          <el-table-column
+            prop="date"
+            label="时间"
+          />
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <el-dialog
+        title="安全生产会议"
+        :visible.sync="securityConferenceFormDialog"
+        width="600px"
+        @closed="handleDialogClosed('securityConferenceForm')"
+      >
+        <el-form
+          ref="securityConferenceForm"
+          :rules="securityConferenceFormRules"
+          size="small"
+          :model="securityConferenceForm"
+          label-width="78px"
+        >
+          <el-form-item label="主题" prop="title">
+            <el-input v-model="securityConferenceForm.title" />
+          </el-form-item>
+          <el-form-item label="内容" prop="content">
+            <tinymce v-model="securityConferenceForm.content" />
+          </el-form-item>
+          <el-form-item label="时间" prop="date">
+            <el-date-picker
+              v-model="securityConferenceForm.date"
+              value-format="yyyy-MM-dd"
+              size="small"
+              type="date"
+              placeholder="选择日期"
+            />
+          </el-form-item>
+          <el-form-item label="召开人" prop="leader">
+            <el-input v-model="securityConferenceForm.leader" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="securityConferenceFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed('securityConferenceForm')">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+    <!--  -->
+    </div>
+  </div>
+</template>
+
+<script>
+import Tinymce from '@/components/Tinymce'
+import { safetyMeetingAdd, safetyMeetingDelete, safetyMeetingUpdate, safetyMeetingList, historySafetyMeeting } from '@/api/safetyPublicity/securityConference'
+import SunArticle from '@/components/article'
+export default {
+  components: {
+    SunArticle,
+    Tinymce
+  },
+  data() {
+    return {
+      params: {
+        page: 1,
+        size: 12
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      securityConferenceForm: {
+        title: '',
+        content: '',
+        date: '',
+        leader: ''
+      },
+      securityConferenceFormRules: {
+        title: [{ required: true, message: '主题不能为空', trigger: 'blur' }],
+        content: [{ required: true, message: '内容不能为空', trigger: 'blur' }],
+        date: [{ required: true, message: '日期不能为空', trigger: 'blur' }],
+        leader: [{ required: true, message: '召开人不能为空', trigger: 'blur' }]
+      },
+      securityConferenceListLoading: true,
+      securityConferenceFormDialog: false,
+      btnLoading: false,
+      accidentReportListLoading: true,
+      historyTable: false,
+      historyDialog: false
+    }
+  },
+  created() {
+    this.fetchData()
+  },
+  methods: {
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 获取信息
+    fetchData() {
+      safetyMeetingList(this.params).then(res => {
+        this.securityConferenceListLoading = false
+        this.page = res.data.obj
+      })
+    },
+    // 提交安全生产会
+    securityConferenceFormSubmit() {
+      this.$refs.securityConferenceForm.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            safetyMeetingAdd(this.securityConferenceForm).then(res => {
+              this.btnLoading = false
+              this.securityConferenceFormDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            safetyMeetingUpdate(this.securityConferenceForm).then((res) => {
+              this.btnLoading = false
+              this.securityConferenceFormDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    addMonthlyForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.securityConferenceForm.title = null
+        this.securityConferenceForm.content = null
+        this.securityConferenceForm.date = null
+        this.securityConferenceForm.leader = null
+        this.$refs.securityConferenceForm.resetFields()
+      })
+      this.securityConferenceFormDialog = true
+    },
+    editMonthlyForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.$nextTick(() => {
+        this.securityConferenceForm = { ...scope.row }
+      })
+      // 编辑信息模态框显示
+      this.securityConferenceFormDialog = true
+    },
+    // 删除人员持证表单
+    delMonthlyList(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          safetyMeetingDelete(row.id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 查看历史修改
+    history(scope) {
+      historySafetyMeeting(scope.row.id).then((res) => {
+        this.historyTable = res.data.obj
+        this.historyTable = this.historyTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        this.historyDialog = true
+      })
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.box-card{
+  width: 1000px;
+  margin: 0 auto;
+
+  .card-title{
+    text-align: center;
+    font-size: 36px;
+    font-weight: bold;
+  }
+
+  .card-body{
+    width: 70%;
+    line-height: 1.8em;
+    margin: 0 auto;
+
+    .card-body-title{
+      text-align: center;
+      padding-bottom: 10px;
+      color: #919395;
+      .operatorName{
+        margin-right: 10px;
+      }
+    }
+
+    .card-body-content{
+      text-indent:2em;
+      text-align: justify;
+      line-height: 1.8em;
+      font-size: 16px;
+    }
+
+  }
+}
+</style>
+

@@ -1,0 +1,11 @@
+import { getRequest, postRequest, deleteRequest, putRequest } from '@/utils/request'
+
+// 请选择企业名称
+export function getEnterpriseOptions() {
+  return getRequest('/config/getEnterpriseOptions')
+}
+
+// 获取项目列表
+export function getProjectsList() {
+  return getRequest('/config/getProjects')
+}

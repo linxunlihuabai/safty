@@ -1,0 +1,451 @@
+<template>
+  <div style="width:100%;min-width:1024px;">
+    <div class="banner">
+      <img
+        src="@/assets/images/logo.png"
+        alt="江西省核工业地质局安全生产管理系统"
+        title="江西省核工业地质局安全生产管理系统"
+      >
+      <h1>江西省核工业地质局安全生产管理系统</h1>
+      <a href=""><i class="el-icon-warning-outline" />帮助手册</a>
+    </div>
+    <div class="lonnn">
+      <el-card class="box-card">
+        <div slot="header" class="clearfix">
+          <span style="font-size: 26px;color: #158FFF;margin: 0px auto 40px auto;text-align: center;font-weight:bold;">注册</span>
+        </div>
+        <!-- 温馨提示 -->
+        <div v-show="active == 0" class="prompt">请填写正确的统一社会信用代码，一旦注册，不允许修改！</div>
+        <el-row>
+          <el-steps size="medium" align-center :active="active" finish-status="success">
+            <el-step title="填写注册信息" />
+            <el-step title="提交成功，等待审核结果" />
+          </el-steps>
+        </el-row>
+        <!-- 注册表单信息 -->
+        <!-- 步骤一内容 -->
+        <el-form
+          v-show="active == 0"
+          ref="userInfo"
+          size="small"
+          label-width="168px"
+          :rules="rules"
+          :model="userInfo"
+        >
+          <el-form-item label="统一社会信息代码" prop="creditCode" required>
+            <el-input v-model="userInfo.creditCode" placeholder="请输入统一社会信息代码" required :disabled="disabledStr" />
+          </el-form-item>
+          <el-form-item label="用户名" prop="username" required>
+            <el-input v-model="userInfo.username" placeholder="请输入用户名" :disabled="disabledStr" />
+          </el-form-item>
+          <el-form-item label="密码" prop="password" required>
+            <el-input v-model="userInfo.password" type="password" placeholder="请输入密码" :disabled="disabledStr" />
+          </el-form-item>
+          <el-form-item label="确认密码" prop="confirmPassword" required>
+            <el-input v-model="userInfo.confirmPassword" type="password" placeholder="请再次输入密码" :disabled="disabledStr" />
+          </el-form-item>
+          <el-form-item label="企业名称" prop="enterpriseCode" required>
+            <el-cascader
+              v-model="userInfo.enterpriseSelect"
+              style="width: 100%"
+              placeholder="请选择企业"
+              :options="enterpriseOptions"
+              :props="{ checkStrictly: true }"
+              clearable
+              :disabled="disabledStr"
+              @change="handleEnterpriseChange"
+            />
+          </el-form-item>
+          <el-form-item label="安全负责人" prop="responsiblePerson" required>
+            <el-input v-model="userInfo.responsiblePerson" placeholder="请输入安全负责人" :disabled="disabledStr" />
+          </el-form-item>
+          <el-form-item label="移动电话号码" required prop="responsiblePersonPhone">
+            <el-input v-model="userInfo.responsiblePersonPhone" placeholder="请输入移动电话号码" :disabled="disabledStr" />
+          </el-form-item>
+          <el-form-item label="邮箱" prop="email" required>
+            <el-input v-model="userInfo.email" placeholder="请输入邮箱" :disabled="disabledStr" />
+          </el-form-item>
+          <el-row>
+            <el-form-item label="验证码" class="captcha" prop="captcha">
+              <el-input v-model="userInfo.captcha" style="width:480px" placeholder="请输入验证码" />
+              <el-button
+                v-if="!disabled"
+                type="button"
+                style="width:203px;"
+                :disabled="disabled"
+                @click="sendCode('userInfo')"
+              >点击进行邮箱验证</el-button>
+              <el-button v-if="disabled" type="button" :disabled="disabled">{{ btntxt }}</el-button>
+            </el-form-item>
+          </el-row>
+          <el-form-item style="text-align:center;">
+            <el-button type="primary" :loading="btnLoading" @click="submitForm('userInfo')">下一步</el-button>
+            <el-button @click="resetForm('userInfo')">重置</el-button>
+          </el-form-item>
+          <div class="goLogin"><router-link to="/login">我要回到登录页面？</router-link></div>
+        </el-form>
+        <!-- 步骤二内容 -->
+        <div v-show="active >= 1">
+          <p align="center" style="padding-top:100px;">
+            <i class="el-step__icon-inner el-icon-check submit" style="font-size: 50px;" />
+          </p>
+          <h1 align="center">提交成功！等待审核结果</h1>
+          <p align="center" class="finalDecision" style="padding-bottom: 150px;">审核结果会以邮件的方式通知您，请注意查收！</p>
+          <div class="goLogin"><router-link to="/login">我要回到登录页面？</router-link></div>
+        </div>
+      </el-card>
+    </div>
+    <div class="ban">
+      <ul style="list-style:none;">
+        <li>
+          版权所有：江西省核工业地质局
+        </li>
+        <li>
+          地址：江西省南昌市北京西路160号
+        </li>
+        <li>
+          电话: 0791-86351112
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script>
+import {
+  validateIsPhone,
+  validatePassword,
+  validateRegisterEMail,
+  validateUserName
+} from '@/utils/regList'
+
+import {
+  getRegisterCaptcha,
+  register,
+  checkEmail,
+  checkUsername,
+  checkResponsiblePersonPhone,
+  getEnterpriseOptions,
+  checkCreditCode
+} from '@/api/user/index'
+export default {
+  data() {
+    // 手机验证
+    const isvalidPhone = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('手机号码不能为空'))
+      }
+      if (!validateIsPhone(value)) {
+        callback(new Error('请输入正确的手机号码'))
+      } else {
+        checkResponsiblePersonPhone(value)
+          .then(res => {
+            res = res.data
+            if (res.status === 2000) {
+              callback()
+            } else {
+              callback(new Error('手机号码已存在'))
+            }
+          })
+          .catch(res => {
+            callback(new Error('手机号码验证异常！请重试'))
+          })
+      }
+    }
+
+    // 密码包含 数字,英文,字符中的两种以上，长度8-20
+    const validatePass = (rule, value, callback) => {
+      /* 密码不能全部是数字，或全部是小写字母，或全部是大写字母 */
+      if (value === '') {
+        callback(new Error('密码不能为空'))
+      }
+      if (!validatePassword(value)) {
+        callback(new Error('密码包含 数字,英文,字符中的两种以上，长度8-20'))
+      }
+      callback()
+    }
+
+    // 再次输入密码验证
+    const validatePass2 = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('请再次输入密码'))
+      } else if (value !== this.userInfo.password) {
+        callback(new Error('两次输入密码不一致!'))
+      } else {
+        callback()
+      }
+    }
+
+    // 验证邮箱是否符合要求
+    const checkEmailValidatore = (rule, value, callback) => {
+      const flag = validateRegisterEMail(rule, value, callback)
+      if (flag) {
+        checkEmail(value)
+          .then(res => {
+            if (res.data.status === 2000) {
+              callback()
+            } else {
+              callback(new Error('邮箱已存在'))
+            }
+          })
+          .catch(() => {
+            callback(new Error('验证邮箱异常！请重试'))
+          })
+      }
+    }
+
+    // 验证用户名是否存在
+    const checkUsernameValidatore = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('用户名不能为空'))
+      }
+      if (!validateUserName(value)) {
+        callback(new Error('用户名由6位英文字母和数字组成，不能以数字开头'))
+        // eslint-disable-next-line brace-style
+      }
+      // 它的意思是 当符合要求的条件的时候，就触发回调函数。这个回调的函数是显示成功的标识
+      else {
+        checkUsername(value)
+          .then(res => {
+            res = res.data
+            if (res.status === 2000) {
+              callback()
+            } else {
+              callback(new Error('用户名已存在'))
+            }
+          })
+          .catch(res => {
+            callback(new Error('用户名验证异常！请重试'))
+          })
+      }
+    }
+
+    // 验证统一社会信息代码是否唯一
+    const checkCreditCodeValidatore = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('统一社会信息代码不能为空'))
+      } else {
+        checkCreditCode(value)
+          .then(res => {
+            res = res.data
+            if (res.status === 2000) {
+              callback()
+            } else {
+              callback(new Error('统一社会信息代码已经存在，请重新填写'))
+            }
+          })
+          .catch(res => {
+            callback(new Error('统一社会信息代码异常！请重试'))
+          })
+      }
+    }
+    return {
+      userInfo: {
+        creditCode: '',
+        username: '',
+        password: '',
+        confirmPassword: '',
+        enterpriseSelect: [],
+        enterpriseCode: '',
+        responsiblePerson: '',
+        responsiblePersonPhone: '',
+        captcha: '',
+        email: '',
+        taskId: ''
+      },
+      rules: {
+        confirmPassword: [{ validator: validatePass2, trigger: 'blur' }, { validator: validatePass2, trigger: 'change' }],
+        password: [{ validator: validatePass, trigger: 'blur' }, { validator: validatePass, trigger: 'change' }],
+        responsiblePersonPhone: [{ validator: isvalidPhone, trigger: 'blur' }, { validator: isvalidPhone, trigger: 'change' }],
+        username: [{ validator: checkUsernameValidatore, trigger: 'blur' }, { message: '用户名不能为空', required: true, trigger: 'change' }],
+        creditCode: [{ validator: checkCreditCodeValidatore, trigger: 'blur' }, { message: '社会统一信用代码不能为空', required: true, trigger: 'change' }],
+        email: [{ validator: checkEmailValidatore, trigger: 'blur' }],
+        enterpriseCode: [
+          { required: true, message: '企业不能为空', trigger: 'blur' }
+        ],
+        responsiblePerson: [
+          { required: true, message: '安全负责人不能为空', trigger: 'blur' }
+        ]
+      },
+      enterpriseOptions: [],
+      disabled: false,
+      disabledStr: false,
+      time: 0,
+      btnLoading: false,
+      btntxt: '重新发送',
+      active: 0
+    }
+  },
+  mounted() {
+    this.getEnterpriseOptions()
+  },
+  methods: {
+    // 清除选择的企业信息
+    resetForm(formName) {
+      this.$refs[formName].resetFields()
+      this.userInfo.enterpriseSelect = []
+      this.userInfo.enterpriseCode = ''
+    },
+    submitForm(formName) {
+      this.userInfo.enterpriseCode = this.userInfo.enterpriseSelect[this.userInfo.enterpriseSelect.length - 1]
+      this.$refs[formName].validate(valid => {
+        if (this.userInfo.captcha === '') {
+          this.$message.error('验证码不能为空')
+          return false
+        }
+        if (valid) {
+          this.time = 0
+          this.btnLoading = true
+          register(this.userInfo).then(res => {
+            res = res.data
+            if (res.status === 200) {
+              // 将步骤条跳转至注册提交成功页面
+              this.active = 2
+            } else {
+              this.$message.error(res.msg)
+            }
+            this.btnLoading = false
+          }).catch(() => {
+            this.btnLoading = false
+          })
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 邮箱验证发送验证码
+    sendCode(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.disabledStr = true
+          getRegisterCaptcha({
+            email: this.userInfo.email,
+            taskId: this.userInfo.taskId
+          }).then(res => {
+            res = res.data
+            if (res.status === 200) {
+              this.userInfo.taskId = res.obj
+              this.$message.success('验证码发送成功')
+              this.time = 60
+              this.disabled = true
+              this.timer()
+            } else {
+              this.$message.error(res.msg)
+            }
+          }).catch(() => {
+            this.$message.error('请填写有效信息')
+            this.disabled = false
+          })
+        } else {
+          this.$message.error('请填写有效信息')
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 60S倒计时
+    timer() {
+      if (this.time > 0) {
+        this.time--
+        this.btntxt = this.time + 's后重新获取'
+        setTimeout(this.timer, 1000)
+      } else {
+        this.time = 0
+        this.btntxt = '获取验证码'
+        this.disabled = false
+      }
+    },
+    getEnterpriseOptions() {
+      getEnterpriseOptions().then(res => {
+        res = res.data
+        if (res.status === 200) {
+          this.enterpriseOptions = res.obj
+        } else {
+          this.$message.error('企业信息获取失败！请刷新重试')
+        }
+      })
+    },
+    handleEnterpriseChange(value) {
+      if (value !== null || value !== []) {
+        this.userInfo.enterpriseCode = value[value.length - 1]
+      }
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.prompt {
+  width: 400px;
+  height: 36px;
+  line-height: 36px;
+  background-color: #07c181;
+  color: white;
+  font-size: 14px;
+  padding-left: 12px;
+  margin-bottom: 20px;
+}
+.sendCode {
+}
+.submit,
+.goLogin {
+  color: #67c23a;
+}
+.finalDecision {
+  font-size: 18px;
+}
+.goLogin {
+  float: right;
+}
+.banner>*{
+  display: inline-block;
+  vertical-align: middle;
+}
+
+h1{
+  font-size: 36px;
+  background: linear-gradient(#BCDDFF, #0E88EB);
+    -webkit-background-clip: text;
+    /* #108BFC,#008CD6 */
+        color: transparent;
+}
+.lonnn {
+  height:900px;
+  position: relative;
+  background: url("../../assets/images/loginImg.jpg") no-repeat center;
+  background-size: 100% 100%;
+  width: 100%;
+  min-width: 1024px;
+  .box-card {
+    width: 900px;
+    text-align: center;
+    font-size: 18px;
+    height: 790px;
+    background-color:white;
+    position:absolute;
+    left: calc(50% - 450px);
+    top:50px;
+  }
+}
+.ban{
+  padding-top:12px;
+}
+.ban ul li{
+  padding-top:12px;
+  font-size: 14px;
+  text-align: center;
+  color: #898989;
+}
+
+.banner{
+  padding:10px 0; margin: 0 auto;width:1024px;
+  a{
+    font-size:14px;padding:37px 0;color:blue;float:right;
+    }
+    img{
+      width: 80px;height:80px;
+    }
+}
+
+</style>

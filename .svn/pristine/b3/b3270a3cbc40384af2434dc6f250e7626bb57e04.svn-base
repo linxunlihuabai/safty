@@ -1,0 +1,818 @@
+<template>
+  <!-- 矿山登记 -->
+  <div class="dashboard-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <el-tabs v-model="activeName">
+        <el-tab-pane
+          v-for="(item,index)
+            in tabsData"
+          :key="index"
+          :label="item.name"
+          :name="item.name"
+        >
+          <el-row type="flex" justify="space-between" align="top">
+
+            <el-button
+              type="primary"
+              size="small"
+              icon="el-icon-plus"
+              @click="addDailyForm"
+            >
+              新增
+            </el-button>
+
+            <div>
+              <el-autocomplete
+                v-model="searchTemp"
+                size="small"
+                :fetch-suggestions="querySearch"
+                placeholder="请输入内容"
+                style="width:160px;margin-right:10px"
+                :trigger-on-focus="false"
+                @select="handleSelect"
+              />
+
+              <el-button type="primary" icon="el-icon-search" size="small" @click="onSearch">查询</el-button>
+            </div>
+          </el-row>
+          <el-row>
+            <el-col>
+              <!-- v-loading="listLoading" -->
+              <!-- 安全费用使用情况 -->
+              <el-table ref="table" class="usage-of-safety-expenses" border :data="tableData" size="small" stripe>
+                <!-- 安全费用详情展示 -->
+                <el-table-column prop="address" label="检查地点" width="120" />
+                <el-table-column prop="time" label="检查时间" />
+                <el-table-column prop="personnel" label="检查人员" />
+                <el-table-column prop="num" label="隐患数量" />
+                <el-table-column prop="leader" label="领导参与情况" />
+                <el-table-column label="现场照片">
+                  <template slot-scope="scope">
+                    <el-button-group>
+                      <el-button type="primary" size="mini" icon="el-icon-search" @click="viewPics(scope.row.fileList)">查看现场照片</el-button>
+                    </el-button-group>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作">
+                  <template slot-scope="scope">
+                    <el-button-group>
+                      <el-button type="primary" size="mini" icon="el-icon-edit" @click="editItem(scope)">编辑</el-button>
+                      <el-button type="primary" size="mini" icon="el-icon-delete" @click="delItem(scope)">删除</el-button>
+                    </el-button-group>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-col>
+          </el-row>
+          <!-- 分页栏 -->
+
+          <el-row ref="page">
+
+            <el-pagination
+              :current-page.sync="cpage"
+              :page-sizes="[100, 200, 300, 400]"
+              :page-size="100"
+              layout="sizes, prev, pager, next"
+              :total="1000"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </el-row>
+
+          <!-- <baidu-map
+            :center="{lng: 116.404, lat: 39.915}"
+            :zoom="1"
+            style="width: 100%;height:300px;"
+            :scroll-wheel-zoom="true"
+          >
+            <bm-marker :position="{lng: 116.404, lat: 39.915}">
+              <bm-label content="我爱北京天安门" :offset="GLOBAL.BMAP_LABEL_OFFSET" />
+            </bm-marker>
+            <bm-marker :position="{lng: 106.653298, lat: 29.732213}">
+              <bm-label content="我爱北京天安门" :offset="GLOBAL.BMAP_LABEL_OFFSET" />
+            </bm-marker>
+            <bm-marker :position="{lng: 115.807698, lat: 28.662684}">
+              <bm-label content="我爱北京天安门" :offset="GLOBAL.BMAP_LABEL_OFFSET" />
+            </bm-marker>
+            <bm-marker :position="{lng: 111.716982, lat: 40.890667}">
+              <bm-label content="我爱北京天安门" :offset="GLOBAL.BMAP_LABEL_OFFSET" />
+            </bm-marker>
+          </baidu-map> -->
+        </el-tab-pane>
+      </el-tabs>
+      <!-- 百度地图 -->
+      <baidu-map
+        :center="{lng: 116.404, lat: 39.915}"
+        :zoom="1"
+        style="width: 100%;height:300px;"
+        :scroll-wheel-zoom="true"
+      >
+        <bm-marker :position="{lng: 116.404, lat: 39.915}">
+          <bm-label content="我爱北京天安门" :offset="GLOBAL.BMAP_LABEL_OFFSET" />
+        </bm-marker>
+        <bm-marker :position="{lng: 106.653298, lat: 29.732213}">
+          <bm-label content="我爱北京天安门" :offset="GLOBAL.BMAP_LABEL_OFFSET" />
+        </bm-marker>
+        <bm-marker :position="{lng: 115.807698, lat: 28.662684}">
+          <bm-label content="我爱北京天安门" :offset="GLOBAL.BMAP_LABEL_OFFSET" />
+        </bm-marker>
+        <bm-marker :position="{lng: 111.716982, lat: 40.890667}">
+          <bm-label content="我爱北京天安门" :offset="GLOBAL.BMAP_LABEL_OFFSET" />
+        </bm-marker>
+      </baidu-map>
+
+      <!-- 弹出添加窗口 -->
+
+      <el-dialog
+        title="登记表"
+        :visible.sync="formDialog"
+        width="60%"
+        :close-on-click-modal="false"
+        @closed="handleDialogClosed('form')"
+      >
+        <!-- 地下矿山登记表 -->
+        <el-form
+          v-show="activeName=='地下矿山'"
+          ref="form"
+          size="small"
+          :model="UnderMineForm"
+          :rules="UMFRules"
+          label-width="160px"
+        >
+          <el-form-item label="矿山名称" prop="name">
+            <el-input v-model="UnderMineForm.name" />
+          </el-form-item>
+          <el-form-item label="主要矿种" prop="type">
+            <el-input v-model="UnderMineForm.type" />
+          </el-form-item>
+          <el-form-item label="投产时间" prop="time">
+            <el-date-picker
+              v-model="UnderMineForm.time"
+              type="date"
+              value-format="yyyy-MM-dd"
+              placeholder="选择日期"
+            />
+          </el-form-item>
+
+          <el-form-item label="采矿许可证号" prop="licence">
+            <el-input v-model="UnderMineForm.licence" />
+          </el-form-item>
+
+          <el-form-item label="GPS坐标" required>
+            <el-col :span="11">
+              <el-form-item prop="longitude">
+                <el-input v-model="UnderMineForm.longitude" placeholder="经度" />
+              </el-form-item>
+            </el-col>
+            <el-col class="line" :span="2">-</el-col>
+            <el-col :span="11">
+              <el-form-item prop="latitude">
+                <el-input v-model="UnderMineForm.latitude" placeholder="纬度" />
+              </el-form-item>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="采矿许可证有效期" prop="termOfValidity">
+
+            <el-date-picker
+              v-model="UnderMineForm.termOfValidity"
+              type="daterange"
+              value-format="yyyy-MM-dd"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+            />
+          </el-form-item>
+        </el-form>
+
+        <!-- 尾矿库登记表 -->
+        <el-form
+          v-show="activeName=='尾矿库'"
+          ref="form"
+          size="small"
+          :model="TailingsPondForm"
+          :rules="TPFRules"
+          label-width="160px"
+        >
+
+          <el-form-item label="尾矿库名称" prop="name">
+            <el-input v-model="TailingsPondForm.name" />
+          </el-form-item>
+
+          <el-form-item label="尾矿库等别" prop="type">
+            <el-input v-model="TailingsPondForm.type" />
+          </el-form-item>
+
+          <el-form-item label="直接负责人" prop="responsible">
+            <el-input v-model="TailingsPondForm.responsible" />
+          </el-form-item>
+          <el-form-item label="GPS坐标" required>
+            <el-col :span="11">
+              <el-form-item prop="longitude">
+                <el-input v-model="TailingsPondForm.longitude" placeholder="经度" />
+              </el-form-item>
+            </el-col>
+            <el-col class="line" :span="2">-</el-col>
+            <el-col :span="11">
+              <el-form-item prop="latitude">
+                <el-input v-model="TailingsPondForm.latitude" placeholder="纬度" />
+              </el-form-item>
+            </el-col>
+          </el-form-item>
+        </el-form>
+
+        <!-- 排土场登记表 -->
+        <el-form
+          v-show="activeName=='排土场'"
+          ref="form"
+          size="small"
+          :model="DumpingSiteForm"
+          :rules="DSFRules"
+          label-width="160px"
+        >
+
+          <el-form-item label="排土场名称" prop="name">
+            <el-input v-model="DumpingSiteForm.name" />
+          </el-form-item>
+
+          <el-form-item label="地址" prop="address">
+            <el-input v-model="DumpingSiteForm.address" />
+          </el-form-item>
+
+          <el-form-item label="GPS坐标" prop="personnel">
+            <el-input v-model="DumpingSiteForm.personnel" />
+          </el-form-item>
+          <el-form-item label="GPS坐标" required>
+            <el-col :span="11">
+              <el-form-item prop="longitude">
+                <el-input v-model="DumpingSiteForm.longitude" placeholder="经度" />
+              </el-form-item>
+            </el-col>
+            <el-col class="line" :span="2">-</el-col>
+            <el-col :span="11">
+              <el-form-item prop="latitude">
+                <el-input v-model="DumpingSiteForm.latitude" placeholder="纬度" />
+              </el-form-item>
+            </el-col>
+          </el-form-item>
+        </el-form>
+
+        <!-- 露天矿山登记表 -->
+        <el-form
+          v-show="activeName=='露天矿山'"
+          ref="form"
+          size="small"
+          :model="OpenMineForm"
+          :rules="OMFRules"
+          label-width="160px"
+        >
+
+          <el-form-item label="露天矿山名称" prop="name">
+            <el-input v-model="OpenMineForm.name" />
+          </el-form-item>
+
+          <el-form-item label="采矿许可证号" prop="licence">
+            <el-input v-model="OpenMineForm.licence" />
+          </el-form-item>
+
+          <el-form-item label="GPS坐标" required>
+            <el-col :span="11">
+              <el-form-item prop="longitude">
+                <el-input v-model="OpenMineForm.longitude" placeholder="经度" />
+              </el-form-item>
+            </el-col>
+            <el-col class="line" :span="2">-</el-col>
+            <el-col :span="11">
+              <el-form-item prop="latitude">
+                <el-input v-model="OpenMineForm.latitude" placeholder="纬度" />
+              </el-form-item>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="采矿许可证有效期" prop="termOfValidity">
+
+            <el-date-picker
+              v-model="OpenMineForm.termOfValidity"
+              type="daterange"
+              value-format="yyyy-MM-dd"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+            />
+          </el-form-item>
+        </el-form>
+
+        <!-- 老基地登记表 -->
+        <el-form
+          v-show="activeName=='老基地'"
+          ref="form"
+          size="small"
+          :model="OldBaseForm"
+          :rules="OBFRules"
+          label-width="160px"
+        >
+
+          <el-form-item label="基地名称" prop="name">
+            <el-input v-model="OldBaseForm.name" />
+          </el-form-item>
+
+          <el-form-item label="基地现状" prop="present">
+            <el-input v-model="OldBaseForm.present" />
+          </el-form-item>
+          <el-form-item label="基地地址" prop="address">
+            <el-input v-model="OldBaseForm.address" />
+          </el-form-item>
+
+          <el-form-item label="GPS坐标" required>
+            <el-col :span="11">
+              <el-form-item prop="longitude">
+                <el-input v-model="OpenMineForm.longitude" placeholder="经度" />
+              </el-form-item>
+            </el-col>
+            <el-col class="line" :span="2">-</el-col>
+            <el-col :span="11">
+              <el-form-item prop="latitude">
+                <el-input v-model="OpenMineForm.latitude" placeholder="纬度" />
+              </el-form-item>
+            </el-col>
+          </el-form-item>
+
+          <el-form-item label="分管领导" prop="leader">
+            <el-input v-model="OldBaseForm.leader" />
+          </el-form-item>
+          <el-form-item label="联系方式" prop="leaderContact">
+            <el-input v-model="OldBaseForm.leaderContact" />
+          </el-form-item>
+          <el-form-item label="基地负责人" prop="responsible">
+            <el-input v-model="OldBaseForm.responsible" />
+          </el-form-item>
+          <el-form-item label="联系方式" prop="responsibleContact">
+            <el-input v-model="OldBaseForm.responsibleContact" />
+          </el-form-item>
+          <el-form-item label="留守工作人员（人）" prop="leftBehindStaff">
+            <el-input v-model="OldBaseForm.leftBehindStaff" />
+          </el-form-item>
+          <el-form-item label="留守居民（人）" prop="leftBehindResidents">
+            <el-input v-model="OldBaseForm.leftBehindResidents" />
+          </el-form-item>
+          <el-form-item label="危险源" prop="hazard">
+            <el-input v-model="OldBaseForm.hazard" />
+          </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="handleDialogClosed('form')">取 消</el-button>
+          <el-button type="primary" :loading="dailyLoading" @click="dailyFormSubmit">{{ handle }}</el-button>
+        </div>
+      </el-dialog>
+    </div>
+    <!-- 用于预览上传多张图片的dialog -->
+    <el-dialog append-to-body :visible.sync="dialogViewPics" class="ViewPics">
+      <el-row :gutter="20" type="flex" justify="center">
+        <el-col
+          v-for="(item,index) in fileList"
+          :key="index"
+          :span="8"
+        >
+          <el-image
+            style="width:100%"
+            :src="item.url"
+          />
+        </el-col>
+      </el-row>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { depClone, fuzzySearch } from '@/utils/auth'
+export default {
+  data() {
+    return {
+      handle: '', // 处理方式
+      search: '',
+      searchTemp: '',
+      activeName: '尾矿库',
+      tabsData: [
+        {
+          name: '地下矿山'
+        },
+        {
+          name: '尾矿库'
+        },
+        {
+          name: '排土场'
+        },
+        {
+          name: '露天矿山'
+        },
+        {
+          name: '老基地'
+        }
+      ],
+      formDialog: false,
+      // 地下矿山登记表
+      UnderMineForm: {
+        name: '',
+        type: '',
+        time: '',
+        licence: '', // 许可证
+        longitude: null, // 经度
+        latitude: null, // 纬度
+        termOfValidity: '' // 有效期
+      },
+      // 尾矿库登记表
+      TailingsPondForm: {
+        name: '',
+        type: '',
+        responsible: '', // 直接负责人
+        longitude: null, // 经度
+        latitude: null // 纬度
+      },
+      // 排土场登记表
+      DumpingSiteForm: {
+        name: '',
+        address: '',
+        longitude: null, // 经度
+        latitude: null // 纬度
+      },
+      // 露天矿山登记表
+      OpenMineForm: {
+        name: '',
+        licence: '', // 许可证
+        longitude: null, // 经度
+        latitude: null, // 纬度
+        termOfValidity: '' // 有效期
+      },
+      // 老基地登记表
+      OldBaseForm: {
+        name: '',
+        present: '', // 基地现状
+        address: '', // 基地地址
+        longitude: null, // 经度
+        latitude: null, // 纬度
+        leader: '', // 分管领导
+        leaderContact: '', // 分管领导联系方式
+        responsible: '', // 基地负责人
+        responsibleContact: '', // 基地负责人联系方式
+        leftBehindStaff: '', // 留守工作人员
+        leftBehindResidents: '', // 留守居民
+        hazard: '' // 危险源
+      },
+      dailyLoading: false,
+      // 地下矿山登记表验证规则
+      UMFRules: {
+        name: [
+          { required: true, message: '请输入矿山名称', trigger: 'blur' }
+        ],
+        type: [
+          { required: true, message: '请输入主要矿种', trigger: 'blur' }
+        ],
+        time: [
+          { required: true, message: '请选择投产时间', trigger: 'blur' }
+        ],
+        licence: [
+          { required: true, message: '请输入采矿许可证号', trigger: 'blur' }
+        ],
+        longitude: [
+          { required: true, message: '请输入经度', trigger: 'blur' }
+        ],
+        latitude: [
+          { required: true, message: '请输入纬度', trigger: 'blur' }
+        ],
+        termOfValidity: [
+          { required: true, message: '请选择有效期', trigger: 'blur' }
+        ]
+      },
+      // 尾矿库登记表验证规则
+      TPFRules: {
+        name: [
+          { required: true, message: '请输入尾矿库名称', trigger: 'blur' }
+        ],
+        type: [
+          { required: true, message: '请输入尾矿库等别', trigger: 'blur' }
+        ],
+        responsible: [
+          { required: true, message: '请输入直接负责人', trigger: 'blur' }
+        ],
+        longitude: [
+          { required: true, message: '请输入经度', trigger: 'blur' }
+        ],
+        latitude: [
+          { required: true, message: '请输入纬度', trigger: 'blur' }
+        ]
+      },
+      // 排土场登记表验证规则
+      DSFRules: {
+        name: [
+          { required: true, message: '请输入排土场名称', trigger: 'blur' }
+        ],
+        address: [
+          { required: true, message: '请输入排土场地址', trigger: 'blur' }
+        ],
+        longitude: [
+          { required: true, message: '请输入经度', trigger: 'blur' }
+        ],
+        latitude: [
+          { required: true, message: '请输入纬度', trigger: 'blur' }
+        ]
+      },
+      // 露天矿山登记表验证规则
+      OMFRules: {
+        name: [
+          { required: true, message: '请输入露天矿山名称', trigger: 'blur' }
+        ],
+        licence: [
+          { required: true, message: '请输入采矿许可证号', trigger: 'blur' }
+        ],
+        longitude: [
+          { required: true, message: '请输入经度', trigger: 'blur' }
+        ],
+        latitude: [
+          { required: true, message: '请输入纬度', trigger: 'blur' }
+        ],
+        termOfValidity: [
+          { required: true, message: '请选择有效期', trigger: 'blur' }
+        ]
+      },
+      // 老基地登记表验证规则
+      OBFRules: {
+        name: [
+          { required: true, message: '请输入露天矿山名称', trigger: 'blur' }
+        ],
+        present: [
+          { required: true, message: '请输入基地现状', trigger: 'blur' }
+        ],
+        address: [
+          { required: true, message: '请输入基地地址', trigger: 'blur' }
+        ],
+        longitude: [
+          { required: true, message: '请输入经度', trigger: 'blur' }
+        ],
+        latitude: [
+          { required: true, message: '请输入纬度', trigger: 'blur' }
+        ],
+        leader: [
+          { required: true, message: '请输入分管领导', trigger: 'blur' }
+        ],
+        leaderContact: [
+          { required: true, message: '请输入分管领导联系方式', trigger: 'blur' }
+        ],
+        responsible: [
+          { required: true, message: '请输入基地负责人', trigger: 'blur' }
+        ],
+        responsibleContact: [
+          { required: true, message: '请输入基地负责人联系方式', trigger: 'blur' }
+        ],
+        leftBehindStaff: [
+          { required: true, message: '请输入留守工作人员', trigger: 'blur' }
+        ],
+        leftBehindResidents: [
+          { required: true, message: '请输入留守居民', trigger: 'blur' }
+        ],
+        hazard: [
+          { required: true, message: '请输入危险源', trigger: 'blur' }
+        ]
+      },
+      dailyTable: [],
+      dangerTable: [],
+      cpage: 1, // 当前页
+      // 引入百度地图默认经纬度以及倍数
+      zoom: 11,
+      show: false,
+      fileList: [],
+      dialogViewPic: false,
+      dialogViewPics: false,
+      dialogImageUrl: '',
+      btnLoading: false
+    }
+  },
+  computed: {
+    tableData() {
+      const search = this.search
+      return fuzzySearch(this.dailyTable, search, 'address')
+    },
+    queryList() {
+      return this.dailyTable.map(data => {
+        return { value: data.address }
+      })
+    }
+  },
+  watch: {
+    searchTemp(val) {
+      if (!val) {
+        this.search = ''
+      }
+    }
+  },
+  methods: {
+    // 过滤表格
+    onSearch() {
+      this.search = this.searchTemp
+    },
+    querySearch(queryString, cb) {
+      var results = fuzzySearch(this.queryList, queryString, 'value')
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    handleSelect() {
+      this.onSearch()
+    },
+    // 查看照片
+    viewPics(fileList) {
+      this.dialogViewPics = true
+      this.fileList = fileList
+    },
+    // 添加日常登记表按钮
+    addDailyForm() {
+      this.formDialog = true
+      this.handle = '添加'
+    },
+    // 提交日常登记表
+    dailyFormSubmit() {
+      console.log(this.dailyForm.fileList)
+      this.$refs.dailyForm.validate((valid) => {
+        if (valid) {
+          if (this.handle == '添加') {
+            this.dailyForm.dangerTable = this.dailyForm.dangerTable.map((item, index) => {
+              if (this.dailyForm.radio === index) {
+                item.main = 1
+              } else {
+                item.main = 0
+              }
+              return item
+            })
+            this.dailyTable.push(depClone(this.dailyForm))
+            this.dailyFormDialog = false
+          } else if (this.handle == '修改') {
+
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 添加隐患表按钮
+    addDangerForm() {
+      this.dangerFormDialog = true
+    },
+    // 保存隐患登记表
+    onSave() {
+      this.$refs.dangerForm.validate((valid) => {
+        if (valid) {
+          this.dailyForm.dangerTable.push(depClone(this.dangerForm))
+          // 隐患数量自增
+          this.dailyForm.num++
+          this.$refs.dangerForm.resetFields()
+          this.dangerFormDialog = false
+          console.log(this.dangerForm)
+        } else {
+          return false
+        }
+      })
+    },
+    // 编辑单行表格
+    editItem(scope) {
+      this.formDialog = true
+      this.handle = '修改'
+      this.dailyForm = { ...scope.row }
+      console.log(scope)
+    },
+    // 删除
+    delItem(scope) {
+      this.handleCofirm('你确定要删除么？', 'warning')
+        .then(() => {
+          this.tableData.splice(scope.$index, 1)
+          console.log(scope.$index)
+        })
+    },
+    // 处理dialog关闭
+    handleDialogClosed(formName) {
+      this.formDialog = false
+      this.$refs[formName].resetFields()
+    },
+    // 日常检查登记表的图片上传处理
+    handleProgress(event, file, fileList) {
+      this.dailyLoading = true
+    },
+    handleSuccess(response, file, fileList) {
+      this.dailyForm.fileList = fileList
+      this.dailyLoading = false
+    },
+    handleError(err, file, fileList) {
+      this.dailyLoading = false
+      console.log(err)
+    },
+    handleRemove(file, fileList) {
+      this.dailyForm.fileList = fileList
+    },
+    handlePictureCardPreview(file) {
+      this.viewPics([file])
+    },
+    // 隐患登记表的图片上传处理
+    handleDangerFileProgress(event, file, fileList) {
+      this.dangerLoading = true
+    },
+    handleDangerFileSuccess(response, file, fileList) {
+      this.dangerForm.fileList = fileList
+      this.dangerLoading = false
+    },
+    handleDangerFileError(err, file, fileList) {
+      this.dangerLoading = false
+      console.log(err)
+    },
+    handleDangerFileRemove(file, fileList) {
+      this.dangerForm.fileList = fileList
+    },
+    mapReady({ BMap, map }) {
+      map.centerAndZoom(new BMap.Point(104.769128, 34.972443), 5)
+      var data_info = this.projectGPSCoordinatesCenter
+      var opts = {
+        width: 250, // 信息窗口宽度
+        height: 60, // 信息窗口高度
+        title: '信息窗口', // 信息窗口标题
+        enableMessage: true // 设置允许信息窗发送短息
+      }
+      for (var i = 0; i < data_info.length; i++) {
+      // eslint-disable-next-line no-undef
+        var marker = new BMap.Marker(
+          new BMap.Point(data_info[i][0], data_info[i][1])
+        )
+        // 创建标注
+        var content = data_info[i][2]
+        map.addOverlay(marker)
+        // 将标注添加到地图中
+        addClickHandler(content, marker)
+      }
+      function addClickHandler(content, marker) {
+        marker.addEventListener('click', function(e) {
+          openInfo(content, e)
+        })
+      }
+      function openInfo(content, e) {
+        var p = e.target
+        var point = new BMap.Point(p.getPosition().lng, p.getPosition().lat)
+        var infoWindow = new BMap.InfoWindow(content, opts) // 创建信息窗口对象
+        map.openInfoWindow(infoWindow, point) // 开启信息窗口
+      }
+    },
+    infoWindowClose() {
+      this.show = false
+    },
+    infoWindowOpen() {
+      this.show = true
+    },
+    // 处理每页条数变化
+    handleSizeChange() {
+    },
+    // 处理当前页码变化
+    handleCurrentChange() {
+      console.log(this.GLOBAL.BMLABELOFFSET)
+    }
+
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dashboard {
+  &-container {
+    margin: 30px;
+  }
+  &-text {
+    font-size: 30px;
+    line-height: 46px;
+  }
+}
+.usage-of-safety-expenses{
+  /deep/ .inner-table{
+    margin-bottom: 20px;
+    thead th{
+      font-size: 1.6rem
+    }
+  }
+}
+.slot-header{
+  position: relative;
+  .operation-group{
+    position: absolute;
+    right: 0;
+    width: auto
+  }
+
+}
+.btn-text-group{
+  /deep/ .el-button{
+    padding: 5px;
+    border: none
+  }
+}
+.ViewPics{
+  /deep/ .el-dialog__body{
+    text-align: center
+  }
+}
+</style>

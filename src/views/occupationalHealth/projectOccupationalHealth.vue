@@ -1,0 +1,322 @@
+<template>
+  <div class="app-container">
+    <div class="panel">
+      <div class="panel-title">
+        <breadcrumb class="breadcrumb-container" />
+      </div>
+      <!-- 职业健康三同时 -->
+      <el-button type="primary" size="small" @click="addprojectOccupationalHealthForm">
+        <i class="el-icon-plus" /> 新增
+      </el-button>
+      <el-table
+        v-loading="projectOccupationalHealthListLoading"
+        :data="page.list"
+        :expand-row-keys="expands"
+        :row-key="getRowKeys"
+        border
+        style="width: 100%"
+      ><el-table-column
+         prop="enterpriseName"
+         label="企业名称"
+       />
+        <el-table-column
+          key="zh-dangerType"
+          prop="zh-dangerType"
+          label="职业病危害类别"
+        />
+        <el-table-column
+          prop="healthLeader"
+          label="职业卫生管理负责人"
+        />
+        <el-table-column
+          prop="phone"
+          label="电话"
+        />
+        <el-table-column
+          prop="projectName"
+          label="项目名称"
+        />
+        <el-table-column
+          prop="projectLeader"
+          label="项目负责人"
+        />
+        <el-table-column
+          key="zh-stage"
+          prop="zh-stage"
+          label="项目现处阶段"
+        />
+        <el-table-column label="操作" width="120">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <sun-button :type="'edit'" @click="editprojectOccupationalHealthForm(scope)" />
+              <sun-button :type="'delete'" @click="delprojectOccupationalHealthForm(scope.$index, scope.row)" />
+            </el-button-group>
+          </template>
+        </el-table-column>
+        <el-table-column label="历史记录" width="110">
+          <template slot-scope="scope">
+            <el-button-group class="operate">
+              <el-button
+                type="text"
+                size="mini"
+                icon="el-icon-view"
+                @click="history(scope)"
+              />
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-row>
+        <el-pagination
+          class="pagination"
+          layout="total, sizes, prev, pager, next, jumper"
+          :current-page="page.page"
+          :total="page.total"
+          :page-sizes="[10, 20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-row>
+      <!-- 1. -->
+      <el-dialog
+        title="职业健康项目"
+        :visible.sync="projectOccupationalHealthFormDialog"
+        width="500px"
+        @closed="handleDialogClosed('projectOccupationalHealthForm')"
+      >
+        <el-form
+          ref="projectOccupationalHealthForm"
+          :rules="projectOccupationalHealthFormRules"
+          size="small"
+          label-width="150px"
+          :model="projectOccupationalHealthForm"
+        >
+          <el-form-item label="职业病危害类别" prop="dangerType">
+            <sun-select v-model="projectOccupationalHealthForm.dangerType" :module="'职业病危害类别'" />
+          </el-form-item>
+          <el-form-item
+            label="职业卫生管理负责人"
+            prop="healthLeader"
+          >
+            <el-input v-model="projectOccupationalHealthForm.healthLeader" />
+          </el-form-item>
+          <el-form-item label="电话" prop="phone" required>
+            <el-input v-model="projectOccupationalHealthForm.phone" />
+          </el-form-item>
+          <el-form-item label="项目名称" prop="projectId">
+            <sun-select v-model="projectOccupationalHealthForm.projectId" :options="projectOptions" />
+          </el-form-item>
+          <el-form-item label="项目负责人" prop="projectLeader">
+            <el-input v-model="projectOccupationalHealthForm.projectLeader" />
+          </el-form-item>
+          <el-form-item label="项目现处阶段" prop="stage">
+            <sun-select v-model="projectOccupationalHealthForm.stage" :module="'项目现处阶段'" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="btnLoading" type="primary" @click="projectOccupationalHealthFormSubmit">确定</el-button>
+            <el-button @click="handleDialogClosed('projectOccupationalHealthForm')">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-dialog>
+
+      <el-dialog title="历史记录-职业健康项目" :visible.sync="historyProjectOccupationalHealthDialog" :close-on-click-modal="false" width="72%">
+        <el-table ref="table" border :data="historyProjectOccupationalHealthTable" size="small" stripe>
+          <el-table-column
+            prop="zh-dangerType"
+            label="职业病危害类别"
+          />
+          <el-table-column
+            prop="healthLeader"
+            label="职业卫生管理负责人"
+          />
+          <el-table-column
+            prop="phone"
+            label="电话"
+          />
+          <el-table-column
+            prop="projectName"
+            label="项目名称"
+          />
+          <el-table-column
+            prop="projectLeader"
+            label="项目负责人"
+          />
+          <el-table-column
+            prop="zh-stage"
+            label="项目现处阶段"
+          />
+          <el-table-column prop="operatorName" label="操作人" />
+          <el-table-column prop="updateTime" label="操作时间" />
+        </el-table>
+      </el-dialog>
+
+      <!-- 用于预览上传多张图片的dialog -->
+      <pic-dialog :visible.sync="sunViewPics" :pic-list="sunPicList" />
+      <!-- 用于预览多文件的dialog -->
+      <file-dialog :visible.sync="sunFileVisible" :file-list="sunFileList" />
+    </div>
+  </div>
+</template>
+
+<script>
+import { getProjectsList } from '@/api/config' // 获取项目列表API
+import { zhClassify } from '@/utils'
+import { validateIsPhone } from '@/utils/regList'
+import { healthProjectAdd, healthProjectDelete, healthProjectUpdate, healthProjectList, historyHealthProject } from '@/api/occupationalHealth/projectOccupationalHealth'
+export default {
+  data() {
+    const validatePhone = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('手机号码不能为空'))
+      }
+      if (!validateIsPhone(value)) {
+        callback(new Error('请输入正确的手机号码'))
+      }
+      callback()
+    }
+    return {
+      params: {
+        page: 1,
+        size: 12,
+        workplaceId: 0
+      },
+      page: { list: [], page: 0, size: 0, total: 0, totalPage: 0 },
+      projectOccupationalHealthForm: {
+        dangerType: '',
+        healthLeader: '',
+        phone: '',
+        projectId: null,
+        projectLeader: '',
+        stage: ''
+      },
+      projectOccupationalHealthFormRules: {
+        dangerType: [{ required: true, message: '请选择职业病危害类别', trigger: 'blur' }],
+        healthLeader: [{ required: true, message: '职业卫生管理负责人不能为空', trigger: 'blur' }],
+        phone: [
+          { validator: validatePhone, trigger: 'blur' },
+          { validator: validatePhone, trigger: 'change' }],
+        projectId: [{ required: true, message: '项目编号不能为空', trigger: 'blur' }],
+        projectLeader: [{ required: true, message: '项目负责人不能为空', trigger: 'blur' }],
+        stage: [{ required: true, message: '项目现处阶段不能为空', trigger: 'blur' }]
+      },
+      projectOptions: [],
+      // 职业健康项目
+      projectOccupationalHealthListLoading: true,
+      projectOccupationalHealthFormDialog: false,
+      historyProjectOccupationalHealthTable: false,
+      historyProjectOccupationalHealthDialog: false,
+      btnLoading: false
+    }
+  },
+  created() {
+    this.fetchData()
+    getProjectsList().then(res => {
+      const data = res.data.obj
+      this.projectOptions = data.map(item => {
+        return {
+          label: item.projectName,
+          value: item.id
+        }
+      })
+    })
+  },
+  methods: {
+    // 分页
+    handleSizeChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.params.size = val
+      this.fetchData()
+    },
+    // 获取信息
+    fetchData() {
+      this.projectOccupationalHealthListLoading = true
+      healthProjectList(this.params).then(res => {
+        this.projectOccupationalHealthListLoading = false
+        this.page = res.data.obj
+        const list = zhClassify(this.page.list, [['职业病危害类别', 'dangerType'], ['项目现处阶段', 'stage']])
+        this.table = list
+      })
+    },
+    // 职业健康
+    delprojectOccupationalHealthForm(index, row) {
+      this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+        .then(() => {
+          healthProjectDelete(Object.assign({}, row).id).then(res => {
+            this.fetchData()
+          })
+        })
+    },
+    // 提交的按钮
+    projectOccupationalHealthFormSubmit() {
+      this.$refs.projectOccupationalHealthForm.validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          if (this.handle === '添加') {
+            healthProjectAdd(this.projectOccupationalHealthForm).then(res => {
+              this.btnLoading = false
+              this.projectOccupationalHealthFormDialog = false
+              this.fetchData()
+            })
+          } else if (this.handle === '修改') {
+            healthProjectUpdate(this.projectOccupationalHealthForm).then((res) => {
+              this.btnLoading = false
+              this.projectOccupationalHealthFormDialog = false
+              this.fetchData()
+            })
+          }
+        } else {
+          console.log('error submit!!')
+          return false
+        }
+      })
+    },
+    // 打开健康项目的窗口
+    editprojectOccupationalHealthForm(scope) {
+      this.handle = '修改'
+      // 获得所有数据显示在编辑信息模态框里面;
+      this.projectOccupationalHealthFormDialog = true
+      this.$nextTick(() => {
+        this.projectOccupationalHealthForm = { ...scope.row }
+        this.projectOccupationalHealthForm.year = this.projectOccupationalHealthForm.year + ''
+      })
+    },
+    addprojectOccupationalHealthForm() {
+      this.handle = '添加'
+      // 默认表格为空
+      this.$nextTick(() => {
+        // 每次打开，重置表单并清除验证
+        this.projectOccupationalHealthForm.year = null
+        this.projectOccupationalHealthForm.newInjuries = null
+        this.projectOccupationalHealthForm.title = null
+        this.projectOccupationalHealthForm.injuriesNumber = null
+        this.projectOccupationalHealthForm.remarks = null
+      })
+      this.projectOccupationalHealthFormDialog = true
+    },
+
+    // 查看历史修改
+    history(scope) {
+      historyHealthProject(scope.row.id).then((res) => {
+        this.historyProjectOccupationalHealthTable = res.data.obj
+        this.historyProjectOccupationalHealthTable = this.historyProjectOccupationalHealthTable.map((item) => {
+          // 改造修改时间
+          item.updateTime = this.parseTime(item.updateTime, '{y}-{m}-{d}')
+          return item
+        })
+        zhClassify(this.historyProjectOccupationalHealthTable, [['职业病危害类别', 'dangerType'], ['项目现处阶段', 'stage']])
+        this.historyProjectOccupationalHealthDialog = true
+      })
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+</style>

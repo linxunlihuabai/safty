@@ -1,0 +1,74 @@
+<template>
+  <el-tooltip
+    class="item"
+    effect="dark"
+    :content="option.content"
+    placement="top"
+    :hide-after="1000"
+    :popper-options="{ boundariesElement: 'body', gpuAcceleration: true }"
+  >
+    <el-button
+      type="text"
+      :size="size"
+      :icon="option.icon"
+      @click.stop="_click"
+    />
+  </el-tooltip>
+</template>
+
+<script>
+export default {
+  props: {
+    options: {
+      type: Object,
+      default: null
+    },
+    type: {
+      type: String,
+      required: true
+    },
+    size: {
+      type: String,
+      default: 'mini'
+    }
+  },
+  data() {
+    return {
+
+    }
+  },
+  computed: {
+    option() {
+      let data
+      if (this.options) {
+        return this.options
+      }
+
+      if (this.type === 'view') {
+        data = this.GLOBAL.BUTTON_TIPS.VIEW
+      } else if (this.type === 'edit') {
+        data = this.GLOBAL.BUTTON_TIPS.EDIT
+      } else if (this.type === 'delete') {
+        data = this.GLOBAL.BUTTON_TIPS.DELETE
+      } else if (this.type === 'history') {
+        data = this.GLOBAL.BUTTON_TIPS.HISTORY
+      } else if (this.type === 'add') {
+        data = this.GLOBAL.BUTTON_TIPS.ADD
+      }
+      return data
+    }
+  },
+  methods: {
+    _click() {
+      this.$emit('click')
+    }
+  }
+
+}
+</script>
+
+<style>
+.el-tooltip__popper{
+  white-space: nowrap
+}
+</style>

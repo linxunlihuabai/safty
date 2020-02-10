@@ -1,0 +1,41 @@
+// 百度地图标签的偏移值
+const BMAP_LABEL_OFFSET = { width: 20, height: -10 }
+
+// 文件上传接口
+const FILE_API = '/ajax/upload'
+
+// 文件上传类型
+// 上传类型（企业资质：1001，注册证件：1002，许可证扫描件：1003，安全机构设置：1004，规章制度：1005，发票：1006，其他：1010）
+const FILE_TYPE = {
+  QUALIFICATION: { type: 1001 }, // 企业资质
+  REGISTERED_DOCUMENTS: { type: 1002 }, // 注册证件
+  LICENSE_SCANNING_COPY: { type: 1003 }, // 许可证扫描件
+  SECURITY_ORGANIZATION: { type: 1004 }, // 安全机构设置
+  RULES: { type: 1005 }, // 规章制度
+  INVOICE: { type: 1006 }, // 发票
+  OTHER: { type: 1010 } // 其他
+}
+
+// 默认头像
+const DEFAULT_AVATAR = [
+  {
+    name: '男生',
+    url: 'https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=1183896628,1403534286&fm=26&gp=0.jpg'
+  },
+  {
+    name: '女生',
+    url: 'https://ss1.bdstatic.com/70cFvXSh_Q1YnxGkpoWK1HF6hhy/it/u=1698517736,1398535187&fm=26&gp=0.jpg'
+  }
+]
+// 矿山分类
+const MINE_TYPE = {
+  UNDER: { type: 1021 },
+  OPEN: { type: 1022 }
+}
+export default {
+  BMAP_LABEL_OFFSET,
+  FILE_API,
+  FILE_TYPE,
+  DEFAULT_AVATAR,
+  MINE_TYPE
+}

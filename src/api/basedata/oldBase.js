@@ -1,0 +1,31 @@
+import { postRequest, deleteRequest, putRequest, getRequest } from '@/utils/request'
+
+// 人员持证 -> 添加
+export function oldBaseAdd(data) {
+  return postRequest('/basicData/oldBase/add', data)
+}
+
+// 获取老基地所有的经纬度
+export function getCoordinates() {
+  return getRequest('/basicData/oldBase/getCoordinates')
+}
+
+// 人员持证 -> 删除
+export function oldBaseDelete(id) {
+  return deleteRequest(`/basicData/oldBase/delete/${id}`)
+}
+
+// 人员持证 -> 修改
+export function oldBaseUpdate(data) {
+  return putRequest(`/basicData/oldBase/update/${data.id}`, data)
+}
+
+// 人员持证 -> 查看
+export function oldBaseList(data) {
+  return postRequest('/basicData/oldBase/list', data)
+}
+
+// 人员持证 历史修改
+export function historyOldBase(id) {
+  return postRequest(`/basicData/oldBase/historys/${id}`)
+}

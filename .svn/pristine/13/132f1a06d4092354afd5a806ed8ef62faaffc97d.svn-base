@@ -1,0 +1,94 @@
+<template>
+  <div :class="className" :style="{height:height,width:width}" />
+</template>
+
+<script>
+import echarts from 'echarts'
+require('echarts/theme/macarons') // echarts theme
+import resize from './mixins/resize'
+
+const animationDuration = 6000
+
+export default {
+  mixins: [resize],
+  props: {
+    className: {
+      type: String,
+      default: 'chart'
+    },
+    width: {
+      type: String,
+      default: '100%'
+    },
+    height: {
+      type: String,
+      default: '600px'
+    }
+  },
+  data() {
+    return {
+      chart: null
+    }
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this.initChart()
+    })
+  },
+  beforeDestroy() {
+    if (!this.chart) {
+      return
+    }
+    this.chart.dispose()
+    this.chart = null
+  },
+  methods: {
+    initChart() {
+      this.chart = echarts.init(this.$el, 'macarons')
+
+      this.chart.setOption({
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        legend: {
+          data: ['2011年', '2012年', '2013年']
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'value',
+          boundaryGap: [0, 0.01]
+        },
+        yAxis: {
+          type: 'category',
+          data: ['在岗人数', '外用工人数', '死亡人数', '工伤人数']
+        },
+        series: [
+          {
+            name: '2011年',
+            type: 'bar',
+            data: [182, 234, 290, 104]
+          },
+          {
+            name: '2012年',
+            type: 'bar',
+            data: [195, 28, 30, 194]
+          },
+          {
+            name: '2013年',
+            type: 'bar',
+            data: [95, 18, 39, 14]
+          }
+        ]
+      })
+    }
+  }
+}
+</script>
